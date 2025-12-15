@@ -200,7 +200,11 @@ prepare_rules <- function(rules) {
     dplyr::rename(dplyr::any_of(c(
       rule_method = "method",
       rule_fragment_position = "fragment"
-    )))
+    ))) %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("rule_fragment_position")),
+                    list_to_character)
+    )
 
   if (tibble::has_name(rules, "parameters")) {
     prepared_rules %>%

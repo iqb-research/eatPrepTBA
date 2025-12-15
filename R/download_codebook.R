@@ -145,7 +145,7 @@ setMethod("download_codebook",
             unit_ids %>%
               purrr::map(
                 function(ws) {
-                  final_path <-stringr::str_glue("{path}/{file_prefix}{ws$ws_label}.{format}")
+                  final_path <- stringr::str_glue("{path}/{file_prefix}{ws$ws_label}.{format}")
                   run_safe(run_req(ws),
                            error_message = "Codebook could not be generated. Please check if you have already,
                      opened {.file {final_path}} (that migh cause the error).")

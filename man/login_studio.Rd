@@ -6,7 +6,7 @@
 \usage{
 login_studio(
   base_url = "https://www.iqb-studio.de/",
-  app_version = "13.5.0",
+  app_version = "13.8.0",
   keyring = FALSE,
   change_key = FALSE,
   dialog = TRUE,
@@ -16,7 +16,7 @@ login_studio(
 \arguments{
 \item{base_url}{Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.}
 
-\item{app_version}{Character. App version of the IQB Studio instance. Defaults to "13.5.0".}
+\item{app_version}{Character. App version of the IQB Studio instance. Defaults to "13.8.0".}
 
 \item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
 
@@ -38,7 +38,7 @@ on the \code{base_url} (default is "https://www.iqb-studio.de/) with the \code{n
 and the \code{password} provided by the user:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{curl --location --request POST '\{base_url\}/api/login?username=\{name\}&password=\{password\}'
---header 'app-version: 13.5.0'
+--header 'app-version: 13.8.0'
 \}'
 }\if{html}{\out{</div>}}
 
