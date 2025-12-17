@@ -7,9 +7,19 @@ Functions and classes for communicating with the IQB Testcenter API
 ### Functions for access
 
 - [`login_studio()`](https://franikowsp.github.io/eatPrepTBA/reference/login_studio.md)
-  : Generate a LoginStudio object for the IQB Studio Lite
+  :
+
+  Generate a
+  [LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.html)
+  object for the IQB Studio Lite
+
 - [`login_testcenter()`](https://franikowsp.github.io/eatPrepTBA/reference/login_testcenter.md)
-  : Generate a LoginTestcenter object for the IQB Testcenter
+  :
+
+  Generate a
+  [LoginTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/LoginTestcenter-class.html)
+  object for the IQB Testcenter
+
 - [`access_workspace()`](https://franikowsp.github.io/eatPrepTBA/reference/access_workspace.md)
   : Access a workspace
 
@@ -66,7 +76,7 @@ Functions to prepare unit data from IQB Studio or Testcenter
 - [`read_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/read_responses.md)
   : Reads responses files
 - [`prepare_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/prepare_responses.md)
-  **\[experimental\]** : Prepares responses
+  **\[experimentell\]** : Prepares responses
 - [`get_system_checks()`](https://franikowsp.github.io/eatPrepTBA/reference/get_system_checks.md)
   : Get system check reports
 - [`read_system_checks()`](https://franikowsp.github.io/eatPrepTBA/reference/read_system_checks.md)
@@ -88,7 +98,7 @@ Functions to prepare unit data from IQB Studio or Testcenter
 - [`read_logs()`](https://franikowsp.github.io/eatPrepTBA/reference/read_logs.md)
   : Reads log files
 - [`prepare_logs()`](https://franikowsp.github.io/eatPrepTBA/reference/prepare_logs.md)
-  **\[experimental\]** : Prepares logs
+  **\[experimentell\]** : Prepares logs
 - [`get_reviews()`](https://franikowsp.github.io/eatPrepTBA/reference/get_reviews.md)
   : Get reviews
 - [`compute_sizes()`](https://franikowsp.github.io/eatPrepTBA/reference/compute_sizes.md)
@@ -133,7 +143,7 @@ Functions to check units, prepare material for administration and coding
 - [`generate_testtakers()`](https://franikowsp.github.io/eatPrepTBA/reference/generate_testtakers.md)
   : Generates testtakers XML from unit information
 - [`generate_booklet()`](https://franikowsp.github.io/eatPrepTBA/reference/generate_booklet.md)
-  **\[deprecated\]** : Generates booklets XML from unit information
+  **\[veraltet\]** : Generates booklets XML from unit information
 - [`generate_booklets()`](https://franikowsp.github.io/eatPrepTBA/reference/generate_booklets.md)
   : Generates booklet XMLs from booklet, testlet, and unit information
 - [`upload_file()`](https://franikowsp.github.io/eatPrepTBA/reference/upload_file.md)
@@ -146,7 +156,7 @@ Functions to check units, prepare material for administration and coding
 - [`complete_design()`](https://franikowsp.github.io/eatPrepTBA/reference/complete_design.md)
   : Complete design with coded responses
 - [`estimate_unit_times()`](https://franikowsp.github.io/eatPrepTBA/reference/estimate_unit_times.md)
-  **\[experimental\]** : Estimates stay times from log data
+  **\[experimentell\]** : Estimates stay times from log data
 - [`evaluate_psychometrics()`](https://franikowsp.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
   : Evaluates frequencies and discrimination parameters of codes and
   categories
