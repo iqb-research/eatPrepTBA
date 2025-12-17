@@ -15,7 +15,7 @@ get_reviews(workspace, groups = NULL, use_new_version = TRUE)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   IQB Testcenter workspace information necessary to retrieve reviews
   from the API.
 

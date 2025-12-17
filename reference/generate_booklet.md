@@ -35,7 +35,7 @@ generate_booklet(
 - booklet_configuration:
 
   A list that can be submitted to
-  [`configure_booklet()`](https://franikowsp.github.io/eatPrepTBA/reference/configure_booklet.md).
+  [`configure_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/configure_booklet.md).
 
 - units:
 

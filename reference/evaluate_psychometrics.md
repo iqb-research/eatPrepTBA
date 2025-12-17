@@ -21,18 +21,18 @@ evaluate_psychometrics(
 - design_coded:
 
   Tibble. Response data within the design merged by
-  [`complete_design()`](https://franikowsp.github.io/eatPrepTBA/reference/complete_design.md).
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md).
 
 - units:
 
   Tibble. Unit data retrieved from the IQB Studio after setting the
   argument `metadata = TRUE` for
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md)
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
   – otherwise the item values could only be inferred from the variable
   source tree, i.e., item scores are taken from variable scores that are
   no source variables for other derived variables. Could optionally also
   contain `unit_codes` prepared by
-  [`add_coding_scheme()`](https://franikowsp.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+  [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   (saves some time).
 
 - domains:

@@ -20,19 +20,19 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve design information.
 
 - units:
 
   Tibble (optional). Unit data retrieved from the IQB Studio after
   setting the argument `metadata = TRUE` for
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md)
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
   – otherwise the item values could only be inferred from the variable
   source tree, i.e., item scores are taken from variable scores that are
   no source variables for other derived variables. Could optionally also
   contain `unit_codes` prepared by
-  [`add_coding_scheme()`](https://franikowsp.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+  [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   (saves some time).
 
 - overwrite:

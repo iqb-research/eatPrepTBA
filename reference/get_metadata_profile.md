@@ -2,7 +2,7 @@
 
 This function only returns the unit information and coding scheme for a
 single unit. To retrieve multiple units, use
-[`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md).
+[`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 
 ## Usage
 

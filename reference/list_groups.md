@@ -15,7 +15,7 @@ list_groups(workspace)
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to retrieve group list from the API.
 
 ## Value

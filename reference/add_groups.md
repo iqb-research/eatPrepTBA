@@ -15,7 +15,7 @@ add_groups(workspace, group_names)
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to add groups
 
 - group_names:

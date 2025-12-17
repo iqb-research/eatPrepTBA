@@ -15,7 +15,7 @@ prepare_source_tree(coding_scheme)
 - coding_scheme:
 
   Coding scheme as prepared by
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md)
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
   with setting the argument `coding_scheme = TRUE`.
 
 ## Value

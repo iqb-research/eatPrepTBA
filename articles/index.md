@@ -2,6 +2,6 @@
 
 ### All vignettes
 
-- [eatPrepTBA](https://franikowsp.github.io/eatPrepTBA/articles/eatPrepTBA.md):
+- [eatPrepTBA](https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.md):
 - [Prepare
-  Codebooks](https://franikowsp.github.io/eatPrepTBA/articles/prepare-codebooks.md):
+  Codebooks](https://iqb-research.github.io/eatPrepTBA/articles/prepare-codebooks.md):

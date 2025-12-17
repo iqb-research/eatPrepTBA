@@ -25,7 +25,7 @@ upload_file(
 
 - workspace:
 
-  [Workspace](https://franikowsp.github.io/eatPrepTBA/reference/Workspace-class.md).
+  [Workspace](https://iqb-research.github.io/eatPrepTBA/reference/Workspace-class.md).
   Workspace information necessary to upload file via the API.
 
 - path:

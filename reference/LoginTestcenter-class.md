@@ -2,7 +2,7 @@
 
 A class extending the Login class with additional information for the
 IQB Testcenter It can be created by the function
-[`login_testcenter()`](https://franikowsp.github.io/eatPrepTBA/reference/login_testcenter.md).
+[`login_testcenter()`](https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.md).
 
 ## Slots
 

@@ -22,7 +22,7 @@ download_units(
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to download files via the API.
 
 - path:

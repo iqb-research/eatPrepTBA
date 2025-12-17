@@ -15,7 +15,7 @@ get_results(workspace)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve results information.
 
 ## Value

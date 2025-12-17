@@ -16,7 +16,7 @@ get_system_checks(workspace, groups = NULL, prepare = TRUE)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve unit information and
   resources from the API.
 

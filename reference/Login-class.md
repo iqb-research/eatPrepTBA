@@ -3,9 +3,9 @@
 A class containing the token to communicate with the API of either the
 IQB Studio Lite or the IQB Testcenter. Objects of this class will be
 created by the function
-[`login_studio()`](https://franikowsp.github.io/eatPrepTBA/reference/login_studio.md)
+[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
 or
-[`login_testcenter()`](https://franikowsp.github.io/eatPrepTBA/reference/login_testcenter.md).
+[`login_testcenter()`](https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.md).
 
 ## Slots
 

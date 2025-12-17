@@ -13,7 +13,7 @@ compute_sizes(data)
 - data:
 
   Tibble. Must be a tibble retrieved with
-  [`list_files()`](https://franikowsp.github.io/eatPrepTBA/reference/list_files.md)
+  [`list_files()`](https://iqb-research.github.io/eatPrepTBA/reference/list_files.md)
   with `dependencies = TRUE`.
 
 ## Value

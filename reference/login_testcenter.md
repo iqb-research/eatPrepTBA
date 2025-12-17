@@ -1,4 +1,4 @@
-# Generate a [LoginTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/LoginTestcenter-class.md) object for the IQB Testcenter
+# Generate a [LoginTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.md) object for the IQB Testcenter
 
 Provides a routine to login to an instance of the IQB Testcenter.
 
@@ -54,7 +54,7 @@ login_testcenter(
 ## Value
 
 An object of the
-[LoginTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/LoginTestcenter-class.md)
+[LoginTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.md)
 class.
 
 ## Details
@@ -72,5 +72,5 @@ with the `name` and the `password` provided by the user:
 
 Note that the name and the password are only available to the function
 call and cannot be accessed later as they are not part of the
-[Login](https://franikowsp.github.io/eatPrepTBA/reference/Login-class.md)
+[Login](https://iqb-research.github.io/eatPrepTBA/reference/Login-class.md)
 object generated.

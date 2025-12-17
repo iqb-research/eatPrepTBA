@@ -16,9 +16,9 @@ prepare_responses(responses)
 - responses:
 
   Tibble. Responses retrieved from the IQB Testcenter via
-  [`get_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/get_responses.md)
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   or from an extracted csv and read via
-  [`read_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/read_responses.md).
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
 ## Value
 

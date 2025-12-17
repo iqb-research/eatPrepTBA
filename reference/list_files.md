@@ -1,10 +1,10 @@
 # List files
 
 Please note the wrapper functions
-[`list_units()`](https://franikowsp.github.io/eatPrepTBA/reference/list_units.md),
-[`list_booklets()`](https://franikowsp.github.io/eatPrepTBA/reference/list_booklets.md),
+[`list_units()`](https://iqb-research.github.io/eatPrepTBA/reference/list_units.md),
+[`list_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/list_booklets.md),
 and
-[`list_testtakers()`](https://franikowsp.github.io/eatPrepTBA/reference/list_testtakers.md).
+[`list_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/list_testtakers.md).
 
 ## Usage
 
@@ -19,7 +19,7 @@ list_files(workspace, type = NULL, dependencies = FALSE)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve file list from the API.
 
 - type:

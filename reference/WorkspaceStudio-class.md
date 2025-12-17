@@ -2,7 +2,7 @@
 
 A class extending the Login class with additional information for the
 IQB Studio. It can be created by the function
-[`login_studio()`](https://franikowsp.github.io/eatPrepTBA/reference/login_studio.md).
+[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md).
 
 ## Slots
 
@@ -17,7 +17,7 @@ IQB Studio. It can be created by the function
 
 - `login`:
 
-  [LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.md).
+  [LoginStudio](https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.md).
   Login information for the IQB Studio.
 
 - `wsg_id`:

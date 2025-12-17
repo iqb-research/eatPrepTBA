@@ -16,7 +16,7 @@ add_comment(login, ws_id, unit_id, parent_id = NULL, comment = NULL)
 
 - login:
 
-  [LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.md).
+  [LoginStudio](https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.md).
   Login information necessary to add comments.
 
 - ws_id:

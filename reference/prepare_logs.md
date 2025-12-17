@@ -16,9 +16,9 @@ prepare_logs(logs, log_events = NULL)
 - logs:
 
   Tibble. Responses retrieved from the IQB Testcenter via
-  [`get_logs()`](https://franikowsp.github.io/eatPrepTBA/reference/get_logs.md)
+  [`get_logs()`](https://iqb-research.github.io/eatPrepTBA/reference/get_logs.md)
   or from an extracted csv and read via
-  [`read_logs()`](https://franikowsp.github.io/eatPrepTBA/reference/read_logs.md).
+  [`read_logs()`](https://iqb-research.github.io/eatPrepTBA/reference/read_logs.md).
 
 - log_events:
 

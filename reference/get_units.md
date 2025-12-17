@@ -15,7 +15,7 @@ get_units(workspace, units = NULL, metadata = TRUE, unit_definition = FALSE)
 
 - workspace:
 
-  [Workspace](https://franikowsp.github.io/eatPrepTBA/reference/Workspace-class.md).
+  [Workspace](https://iqb-research.github.io/eatPrepTBA/reference/Workspace-class.md).
   Workspace information necessary to retrieve unit information and
   resources from the API.
 

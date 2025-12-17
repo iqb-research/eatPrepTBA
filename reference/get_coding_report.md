@@ -16,7 +16,7 @@ get_coding_report(workspace)
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to retrieve the coding report.
 
 ## Value

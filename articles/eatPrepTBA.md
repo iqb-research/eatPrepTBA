@@ -49,7 +49,7 @@ booklets, and units) and results (i.e., responses and log data).
 ## Retrieve files from the workspace
 
 Using the output of
-[`access_workspace()`](https://franikowsp.github.io/eatPrepTBA/reference/access_workspace.md),
+[`access_workspace()`](https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.md),
 one can list (`list*()` family) the different types of files. These
 files can also be retrieved as `R` objects, i.e., `tibble`s (`get*()`
 family).
@@ -57,9 +57,9 @@ family).
 ### Testtakers
 
 These functions allow to list all testtaker files
-([`list_testtakers()`](https://franikowsp.github.io/eatPrepTBA/reference/list_testtakers.md))
+([`list_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/list_testtakers.md))
 and return the associated testtaker information
-([`get_testtakers()`](https://franikowsp.github.io/eatPrepTBA/reference/get_testtakers.md)),
+([`get_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/get_testtakers.md)),
 i.e., a list of all logins for potential testtakers.
 
 ``` r
@@ -70,9 +70,9 @@ i.e., a list of all logins for potential testtakers.
 ### Booklets
 
 These functions list all booklet files
-([`list_booklets()`](https://franikowsp.github.io/eatPrepTBA/reference/list_booklets.md))
+([`list_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/list_booklets.md))
 and return the associated designs
-([`get_booklets()`](https://franikowsp.github.io/eatPrepTBA/reference/get_booklets.md)).
+([`get_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/get_booklets.md)).
 
 ``` r
 # list_booklets(workspace = workspace)
@@ -82,9 +82,9 @@ and return the associated designs
 ### Units
 
 These functions list all unit files
-([`list_units()`](https://franikowsp.github.io/eatPrepTBA/reference/list_units.md))
+([`list_units()`](https://iqb-research.github.io/eatPrepTBA/reference/list_units.md))
 and return the associated unit meta data
-([`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md)),
+([`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)),
 i.e., the item information and the coding scheme used for scoring the
 responses.
 

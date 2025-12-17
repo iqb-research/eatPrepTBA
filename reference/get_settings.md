@@ -15,7 +15,7 @@ get_settings(workspace, metadata = TRUE)
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to retrieve unit information and
   resources from the API.
 

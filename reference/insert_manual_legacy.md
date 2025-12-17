@@ -20,7 +20,7 @@ insert_manual_legacy(unit_responses, unit_codes_manual)
 
   Character. Coding scheme of the unit retrieved from the IQB Studio
   after setting the argument `coding_scheme = TRUE` for
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md).
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 
 ## Value
 

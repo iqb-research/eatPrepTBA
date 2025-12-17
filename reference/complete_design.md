@@ -20,23 +20,23 @@ complete_design(
 - coded:
 
   Tibble. Response data coded with
-  [`code_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/code_responses.md).
+  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md).
   The argument `prepare` must be `TRUE`.
 
 - units:
 
   Tibble. Unit data retrieved from the IQB Studio after setting the
   argument `unit_definition = TRUE` for
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md)
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
   – otherwise the page order of variables could not be correctly
   inferred from the variable source tree. Could already be treated by
-  [`add_coding_scheme()`](https://franikowsp.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+  [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   to save some time.
 
 - design:
 
   Tibble. Design retrieved from Testcenter via
-  [`get_design()`](https://franikowsp.github.io/eatPrepTBA/reference/get_design.md)
+  [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
   or an object formatted in the same way.
 
 - identifiers:

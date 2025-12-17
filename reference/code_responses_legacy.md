@@ -26,15 +26,15 @@ code_responses_legacy(
 
   Tibble. Response data retrieved from the IQB Testcenter with setting
   the argument `prepare = FALSE` for
-  [`get_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/get_responses.md)
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   or
-  [`read_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/read_responses.md).
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
 - units:
 
   Tibble. Unit data retrieved from the IQB Studio after setting the
   argument `coding_scheme = TRUE` for
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md).
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 
 - prepare:
 

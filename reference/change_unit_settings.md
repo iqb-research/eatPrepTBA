@@ -3,7 +3,7 @@
 This function updates the Studio metadata, i.e., versions for player,
 editor, or schemer, and the groups and the states of a single unit. To
 change multiple units, use
-[`change_units_settings()`](https://franikowsp.github.io/eatPrepTBA/reference/change_units_settings.md).
+[`change_units_settings()`](https://iqb-research.github.io/eatPrepTBA/reference/change_units_settings.md).
 Please note that invalid inputs will result in a default version (e.g.,
 the newest one in case of `editor`, `player`, or `schemer`) or be
 ignored (in case of group_name or `state`).
@@ -43,7 +43,7 @@ change_unit_settings(
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to retrieve unit information and
   resources from the API.
 

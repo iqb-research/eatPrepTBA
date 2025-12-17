@@ -1,4 +1,4 @@
-# Generate a [LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.md) object for the IQB Studio Lite
+# Generate a [LoginStudio](https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.md) object for the IQB Studio Lite
 
 Provides a routine to login to an instance of the IQB Studio Lite.
 
@@ -53,7 +53,7 @@ login_studio(
 ## Value
 
 An object of the
-[LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.md)
+[LoginStudio](https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.md)
 class.
 
 ## Details
@@ -68,5 +68,5 @@ the `name` and the `password` provided by the user:
 
 Note that the name and the password are only available to the function
 call and cannot be accessed later as they are not part of the
-[Login](https://franikowsp.github.io/eatPrepTBA/reference/Login-class.md)
+[Login](https://iqb-research.github.io/eatPrepTBA/reference/Login-class.md)
 object generated.

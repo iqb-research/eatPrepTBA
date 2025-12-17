@@ -16,7 +16,7 @@ list_system_checks(workspace)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve system check file list
   from the API.
 

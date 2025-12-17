@@ -21,14 +21,14 @@ code_responses(
 
   Tibble. Response data retrieved from the IQB Testcenter with setting
   the argument `prepare = FALSE` for
-  [`get_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/get_responses.md)
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   or
-  [`read_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/read_responses.md).
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
 - units:
 
   Tibble. Unit data retrieved from the IQB Studio with
-  [`get_units()`](https://franikowsp.github.io/eatPrepTBA/reference/get_units.md).
+  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 
 - prepare:
 
@@ -55,9 +55,9 @@ code_responses(
   This function automatically codes responses by using the `eatAutoCode`
   package. It is already prepared for the new data format of the
   responses received from the
-  [`get_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/get_responses.md)
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   and
-  [`read_responses()`](https://franikowsp.github.io/eatPrepTBA/reference/read_responses.md)
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
   routines. This function will soon be deleted and be part of
   `code_responses()`.
 

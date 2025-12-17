@@ -1,7 +1,7 @@
 # Prepares a rectangular codebook
 
 This function is a wrapper around
-[`download_units()`](https://franikowsp.github.io/eatPrepTBA/reference/download_units.md)
+[`download_units()`](https://iqb-research.github.io/eatPrepTBA/reference/download_units.md)
 that provides a rectangular codebook.
 
 ## Usage
@@ -43,7 +43,7 @@ prepare_codebook(
 
 - workspace:
 
-  [WorkspaceStudio](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
+  [WorkspaceStudio](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.md).
   Workspace information necessary to download codebook via the API.
 
 - unit_keys:

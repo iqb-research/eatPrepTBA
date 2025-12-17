@@ -1,7 +1,7 @@
 # List booklet files
 
 This function serves as a wrapper for
-[`list_files()`](https://franikowsp.github.io/eatPrepTBA/reference/list_files.md).
+[`list_files()`](https://iqb-research.github.io/eatPrepTBA/reference/list_files.md).
 
 ## Usage
 
@@ -16,7 +16,7 @@ list_booklets(workspace)
 
 - workspace:
 
-  [WorkspaceTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
+  [WorkspaceTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.md).
   Workspace information necessary to retrieve booklet list from the API.
 
 ## Value

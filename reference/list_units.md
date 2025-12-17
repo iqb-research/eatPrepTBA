@@ -18,7 +18,7 @@ list_units(workspace)
 
 - workspace:
 
-  [Workspace](https://franikowsp.github.io/eatPrepTBA/reference/Workspace-class.md).
+  [Workspace](https://iqb-research.github.io/eatPrepTBA/reference/Workspace-class.md).
   Workspace information necessary to retrieve unit list from the API.
 
 ## Value
@@ -30,7 +30,7 @@ A tibble.
 This function returns a list of all units in a given workspace.
 
 This function serves as a wrapper for
-[`list_files()`](https://franikowsp.github.io/eatPrepTBA/reference/list_files.md).
+[`list_files()`](https://iqb-research.github.io/eatPrepTBA/reference/list_files.md).
 
 ## Functions
 
