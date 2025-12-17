@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="favicon/apple-touch-icon-180x180.png" align="right" height="139"/></a>
+# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="vignettes/figures/apple-touch-icon-180x180.png" align="right" height="139"/></a>
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
