@@ -7,9 +7,19 @@ Functions and classes for communicating with the IQB Testcenter API
 ### Functions for access
 
 - [`login_studio()`](https://franikowsp.github.io/eatPrepTBA/reference/login_studio.md)
-  : Generate a LoginStudio object for the IQB Studio Lite
+  :
+
+  Generate a
+  [LoginStudio](https://franikowsp.github.io/eatPrepTBA/reference/LoginStudio-class.html)
+  object for the IQB Studio Lite
+
 - [`login_testcenter()`](https://franikowsp.github.io/eatPrepTBA/reference/login_testcenter.md)
-  : Generate a LoginTestcenter object for the IQB Testcenter
+  :
+
+  Generate a
+  [LoginTestcenter](https://franikowsp.github.io/eatPrepTBA/reference/LoginTestcenter-class.html)
+  object for the IQB Testcenter
+
 - [`access_workspace()`](https://franikowsp.github.io/eatPrepTBA/reference/access_workspace.md)
   : Access a workspace
 
