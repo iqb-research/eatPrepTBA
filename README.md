@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="https://iqb-research.github.io/eatPrepTBA/pkgdown/favicon/apple-touch-icon-180x180.png" align="right" height="139"/></a>
+# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="favicon/apple-touch-icon-180x180.png" align="right" height="139"/></a>
 
 <!-- badges: start -->
 
