@@ -2,8 +2,9 @@ Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assesssment (TBA)
 Version: 0.9.8.9001
 Authors@R: 
-    person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-2109-7388"))
+    c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-2109-7388")),
+    person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-6688-1267")))
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
