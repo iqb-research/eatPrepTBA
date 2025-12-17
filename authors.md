@@ -5,6 +5,9 @@
 - **Philipp Franikowski**. Author, maintainer.
   [](https://orcid.org/0000-0002-2109-7388)
 
+- **Karoline Sachse**. Contributor.
+  [](https://orcid.org/0000-0001-6688-1267)
+
 ## Citation
 
 Franikowski P (2025). *eatPrepTBA: Prepare IQB Technology Based
