@@ -1,26 +1,20 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/404.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/LICENSE-text.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/LICENSE.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/index.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/prepare-codebooks.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/authors.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/index.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/Login-class.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/Workspace-class.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/LICENSE-text.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/LICENSE.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_comment.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_groups.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_source_tree.html</loc></url>
-<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/change_unit_settings.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/change_units_settings.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/change_unit_settings.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/code_responses.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/code_responses_legacy.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/code_unit_legacy.html</loc></url>
@@ -59,6 +53,9 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/list_system_checks.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/list_testtakers.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/list_units.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/Login-class.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/login_studio.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/pipe.html</loc></url>
@@ -74,5 +71,8 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/read_testtakers.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/restrict_testlet.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/upload_file.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/Workspace-class.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceStudio-class.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/WorkspaceTestcenter-class.html</loc></url>
 </urlset>
 
