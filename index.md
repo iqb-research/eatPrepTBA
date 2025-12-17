@@ -1,4 +1,4 @@
-# eatPrepTBA [![](pkgdown\favicon\apple-touch-icon-180x180.png)](https://iqb-research.github.io/eatPrepTBA/)
+# eatPrepTBA [![](https://iqb-research.github.io/eatPrepTBA/pkgdown/favicon/apple-touch-icon-180x180.png)](https://iqb-research.github.io/eatPrepTBA/)
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with
 the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some
