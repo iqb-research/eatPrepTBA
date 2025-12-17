@@ -1,13 +1,13 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="man/figures/logo.svg" align="right" height="139"/></a>
+# eatPrepTBA <a href="https://iqb-research.github.io/eatPrepTBA/"><img src="pkgdown\favicon\apple-touch-icon-180x180.png" align="right" height="139"/></a>
 
 <!-- badges: start -->
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/franikowsp/eatPrepTBA/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with
