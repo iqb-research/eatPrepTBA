@@ -4,6 +4,7 @@ Version: 0.9.8.9001
 Authors@R: 
     person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2109-7388"))
+Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
     Moreover, provides some routines for preparing and blending data from these different
@@ -37,7 +38,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
-Remotes: franikowsp/eatAutoCode
+Remotes: iqb-research/eatAutoCode
 Config/testthat/edition: 3
-URL: https://franikowsp.github.io/eatPrepTBA/
+URL: https://iqb-research.github.io/eatPrepTBA/
 VignetteBuilder: knitr
