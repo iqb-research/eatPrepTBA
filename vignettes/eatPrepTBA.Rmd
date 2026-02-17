@@ -29,6 +29,26 @@ The goal of `eatPrepTBA` is to provide wrapper functions to interact with the IQ
 # library(eatPrepTBA)
 ```
 
+
+## IQB-Studio Login
+
+To log in to the IQB Studio, you can call the function `login_studio()`.
+
+```{r}
+#login <- login_studio(keyring = TRUE, app_version = "13.10.0")
+```
+
+This is equivalent to logging into the studio by entering your username and password on https://www.iqb-studio.de.
+
+
+The `app_version` needs to be updated manually and can be found on https://www.iqb-studio.de.
+
+```{r, out.width="70%", echo = FALSE}
+knitr::include_graphics("images/IQB_Studio_Version.png")
+```
+
+
+
 ## Login to the IQB Testcenter
 
 To log in to the IQB Testcenter, you can call the function `create_login()`. You will be asked to provide your user name and your password (either in the console or a dialog when using RStudio). The function invisibly provides an access token, i.e., something like a key to all of your studies, that can be used on other function calls to retrieve data from the IQB Testcenter. To use this key in other functions, it should be assigned to an `R` object, e.g., `login`.
