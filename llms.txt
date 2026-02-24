@@ -125,6 +125,8 @@ Functions to prepare unit data from IQB Studio or Testcenter
   : Get reviews
 - [`compute_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_sizes.md)
   : Computes resource sizes for Testcenter instances
+- [`prepare_coded()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coded.md)
+  **\[experimental\]** : Prepares codes
 
 ### Functions for units
 
