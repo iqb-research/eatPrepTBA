@@ -31,7 +31,7 @@ add_metadata <- function(units) {
     # TODO: This could possibly be removed in 2026 (all relevant units should have updated metdata profiles)
     dplyr::rowwise() %>%
     dplyr::mutate(
-      unit_has_uuids = dplyr::if_any(dplyr::any_of("item_uuid"), ~ !is.na(.), .default = FALSE)
+      unit_has_uuids = rowSums(!is.na(dplyr::pick(dplyr::any_of("item_uuid")))) > 0
     ) %>%
     {
       if ("item_uuid" %in% names(.)) {
