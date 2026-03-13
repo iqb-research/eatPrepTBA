@@ -13,7 +13,6 @@
 #' @aliases
 #' get_design,WorkspaceTestcenter-method
 #' @export
-
 setGeneric("get_design", function(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return") {
   cli_setting()
 
@@ -23,7 +22,6 @@ setGeneric("get_design", function(workspace, units = NULL, overwrite = FALSE, mo
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve design information.
 #'
 #' @describeIn get_design Get design in a Testcenter workspace
-
 setMethod("get_design",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,

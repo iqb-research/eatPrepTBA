@@ -11,13 +11,11 @@
 #'
 #' @aliases
 #' list_testtakers,WorkspaceTestcenter-method
-
 setGeneric("list_testtakers", function(workspace) {
   standardGeneric("list_testtakers")
 })
 
 #' @describeIn list_testtakers List all testtakers in a given IQB Testcenter workspace
-
 setMethod("list_testtakers",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace) {

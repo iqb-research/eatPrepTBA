@@ -1,4 +1,3 @@
-
 setGeneric("get_files", function(workspace,
                                  id = NULL,
                                  type,

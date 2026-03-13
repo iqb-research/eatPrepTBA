@@ -4,21 +4,18 @@
 #' @param groups Character. Name of the groups to be retrieved  or all groups if not specified. Please note, that this has to be specified in all-capital letters.
 #'
 #' @description
-#' This function returns logs from the IQB Testcenter, reshapes them to a tibble,
-#' and renames some variables.
+#' This function returns logs from the IQB Testcenter
 #'
 #' @return A tibble.
 #' @export
 #'
 #' @aliases
 #' get_logs,WorkspaceTestcenter-method
-
 setGeneric("get_logs", function(workspace, groups = NULL) {
   standardGeneric("get_logs")
 })
 
 #' @describeIn get_logs Get responses of a given Testcenter workspace
-
 setMethod("get_logs",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace, groups = NULL) {

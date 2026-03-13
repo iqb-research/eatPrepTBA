@@ -7,7 +7,6 @@
 #'
 #' @aliases
 #' list_units,WorkspaceStudio-method,WorkspaceTestcenter-method
-
 setGeneric("list_units", function(workspace) {
   standardGeneric("list_units")
 })
@@ -15,7 +14,6 @@ setGeneric("list_units", function(workspace) {
 #' @describeIn list_units List all units in a given IQB Studio workspace
 #' @details
 #' This function returns a list of all units in a given workspace.
-
 setMethod("list_units",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace) {
@@ -59,7 +57,6 @@ setMethod("list_units",
 #' @describeIn list_units List all units in a given IQB Testcenter workspace
 #' @details
 #' This function serves as a wrapper for [list_files()].
-
 setMethod("list_units",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace) {

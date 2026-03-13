@@ -7,7 +7,6 @@
 #'
 #' @return A tibble.
 #' @export
-
 add_metadata <- function(units) {
   cli_setting()
 
@@ -58,7 +57,6 @@ add_metadata <- function(units) {
 
 # Adds profiles to all columns if possible
 #' @keywords internal
-
 add_profile <- function(unit_items, units, md_profile, profiles, extra_columns = NULL) {
   unit_attributes <- attributes(unit_items)
 

@@ -11,7 +11,6 @@
 #'
 #' @aliases
 #' get_responses,WorkspaceTestcenter-method
-
 setGeneric("get_responses", function(workspace,
                                      groups = NULL) {
   cli_setting()
@@ -20,7 +19,6 @@ setGeneric("get_responses", function(workspace,
 })
 
 #' @describeIn get_responses Get responses of a given Testcenter workspace
-
 setMethod("get_responses",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,

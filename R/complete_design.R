@@ -11,7 +11,6 @@
 #'
 #' @return A tibble.
 #' @export
-
 complete_design <- function(coded,
                             units,
                             design,

@@ -25,7 +25,6 @@
 #' Note that the name and the password are only available to the function call
 #' and cannot be accessed later as they are not part of the [Login-class] object generated.
 #' @export
-
 login_studio <- function(base_url = "https://www.iqb-studio.de/",
                          app_version = "13.8.0",
                          keyring = FALSE,

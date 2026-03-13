@@ -15,7 +15,6 @@
 #' add_comment,LoginStudio-method
 #'
 #' @keywords internal
-
 setGeneric("add_comment", function(login,
                                    ws_id,
                                    unit_id,
@@ -28,7 +27,6 @@ setGeneric("add_comment", function(login,
 
 
 #' @describeIn add_comment Add a comment in a defined workspace
-
 setMethod("add_comment",
           signature = signature(login = "LoginStudio"),
           function(login,

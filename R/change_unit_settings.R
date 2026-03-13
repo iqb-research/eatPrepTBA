@@ -20,7 +20,6 @@
 #' change_unit_settings,WorkspaceStudio-method
 #'
 #' @keywords internal
-
 setGeneric("change_unit_settings", function(workspace,
                                             unit_id,
                                             unit_key = NULL,
@@ -38,7 +37,6 @@ setGeneric("change_unit_settings", function(workspace,
 
 
 #' @describeIn change_unit_settings Get unit information and coding scheme in a defined workspace
-
 setMethod("change_unit_settings",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace,

@@ -9,7 +9,6 @@
 #'
 #' @return A tibble.
 #' @export
-
 add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE) {
   cli_setting()
 

@@ -11,7 +11,6 @@
 #' @return A tibble.
 #'
 #' @export
-
 prepare_logs <- function(logs, log_events = NULL) {
   all_events <-
     c("current_unit_id",

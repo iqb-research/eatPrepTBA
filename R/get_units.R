@@ -13,7 +13,6 @@
 #'
 #' @aliases
 #' get_units,WorkspaceTestcenter-method,WorkspaceStudio-method
-
 setGeneric("get_units", function(workspace,
                                  units = NULL,
                                  metadata = TRUE,
@@ -22,7 +21,6 @@ setGeneric("get_units", function(workspace,
 })
 
 #' @describeIn get_units Get multiple unit information and coding schemes in a given Studio workspace
-
 setMethod("get_units",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace,

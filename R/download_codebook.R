@@ -23,7 +23,6 @@
 #'
 #' @aliases
 #' download_codebook,WorkspaceStudio-method
-
 setGeneric("download_codebook", function(workspace,
                                          path,
                                          file_prefix = "",
@@ -54,7 +53,6 @@ setGeneric("download_codebook", function(workspace,
 })
 
 #' @describeIn download_codebook Upload a file in a defined workspace
-
 setMethod("download_codebook",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace,

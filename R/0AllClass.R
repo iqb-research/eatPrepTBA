@@ -12,7 +12,6 @@
 #' @rdname Login-class
 #'
 #' @export
-
 setClass("Login",
          slots = c(
            base_url = "character",
@@ -39,7 +38,6 @@ setClass("Login",
 #' @rdname LoginStudio-class
 #'
 #' @export
-
 setClass("LoginStudio",
          contains = "Login",
          slots = c(
@@ -63,7 +61,6 @@ setClass("LoginStudio",
 #' @rdname LoginTestcenter-class
 #'
 #' @export
-
 setClass("LoginTestcenter",
          contains = "Login")
 
@@ -79,7 +76,6 @@ setClass("LoginTestcenter",
 #' @rdname Workspace-class
 #'
 #' @export
-
 setClass("Workspace",
          slots = c(
            ws_id = "numeric",
@@ -101,7 +97,6 @@ setClass("Workspace",
 #' @rdname WorkspaceStudio-class
 #'
 #' @export
-
 setClass("WorkspaceStudio",
          contains = c("Workspace"),
          slots = c(
@@ -116,14 +111,13 @@ setClass("WorkspaceStudio",
 #' A class extending the Login class with additional information for the IQB Studio. It can be created by the function [login_studio()].
 #'
 #' @slot login [LoginTestcenter-class]. Login information for the IQB Testcenter.
-#' @slot ws_id ID of the workspace group the current workspace belongs to. See URL to identify the workspace group id.
-#' @slot ws_label Label of the workspace group the current workspace belongs to.
+#' @slot wsg_id ID of the workspace group the current workspace belongs to. See URL to identify the workspace group id.
+#' @slot wsg_label Label of the workspace group the current workspace belongs to.
 #'
 #' @name WorkspaceTestcenter-class
 #' @rdname WorkspaceTestcenter-class
 #'
 #' @export
-
 setClass("WorkspaceTestcenter",
          contains = c("Workspace"),
          slots = c(

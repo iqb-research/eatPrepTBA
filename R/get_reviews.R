@@ -12,13 +12,11 @@
 #'
 #' @aliases
 #' get_reviews,WorkspaceTestcenter-method
-
 setGeneric("get_reviews", function(workspace, groups = NULL, use_new_version = TRUE) {
   standardGeneric("get_reviews")
 })
 
 #' @describeIn get_reviews Get responses of a given Testcenter workspace
-
 setMethod("get_reviews",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace, groups = NULL, use_new_version = TRUE) {

@@ -18,8 +18,7 @@ get_logs(workspace, groups = NULL)
 A tibble.
 }
 \description{
-This function returns logs from the IQB Testcenter, reshapes them to a tibble,
-and renames some variables.
+This function returns logs from the IQB Testcenter
 }
 \section{Functions}{
 \itemize{
