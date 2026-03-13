@@ -12,6 +12,7 @@
 #' get_testtakers,WorkspaceTestcenter-method
 #'
 #' @keywords internal
+
 setGeneric("get_testtakers", function(workspace, files = NULL) {
   cli_setting()
 
@@ -21,6 +22,7 @@ setGeneric("get_testtakers", function(workspace, files = NULL) {
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve unit information and resources from the API.
 #'
 #' @describeIn get_testtakers Get testtakers in a Testcenter workspace
+
 setMethod("get_testtakers",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,

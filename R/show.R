@@ -1,3 +1,4 @@
+
 setMethod(f = "show",
           signature = "LoginStudio",
           definition = function(object) {

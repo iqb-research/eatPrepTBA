@@ -12,6 +12,7 @@
 #'
 #' @aliases
 #' list_files,WorkspaceTestcenter-method
+
 setGeneric("list_files", function(workspace, type = NULL, dependencies = FALSE) {
   cli_setting()
 
@@ -19,6 +20,7 @@ setGeneric("list_files", function(workspace, type = NULL, dependencies = FALSE) 
 })
 
 #' @describeIn list_files List all files in a given IQB Testcenter workspace
+
 setMethod("list_files",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace, type = NULL, dependencies = FALSE) {

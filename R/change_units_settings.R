@@ -17,6 +17,7 @@
 #' @export
 #'
 #' @keywords internal
+
 setGeneric("change_units_settings", function(workspace,
                                              unit_ids,
                                              player = NULL,
@@ -31,6 +32,7 @@ setGeneric("change_units_settings", function(workspace,
 
 
 #' @describeIn change_units_settings Get unit information and coding scheme in a defined workspace
+
 setMethod("change_units_settings",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace,

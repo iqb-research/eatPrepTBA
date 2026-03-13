@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimate_unit_times.R
 \name{estimate_unit_times}
 \alias{estimate_unit_times}
-\title{Estimates stay times from log data}
+\title{Berechnet Bearbeitungs- und Ladezeiten anhand der Logdaten}
 \usage{
 estimate_unit_times(logs)
 }
@@ -10,10 +10,26 @@ estimate_unit_times(logs)
 \item{logs}{Tibble. Must be a logs tibble retrieved with \code{get_logs()} or \code{read_logs()}.}
 }
 \value{
-Contains the estimated stay times of units and pages.
+Data frame mit diversen Zeiten und Zeitstempeln pro Unit bzw. Seite
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-Returns estimated stay times for units and unit pages.
+Berechnet geschätzte Bearbeitungs- und Ladezeiten für Units und Seiten.
+\itemize{
+\item loading_time: Zeitspanne zwischen LOADING und RUNNING des Players pro Abspielung des Units
+\item unit_time: Zeitspanne zwischen RUNNING des Players und dem nächsten Zeitstempel
+(meist LOADING des nächsten Units, manchmal Sitzungsende), pro Abspielung des Units
+\item unit_n_play: Anzahl der Abspielungen des Units in dieser Session
+\item n_loadings: Anzahl der Ladeversuche des Units (summiert über die Abspielungen,
+und über erfolgreiche und erfolgslose Ladeversuche)
+\item page_time: Zeitspanne zwischen CURRENT_PAGE_ID = \link{...} (Ladeabschluss der Seite) und
+Ladeabschluss der nächsten Seite bzw. bis Sitzungsende
+\item run_no_load_i: Player wurde als RUNNING, aber vorher nicht als LOADING geloggt.
+In diesem Fall wurden Ladezeiten nicht berechnet.
+}
+
+Daten gruppiert nach Gruppe, Login, Booklet, Unit_key.
+Achtung: unit_alias wird hier nicht beachtet und es wird nicht danach gruppiert
+oder sortiert, es wird nur am Ende als Information wieder eingefügt.
 }

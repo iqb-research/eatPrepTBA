@@ -11,11 +11,13 @@
 #'
 #' @aliases
 #' get_settings,WorkspaceStudio-method
+
 setGeneric("get_settings", function(workspace, metadata = TRUE) {
   standardGeneric("get_settings")
 })
 
 #' @describeIn get_settings Get unit information and coding scheme in a defined workspace
+
 setMethod("get_settings",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace, metadata = TRUE) {

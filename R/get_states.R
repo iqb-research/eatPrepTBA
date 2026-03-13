@@ -11,11 +11,13 @@
 #'
 #' @aliases
 #' get_states,WorkspaceStudio-method
+
 setGeneric("get_states", function(workspace) {
   standardGeneric("get_states")
 })
 
 #' @describeIn get_states List all units in a defined workspace
+
 setMethod("get_states",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace) {

@@ -86,3 +86,5 @@ reference:
   - complete_design
   - estimate_unit_times
   - evaluate_psychometrics
+  - layout_staytime_tables
+  - compute_staytime_tables

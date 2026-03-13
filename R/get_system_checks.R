@@ -12,6 +12,7 @@
 #'
 #' @aliases
 #' get_system_checks,WorkspaceTestcenter-method
+
 setGeneric("get_system_checks", function(workspace,
                                          groups = NULL,
                                          prepare = TRUE) {
@@ -21,6 +22,7 @@ setGeneric("get_system_checks", function(workspace,
 })
 
 #' @describeIn get_system_checks Get responses of a given Testcenter workspace
+
 setMethod("get_system_checks",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,

@@ -12,6 +12,7 @@
 #' add_groups,WorkspaceStudio-method
 #'
 #' @keywords internal
+
 setGeneric("add_groups", function(workspace,
                                   group_names) {
   cli_setting()
@@ -21,6 +22,7 @@ setGeneric("add_groups", function(workspace,
 
 
 #' @describeIn add_groups Add groups in a defined workspace
+
 setMethod("add_groups",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace,
