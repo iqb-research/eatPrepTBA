@@ -7,7 +7,6 @@
 #'
 #' @aliases
 #' list_groups,WorkspaceStudio-method
-
 setGeneric("list_groups", function(workspace) {
   cli_setting()
 
@@ -15,7 +14,6 @@ setGeneric("list_groups", function(workspace) {
 })
 
 #' @describeIn list_groups List all groups in a defined workspace
-
 setMethod("list_groups",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace) {

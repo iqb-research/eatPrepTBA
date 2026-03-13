@@ -18,7 +18,6 @@
 #'
 #' @aliases
 #' download_units,WorkspaceStudio-method
-
 setGeneric("download_units", function(workspace,
                                       path,
                                       unit_keys = NULL,

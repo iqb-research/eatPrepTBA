@@ -1,13 +1,12 @@
 Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assessment (TBA)
-Version: 0.9.8.9006
+Version: 0.9.8.9005
 Authors@R: 
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2109-7388")),
     person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-6688-1267")),
     person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585")),
-    person(given = "Kristoph", family ="Schumann", email = "kristoph.schumann@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-9502-6083")),
-    person(given = "Lea", family ="Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807"))
+    person(given = "Kristoph", family ="Schumann", email = "kristoph.schumann@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-9502-6083"))
     )
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
@@ -24,16 +23,13 @@ Imports:
     curl,
     dplyr,
     eatAutoCode,
-    eatWidget,
     glue,
     htmltools,
-    htmlwidgets,
     httr2,
     jsonlite,
     keyring,
     lubridate,
     magrittr,
-    methods,
     purrr (>= 1.0.4),
     reactable,
     readr,
@@ -41,7 +37,6 @@ Imports:
     rstudioapi,
     rvest,
     shiny,
-    stats,
     stringr,
     testthat (>= 3.0.0),
     tibble,
@@ -51,8 +46,7 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown
-Remotes: iqb-research/eatAutoCode,
-         iqb-research/eatWidget
+Remotes: iqb-research/eatAutoCode
 Config/testthat/edition: 3
 URL: https://iqb-research.github.io/eatPrepTBA/
 VignetteBuilder: knitr

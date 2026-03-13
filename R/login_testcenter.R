@@ -28,7 +28,6 @@
 #' Note that the name and the password are only available to the function call
 #' and cannot be accessed later as they are not part of the [Login-class] object generated.
 #' @export
-
 login_testcenter <- function(base_url = "https://iqb-testcenter2.de/",
                              keyring = FALSE,
                              change_key = FALSE,

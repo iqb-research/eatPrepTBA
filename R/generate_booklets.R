@@ -9,7 +9,6 @@
 #'
 #' @return A booklet XML.
 #' @export
-
 generate_booklets <- function(
     booklets,
     app_version = "16.0.2",

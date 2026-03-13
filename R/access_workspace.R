@@ -14,7 +14,6 @@
 #' access_workspace,LoginTestcenter-method,LoginStudio-method
 #'
 #' @export
-
 setGeneric("access_workspace",
            function(login, ws_id = NULL, verbose = FALSE) {
              cli_setting()
@@ -39,7 +38,6 @@ setGeneric("access_workspace",
            })
 
 #' @describeIn access_workspace Provide access to selected workspaces after logging in
-
 setMethod("access_workspace",
           signature = signature(login = "LoginStudio"),
           function(login, ws_id, verbose) {
@@ -81,7 +79,6 @@ setMethod("access_workspace",
           })
 
 #' @describeIn access_workspace Provide access to a selected workspace after logging in
-
 setMethod("access_workspace",
           signature = signature(login = "LoginTestcenter"),
           function(login, ws_id, verbose) {

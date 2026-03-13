@@ -10,13 +10,11 @@
 #'
 #' @aliases
 #' list_system_checks,WorkspaceTestcenter-method
-
 setGeneric("list_system_checks", function(workspace) {
   standardGeneric("list_system_checks")
 })
 
 #' @describeIn list_system_checks List all system checks in a given Testcenter workspace.
-
 setMethod("list_system_checks",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace) {

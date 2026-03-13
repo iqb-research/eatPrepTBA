@@ -13,7 +13,6 @@
 #'
 #' @aliases
 #' upload_file,Workspace-method
-
 setGeneric("upload_file", function(workspace,
                                    path,
                                    status = c("success", "info", "error", "warning"),
@@ -24,7 +23,6 @@ setGeneric("upload_file", function(workspace,
 })
 
 #' @describeIn upload_file Upload a file into a given workspace
-
 setMethod("upload_file",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,
