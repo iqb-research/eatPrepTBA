@@ -1,6 +1,7 @@
 # Get logs
 
-This function returns logs from the IQB Testcenter
+This function returns logs from the IQB Testcenter, reshapes them to a
+tibble, and renames some variables.
 
 ## Usage
 

@@ -11,11 +11,11 @@ IQB Studio. It can be created by the function
   [LoginTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.md).
   Login information for the IQB Testcenter.
 
-- `wsg_id`:
+- `ws_id`:
 
   ID of the workspace group the current workspace belongs to. See URL to
   identify the workspace group id.
 
-- `wsg_label`:
+- `ws_label`:
 
   Label of the workspace group the current workspace belongs to.
