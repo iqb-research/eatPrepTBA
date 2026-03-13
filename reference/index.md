@@ -150,12 +150,7 @@ Functions to check units, prepare material for administration and coding
 - [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   : Complete design with coded responses
 - [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
-  **\[experimental\]** : Berechnet Bearbeitungs- und Ladezeiten anhand
-  der Logdaten
+  **\[experimental\]** : Estimates stay times from log data
 - [`evaluate_psychometrics()`](https://iqb-research.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
   : Evaluates frequencies and discrimination parameters of codes and
   categories
-- [`layout_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/layout_staytime_tables.md)
-  **\[experimental\]** : Sets and layouts quantile tables of stay times
-- [`compute_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.md)
-  **\[experimental\]** : Computes quantile tables of stay times

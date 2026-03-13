@@ -14,19 +14,16 @@
 - **Kristoph Schumann**. Contributor.
   [](https://orcid.org/0000-0001-9502-6083)
 
-- **Lea Musiolek**. Contributor.
-  [](https://orcid.org/0000-0002-3729-2807)
-
 ## Citation
 
 Franikowski P (2026). *eatPrepTBA: Prepare IQB Technology Based
-Assessment (TBA)*. R package version 0.9.8.9006,
+Assessment (TBA)*. R package version 0.9.8.9005,
 <https://iqb-research.github.io/eatPrepTBA/>.
 
     @Manual{,
       title = {eatPrepTBA: Prepare IQB Technology Based Assessment (TBA)},
       author = {Philipp Franikowski},
       year = {2026},
-      note = {R package version 0.9.8.9006},
+      note = {R package version 0.9.8.9005},
       url = {https://iqb-research.github.io/eatPrepTBA/},
     }
