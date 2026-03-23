@@ -15,5 +15,25 @@ Contains the estimated stay times of units and pages.
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
+<<<<<<< HEAD
 Returns estimated stay times for units and unit pages.
+=======
+Berechnet geschätzte Bearbeitungs- und Ladezeiten für Units und Seiten.
+\itemize{
+\item loading_time: Zeitspanne zwischen LOADING und RUNNING des Players pro Abspielung des Units,
+inkl. Dauer erfolgloser Ladeversuche
+\item unit_time: Zeitspanne zwischen RUNNING des Players und dem nächsten Zeitstempel
+(meist LOADING des nächsten Units, manchmal Sitzungsende), pro Abspielung des Units
+\item unit_n_play: Anzahl der Abspielungen des Units in dieser Session
+\item n_failed_loadings: Anzahl der erfolglosen Ladeversuche des Units
+\item page_time: Zeitspanne zwischen CURRENT_PAGE_ID = \link{...} (Ladeabschluss der Seite) und
+Ladeabschluss der nächsten Seite bzw. bis Sitzungsende
+\item run_no_load_i: Player wurde als RUNNING, aber vorher nicht als LOADING geloggt.
+In diesem Fall wurden Ladezeiten nicht berechnet.
+}
+
+Daten gruppiert nach Gruppe, Login, Booklet, Unit_key.
+Achtung: unit_alias wird hier nicht beachtet und es wird nicht danach gruppiert
+oder sortiert, es wird nur am Ende als Information wieder eingefügt.
+>>>>>>> 1a589bd (Anwendungsbeispiel für compute_staytime_tables() in Docstring zugefügt)
 }
