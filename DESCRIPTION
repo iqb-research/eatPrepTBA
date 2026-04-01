@@ -47,7 +47,9 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown
-Remotes: iqb-research/eatAutoCode
+Remotes: 
+    iqb-research/eatAutoCode,
+    iqb-research/eatWidget
 Config/testthat/edition: 3
 URL: https://iqb-research.github.io/eatPrepTBA/
 VignetteBuilder: knitr
