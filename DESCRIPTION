@@ -23,6 +23,7 @@ Imports:
     curl,
     dplyr,
     eatAutoCode,
+    eatWidget,
     glue,
     htmltools,
     httr2,
