@@ -53,11 +53,7 @@ change_unit_settings(
 \item{state}{Numeric or character. New state id (when numeric) or label (when character).}
 }
 \description{
-This function updates the Studio metadata, i.e., versions for player, editor, or schemer,
-and the groups and the states of a single unit.
-To change multiple units, use \code{\link[=change_units_settings]{change_units_settings()}}. Please note that
-invalid inputs will result in a default version (e.g., the newest one in case
-of \code{editor}, \code{player}, or \code{schemer}) or be ignored (in case of group_name or \code{state}).
+This function updates the Studio metadata, i.e., versions for player, editor, or schemer, and the groups and the states of a single unit. To change multiple units, use \code{\link[=change_units_settings]{change_units_settings()}}. Please note that invalid inputs will result in a default version (e.g., the newest one in case of \code{editor}, \code{player}, or \code{schemer}) or be ignored (in case of group_name or \code{state}).
 }
 \section{Functions}{
 \itemize{
