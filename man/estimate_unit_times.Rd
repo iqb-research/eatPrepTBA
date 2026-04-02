@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimate_unit_times.R
 \name{estimate_unit_times}
 \alias{estimate_unit_times}
-\title{Berechnet Bearbeitungs- und Ladezeiten anhand der Logdaten}
+\title{Estimates loading and stay times for units, unit plays and pages from log data}
 \usage{
 estimate_unit_times(logs)
 }
@@ -10,26 +10,26 @@ estimate_unit_times(logs)
 \item{logs}{Tibble. Must be a logs tibble retrieved with \code{get_logs()} or \code{read_logs()}.}
 }
 \value{
-Data frame mit diversen Zeiten und Zeitstempeln pro Unit bzw. Seite
+Data frame containing various times and timestamps per unit and page
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-Berechnet geschätzte Bearbeitungs- und Ladezeiten für Units und Seiten.
+Calculates estimated processing and loading times for units and pages.
 \itemize{
-\item loading_time: Zeitspanne zwischen LOADING und RUNNING des Players pro Abspielung des Units,
-inkl. Dauer erfolgloser Ladeversuche
-\item unit_time: Zeitspanne zwischen RUNNING des Players und dem nächsten Zeitstempel
-(meist LOADING des nächsten Units, manchmal Sitzungsende), pro Abspielung des Units
-\item unit_n_play: Anzahl der Abspielungen des Units in dieser Session
-\item n_failed_loadings: Anzahl der erfolglosen Ladeversuche des Units
-\item page_time: Zeitspanne zwischen CURRENT_PAGE_ID = \link{...} (Ladeabschluss der Seite) und
-Ladeabschluss der nächsten Seite bzw. bis Sitzungsende
-\item run_no_load_i: Player wurde als RUNNING, aber vorher nicht als LOADING geloggt.
-In diesem Fall wurden Ladezeiten nicht berechnet.
+\item loading_time: Time interval between the player's “LOADING” and “RUNNING” states per playback of the unit,
+including the duration of unsuccessful loading attempts
+\item unit_time: Time interval between the player's “RUNNING” state and the next timestamp
+(usually the LOADING of the next unit, sometimes the end of the booklet), per playback of the unit
+\item unit_n_play: Number of playbacks of the unit in this session
+\item n_failed_loadings: Number of unsuccessful loading attempts for the unit
+\item page_time: Time interval between CURRENT_PAGE_ID = \link{...} (page load completion) and
+the next page load completion or until the end of the booklet
+\item run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
+In this case, load times were not calculated.
 }
 
-Daten gruppiert nach Gruppe, Login, Booklet, Unit_key.
-Achtung: unit_alias wird hier nicht beachtet und es wird nicht danach gruppiert
-oder sortiert, es wird nur am Ende als Information wieder eingefügt.
+Data grouped by group, login, booklet, unit_key.
+Note: unit_alias is not taken into account here and is not used for grouping
+or sorting; it is only reinserted at the end for informational purposes.
 }

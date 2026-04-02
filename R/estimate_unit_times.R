@@ -1,27 +1,27 @@
-#' Berechnet Bearbeitungs- und Ladezeiten anhand der Logdaten
+#' Estimates loading and stay times for units, unit plays and pages from log data
 #'
 #' @param logs Tibble. Must be a logs tibble retrieved with `get_logs()` or `read_logs()`.
 #'
-#' @return Data frame mit diversen Zeiten und Zeitstempeln pro Unit bzw. Seite
+#' @return Data frame containing various times and timestamps per unit and page
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
-#' Berechnet geschätzte Bearbeitungs- und Ladezeiten für Units und Seiten.
-#' - loading_time: Zeitspanne zwischen LOADING und RUNNING des Players pro Abspielung des Units, 
-#'            inkl. Dauer erfolgloser Ladeversuche
-#' - unit_time: Zeitspanne zwischen RUNNING des Players und dem nächsten Zeitstempel 
-#'            (meist LOADING des nächsten Units, manchmal Sitzungsende), pro Abspielung des Units
-#' - unit_n_play: Anzahl der Abspielungen des Units in dieser Session
-#' - n_failed_loadings: Anzahl der erfolglosen Ladeversuche des Units
-#' - page_time: Zeitspanne zwischen CURRENT_PAGE_ID = [...] (Ladeabschluss der Seite) und
-#'            Ladeabschluss der nächsten Seite bzw. bis Sitzungsende
-#' - run_no_load_i: Player wurde als RUNNING, aber vorher nicht als LOADING geloggt.
-#'                  In diesem Fall wurden Ladezeiten nicht berechnet.
+#' Calculates estimated processing and loading times for units and pages.
+#' - loading_time: Time interval between the player's “LOADING” and “RUNNING” states per playback of the unit, 
+#'            including the duration of unsuccessful loading attempts
+#' - unit_time: Time interval between the player's “RUNNING” state and the next timestamp 
+#'            (usually the LOADING of the next unit, sometimes the end of the booklet), per playback of the unit
+#' - unit_n_play: Number of playbacks of the unit in this session
+#' - n_failed_loadings: Number of unsuccessful loading attempts for the unit
+#' - page_time: Time interval between CURRENT_PAGE_ID = [...] (page load completion) and
+#'            the next page load completion or until the end of the booklet
+#' - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
+#'                  In this case, load times were not calculated.
 #'                  
-#' Daten gruppiert nach Gruppe, Login, Booklet, Unit_key.
-#' Achtung: unit_alias wird hier nicht beachtet und es wird nicht danach gruppiert
-#' oder sortiert, es wird nur am Ende als Information wieder eingefügt.
+#' Data grouped by group, login, booklet, unit_key.
+#' Note: unit_alias is not taken into account here and is not used for grouping
+#' or sorting; it is only reinserted at the end for informational purposes.
 #'
 #' @export
 
@@ -67,7 +67,7 @@ estimate_unit_times <- function(logs) {
         stringr::str_detect(log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
         stringr::str_detect(log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
         stringr::str_detect(log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
-        is_max_ts ~ "session_end_ts",
+        is_max_ts ~ "booklet_end_ts",
         log_entry == "PLAYER = PAUSED" ~ "n_paused",
         log_entry == "FOCUS : \"HAS_NOT\"" ~ "n_lost_focus",
         .default = NA_character_
@@ -81,7 +81,7 @@ estimate_unit_times <- function(logs) {
     ) %>%
     dplyr::mutate(
       ts_name = dplyr::case_when(
-        is_max_ts ~ "session_end_ts",
+        is_max_ts ~ "booklet_end_ts",
         .default = ts_name
       )
     )
@@ -110,7 +110,7 @@ estimate_unit_times <- function(logs) {
   unit_logs_prep <-
     all_ts %>%
     dplyr::filter(
-      ts_name == "unit_start_ts" | ts_name == "unit_load_ts" | ts_name == "session_end_ts"
+      ts_name == "unit_start_ts" | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
     )  %>%
     dplyr::mutate(playercode = dplyr::case_when(log_entry == "PLAYER = LOADING" ~ 0,
                                                 log_entry == "PLAYER = RUNNING" ~ 1,
@@ -228,7 +228,7 @@ estimate_unit_times <- function(logs) {
         is_max_ts = ts == max(ts)
       ) %>%
       dplyr::filter(
-        ts_name %>% stringr::str_detect("^page_") | ts_name == "unit_load_ts" | ts_name == "session_end_ts"
+        ts_name %>% stringr::str_detect("^page_") | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
       dplyr::arrange("ts", by_group=TRUE) %>%  
