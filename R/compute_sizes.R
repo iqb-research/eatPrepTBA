@@ -7,6 +7,9 @@
 #' @export
 compute_sizes <- function(data) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(data)
+
 
     dplyr::filter(type %in% c("Unit", "Booklet")) %>%
     dplyr::mutate(

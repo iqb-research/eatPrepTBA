@@ -9,6 +9,9 @@
 #' @keywords internal
 add_source_tree <- function(units, filter_has_codes = TRUE) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(units)
+  checkmate::assert_logical(filter_has_codes, len = 1)
 
   units_cs <-
     units %>%
