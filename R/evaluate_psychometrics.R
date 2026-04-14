@@ -25,6 +25,15 @@ evaluate_psychometrics <- function(
   # - Double entries per person would also provide problems here as the correlation could not be estimated in that case! (double cases should be removed)
 
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(design_coded)
+  checkmate::assert_tibble(units)
+  checkmate::assert_tibble(domains)
+  if(!all(c("domain", "unit_key") %in% colnames(domains))) stop(paste0("'domains' must contain the columns 'domain' and 'unit_key', but has the columns: ", paste0(colnames(domains), collapse = ", ")))
+  checkmate::assert_tibble(max_n_categories)
+  checkmate::assert_logical(overwrite, len = 1)
+  checkmate::assert_character(identifiers)
+
   # responses <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/data/responses.RData")
   # units <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/db/units.RData")
   # coded <- code_responses(responses, units_cs, prepare = TRUE)

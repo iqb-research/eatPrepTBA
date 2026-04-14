@@ -26,6 +26,18 @@ code_responses_legacy <- function(responses,
                            n_cores = NULL
 ) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(responses)
+  checkmate::assert_tibble(units)
+  checkmate::assert_data_frame(codes_manual, null.ok = TRUE) # or assert_tibble?
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  if(!is.null(miss)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+
+  checkmate::assert_character(by, null.ok = TRUE)
+  checkmate::assert_numeric(n_cores, null.ok = TRUE)
+  checkmate::assert_logical(prepare, len = 1)
+  checkmate::assert_logical(parallel, len = 1)
+
   # progressr::handlers("cli")
 
   # if (parallel) {
@@ -354,6 +366,10 @@ code_responses_legacy <- function(responses,
 #'
 #' @keywords internal
 code_unit_legacy <- function(unit_responses, coding_scheme) {
+  # input validation
+  checkmate::assert_character(unit_responses)
+  checkmate::assert_character(coding_scheme)
+
   unit_responses %>%
     # dplyr::mutate(
     #   responses = purrr::map_chr(responses, "content")
@@ -388,6 +404,10 @@ code_unit_legacy <- function(unit_responses, coding_scheme) {
 #'
 #' @keywords internal
 insert_manual_legacy <- function(unit_responses, unit_codes_manual) {
+  # input validation
+  checkmate::assert_character(unit_responses)
+  checkmate::assert_character(unit_codes_manual, null.ok = TRUE)
+
   # Check if unit_codes_manual is NULL or empty, return original unit_responses if so
   if (is.null(unit_codes_manual) || length(unit_codes_manual) == 0) {
     return(unit_responses)

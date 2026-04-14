@@ -9,6 +9,8 @@
 #' @export
 add_metadata <- function(units) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(units)
 
   # Conserve attributes
   unit_attributes <- attributes(units)
@@ -28,7 +30,7 @@ add_metadata <- function(units) {
     dplyr::mutate(
       unit_has_items = is.na(item_no)
     ) %>%
-    # TODO: This could possibly be removed in 2026 (all relevant units should have updated metdata profiles)
+    # TODO: This could possibly be removed in 2026 (all relevant units should have updated metadata profiles)
     dplyr::rowwise() %>%
     dplyr::mutate(
       unit_has_uuids = dplyr::if_any(dplyr::any_of("item_uuid"), ~ !is.na(.), .default = FALSE)
@@ -58,6 +60,12 @@ add_metadata <- function(units) {
 # Adds profiles to all columns if possible
 #' @keywords internal
 add_profile <- function(unit_items, units, md_profile, profiles, extra_columns = NULL) {
+  # input validation
+  checkmate::assert_tibble(units)
+  checkmate::assert_character(md_profile, len = 1)
+  checkmate::assert_character(profiles, len = 1)
+  checkmate::assert_character(extra_columns, null.ok = TRUE)
+
   unit_attributes <- attributes(unit_items)
 
   ws_settings <- attr(units, "ws_settings")

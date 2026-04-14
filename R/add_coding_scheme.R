@@ -11,6 +11,10 @@
 #' @export
 add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(units) # allow data frames or data tables?
+  checkmate::assert_logical(filter_has_codes, len = 1)
+  checkmate::assert_logical(overwrite, len = 1)
 
   # Conserve attributes
   unit_attributes <- attributes(units)

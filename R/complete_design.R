@@ -18,6 +18,15 @@ complete_design <- function(coded,
                             overwrite = FALSE,
                             missings = NULL
 ) {
+  # input validation
+  checkmate::assert_tibble(coded)
+  checkmate::assert_tibble(units)
+  checkmate::assert_tibble(design)
+  checkmate::assert_character(identifiers)
+
+  checkmate::assert_logical(overwrite, len = 1)
+  checkmate::assert_tibble(missings, null.ok = TRUE, col.names = c("code_id", "code_status", "code_score", "code_type"))
+
   # if (is.null(missings)) {
   #   missings <-
   #     tibble::tribble(

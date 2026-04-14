@@ -12,6 +12,8 @@
 #' @export
 estimate_unit_times <- function(logs) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(logs)
 
   groups_booklet <- setdiff(names(logs), c("unit_key", "unit_alias", "ts", "log_entry"))
   groups_unit <- setdiff(names(logs), c("ts", "log_entry"))

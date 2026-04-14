@@ -9,6 +9,8 @@
 #' @export
 extract_metadata <- function(units) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(units)
 
   entries <- c("ws_settings", "item_md_profile", "unit_md_profile")
 
