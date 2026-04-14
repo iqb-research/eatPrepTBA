@@ -86,12 +86,16 @@ setMethod("get_system_checks",
                   dplyr::across(c(questionnaire),
                                 function(x) {
                                   purrr::map(x, function(y) {
+                                    if (length(y) > 0) {
                                     y %>%
                                       purrr::list_transpose() %>%
                                       tibble::as_tibble() %>%
                                       dplyr::select(name = id, value) %>%
                                       tidyr::pivot_wider() %>%
                                       tidyr::unnest(cols = dplyr::everything())
+                                    } else {
+                                      tibble::tibble()
+                                    }
                                   })
                                 })
                 ) %>%
