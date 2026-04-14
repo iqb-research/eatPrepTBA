@@ -31,7 +31,7 @@ code_responses_legacy <- function(responses,
   checkmate::assert_tibble(units)
   checkmate::assert_data_frame(codes_manual, null.ok = TRUE) # or assert_tibble?
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(miss)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+  if(!is.null(missings)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
 
   checkmate::assert_character(by, null.ok = TRUE)
   checkmate::assert_numeric(n_cores, null.ok = TRUE)

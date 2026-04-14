@@ -25,7 +25,9 @@ complete_design <- function(coded,
   checkmate::assert_character(identifiers)
 
   checkmate::assert_logical(overwrite, len = 1)
-  checkmate::assert_tibble(missings, null.ok = TRUE, col.names = c("code_id", "code_status", "code_score", "code_type"))
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  if(!is.null(missings)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+
 
   # if (is.null(missings)) {
   #   missings <-
