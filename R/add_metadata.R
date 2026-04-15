@@ -10,7 +10,9 @@
 add_metadata <- function(units) {
   cli_setting()
   # input validation
+  units_cols <- c("unit_profiles", "items_profiles")
   checkmate::assert_tibble(units)
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
   # Conserve attributes
   unit_attributes <- attributes(units)
