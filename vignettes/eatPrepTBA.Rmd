@@ -1,5 +1,5 @@
 ---
-title: "eatPrepTBA"
+title: "Get started with eatPrepTBA"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{eatPrepTBA}
@@ -37,12 +37,10 @@ library(eatPrepTBA)
 To log in to the IQB Studio, you can call the function `login_studio()`.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "13.10.0")
+login <- login_studio(keyring = TRUE, app_version = "15.0.1")
 ```
 
-You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio).
-
-This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
+You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio). This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
 
 The current `app_version` needs to be updated manually and can be found [here](https://www.iqb-studio.de).
 
@@ -50,28 +48,28 @@ The current `app_version` needs to be updated manually and can be found [here](h
 knitr::include_graphics("images/Studio_Login.png")
 ```
 
-The function itself invisibly provides an access token, i.e., something like a key to all of your studies. This can be used on other function calls to retrieve data from the IQB-Studio. To use this key in other functions, it should be assigned to an `R` object, e.g., `login`. 
+If you use the argument `keyring = TRUE`, your login data will be saved locally to your computer, so that you don't have to login every time you call `login_studio()`. If you want to change your login information (e.g. after accidentally entering the wrong password), you can add the argument `change_key = TRUE` to the `login_studio()`-function. This will call the dialogue for entering your login information again.
 
-If you use the argument `keyring = TRUE`, your login data will be saved locally to your computer, so that you don't have to login every time you open the script. If you want to change your login information (e.g. after accidentally entering the wrong password), you can add the argument `change_key = TRUE` to the `login_studio()`-function. This will call the dialogue for entering your login information again.
-
-The initial call of `create_login()` (and calling the `login` object) returns a list of workspaces that can be accessed with your credentials.
+The function itself invisibly provides an access token, i.e., something like a key to all of your studies. This can be used on other function calls to retrieve data from the IQB-Studio. To use this key in other functions, it should be assigned to an `R` object, e.g., `login`. Calling the `login` object returns a list of workspaces that can be accessed with your credentials.
 
 
 ## Accessing a workspace
 
 All workspaces are part of a workspace group and have a unique ID.
 
-You can access a workspace with the function `access_workspace()`. With the argument `ws_id = x`, you choose which workspace to access. You should save your output into an object (e.g., "workspace") to be able to work with it later. 
+You can access a workspace with the function `access_workspace()`. With the argument `ws_id = x`, you choose which workspace to access. 
 
 ```{r, eval=FALSE}
 workspace <- access_workspace(login = login, ws_id = 918)
 ```
 
+The ID of a workspace can be found by looking at its URL in the Studio (last digits) or by calling the `login` object, which prints a list of the workspace groups and workspaces that you have access to, including their respective IDs (`ws_id`). 
+
 ```{r, out.width="100%", echo = FALSE}
 knitr::include_graphics("images/Studio_Access_Workspace.png")
 ```
 
-The ID of a workspace can be found by looking at its URL in the Studio (last digits) or by calling the `login` object, which prints a list of the workspace groups and workspaces that you have access to, including their respective IDs (`ws_id`). 
+You should save your output into an object (e.g., "workspace") to be able to work with it later. 
 
 You can also access multiple workspaces at the same time:
 
@@ -90,35 +88,7 @@ units <- get_units(workspace = workspace)
 ```
 
 
-______  
 
-
-## Login to the IQB Testcenter
-
-To log in to the IQB Testcenter, you can call the function `create_login()`. You will be asked to provide your user name and your password (either in the console or a dialog when using RStudio). The function invisibly provides an access token, i.e., something like a key to all of your studies, that can be used on other function calls to retrieve data from the IQB Testcenter. To use this key in other functions, it should be assigned to an `R` object, e.g., `login`.
-
-```{r create-login}
-# login <- create_login()
-```
-
-For the purpose of following along this documentation, you can use the following credentials when asked:
-- username: `eatPrepTBA`
-- password: `eatPrepTBA`
-
-The initial call of `create_login()` (and calling the `login` object) returns a list of workspaces that can be accessed with your credentials.
-
-## Access a workspace
-
-As can be seen, we have access to a workspace labelled as *eatPrepTBA Documentation* that is associated with a unique id, i.e., 134.
-
-To access this workspace, you can either provide the label of the workspace or its id (or both -- in this case, they have to match, of course). This workspace should again be assigned to an object, i.e., `workspace`, as it carries the token generated by the `create_login()` and information about the path to find the associated files.
-
-```{r access-workspace}
-# workspace <- access_workspace(login = login, label = "eatPrepTBA Documentation")
-# workspace <- access_workspace(login = login, id = 134)
-```
-
-This information can be used to access the files (i.e., testtakers, booklets, and units) and results (i.e., responses and log data).
 
 ## Retrieve files from the workspace
 
