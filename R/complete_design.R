@@ -5,7 +5,7 @@
 #' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
 #'
 #' This function automatically completes missings for coded responses.
 #'
@@ -16,18 +16,19 @@ complete_design <- function(coded,
                             design,
                             identifiers = c("group_id", "login_name", "login_code"),
                             overwrite = FALSE,
-                            missings = NULL
+                            #missings = NULL
 ) {
   # input validation
   checkmate::assert_tibble(coded)
+  if(!(all(c("booklet_merge", "unit_key", "unit_alias", "variable_id") %in% colnames(coded)))) # booklet_id?
+    stop(paste0("'coded' must contain the columns 'booklet_merge', 'unit_key', 'unit_alias' and 'variable_id', but has the columns: ", paste0(colnames(coded), collapse = ", ")))
   checkmate::assert_tibble(units)
   checkmate::assert_tibble(design)
   checkmate::assert_character(identifiers)
-
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(missings)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
-
+  #if(!is.null(missings)) if(!(all(c("code_id", "code_status", "code_score", "code_type") %in% colnames(missings))))
+  #  stop(paste0("'missings' must contain the columns 'code_id', 'code_status', 'code_score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
 
   # if (is.null(missings)) {
   #   missings <-
