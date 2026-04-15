@@ -15,7 +15,7 @@ complete_design <- function(coded,
                             units,
                             design,
                             identifiers = c("group_id", "login_name", "login_code"),
-                            overwrite = FALSE,
+                            overwrite = FALSE
                             #missings = NULL
 ) {
   # input validation
