@@ -12,7 +12,7 @@ A class extending the Login class with additional information for the IQB Studio
 \describe{
 \item{\code{base_url}}{Character. Base URL of the IQB Studio installation.}
 
-\item{\code{base_req}}{Function. Base \link{httr2} request (will be handled internally).}
+\item{\code{base_req}}{Function. Base \link[httr2:httr2-package]{httr2::httr2} request (will be handled internally).}
 
 \item{\code{ws_list}}{Named list. Returns a list of the labels and ids of the workspaces the user has access to.}
 

@@ -9,9 +9,9 @@ get_credentials(base_url, keyring, change_key, dialog, ...)
 \arguments{
 \item{base_url}{Character. Base URL of the instance.}
 
-\item{keyring}{Logical. Should the \link{keyring} package be used?}
+\item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used?}
 
-\item{change_key}{Logical. Should the \link{keyring} credentials be changed (only valid, if keyring is set to \code{TRUE})?}
+\item{change_key}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} credentials be changed (only valid, if keyring is set to \code{TRUE})?}
 
 \item{dialog}{Logical. Should the dialog asking for username and password be used?}
 

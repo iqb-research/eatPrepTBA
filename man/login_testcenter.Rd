@@ -16,9 +16,9 @@ login_testcenter(
 \arguments{
 \item{base_url}{Character. Base URL of the hosted instance of the IQB Testcenter. Default is the https://iqb-testcenter2.de/.}
 
-\item{keyring}{Logical. Should the \link{keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
+\item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
 
-\item{change_key}{Logical. If your password on the domain has changed - should the \link{keyring} password be changed? Defaults to \code{FALSE}.}
+\item{change_key}{Logical. If your password on the domain has changed - should the \link[keyring:keyring-package]{keyring::keyring} password be changed? Defaults to \code{FALSE}.}
 
 \item{dialog}{Logical. Should the password be entered using the RStudio dialog (\code{TRUE}) or using the console (\code{FALSE}). Defaults to \code{TRUE}.}
 
