@@ -2,16 +2,17 @@
 #' 
 #' Author: Philipp Franikowski, restructuring by Lea Musiolek
 #' 
-#' @param data description
-#' @param id description
-#' @param subject description
-#' @param filterable description
-#' @param searchable description
-#' @param sortable description
-#' @param views description
-#' @param download description
+#' @param data Pre-computed quantile tables of stay times
+#' @param id String. Either "unit-table" (default) or "item-table", 
+#'            changes some details about the layout.
+#' @param subject String. Default is "dep". Legacy parameter.
+#' @param filterable Boolean. Default is TRUE. Necessary for reactable function.
+#' @param searchable Boolean. Default is TRUE. Necessary for reactable function.
+#' @param sortable Boolean. Default is TRUE. Necessary for reactable function.
+#' @param views Boolean. Default is TRUE. Legacy parameter.
+#' @param download String. Default is NULL. Download file name (legacy).
 #'
-#' @return Tables, including quantile dot plots, ready for using in quarto document
+#' @return Tables, including quantile dot plots, ready for use in quarto document
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
