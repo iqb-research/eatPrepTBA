@@ -89,39 +89,3 @@ units <- get_units(workspace = workspace)
 
 
 
-
-## Retrieve files from the workspace
-
-Using the output of `access_workspace()`, one can list (`list*()` family) the different types of files. These files can also be retrieved as `R` objects, i.e., `tibble`s (`get*()` family).
-
-### Testtakers
-
-These functions allow to list all testtaker files (`list_testtakers()`) and return the associated testtaker information (`get_testtakers()`), i.e., a list of all logins for potential testtakers.
-
-```{r booklets}
-# list_testtakers(workspace = workspace)
-# get_testtakers(workspace = workspace)
-```
-
-### Booklets
-
-These functions list all booklet files (`list_booklets()`) and return the associated designs (`get_booklets()`).
-
-```{r testtakers}
-# list_booklets(workspace = workspace)
-# get_booklets(workspace = workspace)
-```
-
-### Units
-
-These functions list all unit files (`list_units()`) and return the associated unit meta data (`get_units()`), i.e., the item information and the coding scheme used for scoring the responses.
-
-```{r units}
-# list_units(workspace = workspace)
-# get_units(workspace = workspace)
-```
-
-```{r, include = FALSE}
-# options("eatPrepTBA.test_mode" = originalTestMode)
-```
-
