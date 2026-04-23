@@ -16,24 +16,25 @@ layout_staytime_tables(
 )
 }
 \arguments{
-\item{data}{description}
+\item{data}{Pre-computed quantile tables of stay times}
 
-\item{id}{description}
+\item{id}{String. Either "unit-table" (default) or "item-table",
+changes some details about the layout.}
 
-\item{subject}{description}
+\item{subject}{String. Default is "dep". Legacy parameter.}
 
-\item{filterable}{description}
+\item{filterable}{Boolean. Default is TRUE. Necessary for reactable function.}
 
-\item{searchable}{description}
+\item{searchable}{Boolean. Default is TRUE. Necessary for reactable function.}
 
-\item{sortable}{description}
+\item{sortable}{Boolean. Default is TRUE. Necessary for reactable function.}
 
-\item{views}{description}
+\item{views}{Boolean. Default is TRUE. Legacy parameter.}
 
-\item{download}{description}
+\item{download}{String. Default is NULL. Download file name (legacy).}
 }
 \value{
-Tables, including quantile dot plots, ready for using in quarto document
+Tables, including quantile dot plots, ready for use in quarto document
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

@@ -11,13 +11,15 @@ compute_staytime_tables(
   final_responses,
   units_cs,
   unit_meta,
-  students_select
+  students_select,
+  FS_marker,
+  output_path
 )
 }
 \arguments{
 \item{fach}{String. Letter denoting the school subject in question.}
 
-\item{log_times}{Data frame. Log data with stay times for one subject. Result of pulling
+\item{log_times}{Data frame. Log data with stay times for one school subject. Result of pulling
 log data with eatPrepTBA::get_logs() and then using eatPrepTBA::estimate_unit_times().
 If necessary, data for the subject in question needs to be selected.}
 
@@ -35,10 +37,15 @@ unit_key, variable_page}
 Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id}
 
 \item{unit_meta}{Data frame. Unit-wise metadata, exported directly from IQB Studio.
-Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata}
+Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit}
 
 \item{students_select}{Vector of strings. If necessary, contains the IDSTUDs of students to
 include in the analysis. Otherwise, NULL}
+
+\item{FS_marker}{String. If this string appears in final_responses$booklet_id, then the respective
+booklet is treated as containing a special needs school study design.}
+
+\item{output_path}{String. Directory to store prepared tables in.}
 }
 \value{
 None; saves tables, including quantile dot plots, ready for using in quarto document
@@ -49,6 +56,10 @@ None; saves tables, including quantile dot plots, ready for using in quarto docu
 Takes various data sources with unit, item and participant stay times and metadata,
 and computes quantiles for use in reports. Uses the layout_staytime_tables function
 to layout them for quarto reports.
+IMPORTANT: The function assumes that there is one study design for regular schools (RS)
+and one for special needs schools (FS), and that the booklets with FS design can be identified
+with certainty by a string which appears as a substring of final_responses$booklet_id entries.
+This string is passed to the function as the argument FS_marker.
 }
 \details{
 Author: Philipp Franikowski, restructured by Lea Musiolek
@@ -56,16 +67,18 @@ Author: Philipp Franikowski, restructured by Lea Musiolek
 \examples{
 \dontrun{
 fach <- c("F")
+FS_marker <- "S"
 
 data_path <- "..."
-out_path <- "..."
+prep_path <- "..."
 db_path <- "..."
+output_path <- "..."
 
 unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # Unit Metadaten
 units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # Unit Kodierschema
 final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #Finale Ergebnisdatei
 
-log_times <- readRDS(paste(c(out_path, "log_times_", fach, ".rds"), collapse="")) # Output
+log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # Output
 # von estimate_unit_times()
 unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # Tabelle
 # mit einer Zeile pro Unit, Spalten für unit_key, Fach als Buchstabe, und Domain 
@@ -77,7 +90,9 @@ eatPrepTBA::compute_staytime_tables(fach,
                                     final_responses,
                                     units_cs,
                                     unit_meta,
-                                    students_select)
+                                    students_select,
+                                    FS_marker,
+                                    output_path)
 }
 
 }
