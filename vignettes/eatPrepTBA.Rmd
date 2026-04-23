@@ -87,5 +87,64 @@ From the `workspace` object, you can now extract the units using the `get_units(
 units <- get_units(workspace = workspace)
 ```
 
+```{r eval = FALSE, echo = FALSE}
+# This is used once for the creation of an example unit tibble...
+units %>% readr::write_rds("inst/extdata/example_units.rds")
+```
+
+```{r echo = FALSE}
+# ...that can be used in the vignette without needing to log into the Studio
+units <- readr::read_rds(system.file("extdata", "example_units.rds", package = "eatPrepTBA"))
+```
+
+`get_units()` returns a tibble (data frame) with one row per unit and several metadata columns, including nested list-columns.
+
+```{r}
+units
+```
+
+The tibble contains the following variables:
+
+```{r}
+names(units)
+```
+
+Four of these variables are already familiar from the workspace information:
+
+- `ws_id`: the ID of the respective workspace
+- `ws_label`: the name of the respective workspace
+- `wsg_id`: the ID of the workspace group of the respective workspace
+- `wsg_label`: the name of the workspace group of the respective workspace
+
+
+Like workspaces, each unit has its own unique ID and label. Each unit also has a unit key and sometimes a description and information about its state.
+
+- `unit_id`: the unique ID of the unit.
+- `unit_label`: the label (name) of the unit.
+- `unit_key`: the short name of the unit.
+- `group_name`: the group assigned to the unit.
+- `description`: the description or notes stored for the unit.
+- `state_id`: If no state is set, this variable is 0. The package can also attach the corresponding `state_label` (e.g. `state_id = 1`  means “zu klären”) and `state_color` when those settings exist.
+
+In the Studio, the tab "Verona Module" shows information about the software component behind a unit’s editor, preview, or coding interface.
+
+- `editor`: the editor module assigned to the unit
+- `player`: the preview/runtime module assigned to the unit
+- `schemer`: the coding module assigned to the unit
+
+To check for updates and changes via the Editor, you can have a look at the variables starting with `last_change`. 
+
+- `last_change_definition`: timestamp of the last change to the unit definition.
+- `last_change_definition_user`: user who last changed the unit definition.
+- `last_change_scheme`: timestamp of the last change to the coding scheme.
+- `last_change_scheme_user`: user who last changed the coding scheme.
+- `last_change_metadata`: timestamp of the last change to the metadata.
+- `last_change_metadata_user`: user who last changed the metadata.
+
+
+
+
+
+
 
 
