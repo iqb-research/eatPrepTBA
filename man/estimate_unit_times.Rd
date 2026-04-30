@@ -17,16 +17,49 @@ Data frame containing various times and timestamps per unit and page
 
 Calculates estimated processing and loading times for units and pages.
 \itemize{
-\item loading_time: Time interval between the player's “LOADING” and “RUNNING” states per playback of the unit,
+\item unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
+\item unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
+\item unit_time: Time interval at each playback of the unit between the player's “RUNNING” state and
+the next timestamp (usually the LOADING of the next unit, re-loading of the same unit,
+sometimes the end of the booklet), summed over playbacks
+\item unit_loadtime: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit,
+including the duration of unsuccessful loading attempts, summed over playbacks
+\item unit_playbacks: Tibble containing one row with information for each playback of the unit
+\itemize{
+\item unit_start_i: Running number of unit playbacks
+\item unit_time_i: Time interval at each playback of the unit between the player's “RUNNING” state and
+the next significant entry (usually the LOADING of the next unit, re-loading of the same unit,
+sometimes the end of the booklet)
+\item unit_end_time_i: Timestamp of the next significant log entry (usually the LOADING of the next unit, re-loading of the same unit,
+sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
+\item unit_start_time_i: Timestamp of start of current unit playback
+\item unit_loadtime_i: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit,
 including the duration of unsuccessful loading attempts
-\item unit_time: Time interval between the player's “RUNNING” state and the next timestamp
-(usually the LOADING of the next unit, sometimes the end of the booklet), per playback of the unit
-\item unit_n_play: Number of playbacks of the unit in this session
-\item n_failed_loadings: Number of unsuccessful loading attempts for the unit
-\item page_time: Time interval between CURRENT_PAGE_ID = \link{...} (page load completion) and
-the next page load completion or until the end of the booklet
+\item unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
 \item run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 In this case, load times were not calculated.
+}
+\item n_failed_loadings: Number of unsuccessful loading attempts for the unit
+\item unit_page_logs: Tibble containing one row with information for each page of the unit
+NULL when a unit only has one page.
+\itemize{
+\item page_id: Digit(s) extracted from the log entry for this page
+\item page_start_time: Timestamp at which page is logged in log entry
+\item page_n_play: Number of playbacks of current page
+\item page_time: Time interval between CURRENT_PAGE_ID = \link{...} (page load completion) and
+the next page load completion, the loading of a new unit, or until the end of the booklet,
+summed over playbacks of current page
+\item page_logs_i: Tibble containing one row with information for each playback of the page
+\itemize{
+\item page_start_i: Running number of playbacks of the page
+\item page_time_i: Time interval between CURRENT_PAGE_ID = \link{...} (page load completion) and
+the next page load completion, the loading of a new unit, or until the end of the booklet
+\item page_end_time_i: Timestamp of the next page load completion, the loading of a new unit,
+or the end of the booklet (i. e. the final timestamp within the current booklet playback)
+\item page_start_time_i: Timestamp of CURRENT_PAGE_ID = \link{...} (page load completion)
+}
+}
+\item unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 }
 
 Data grouped by group, login, booklet, unit_key.

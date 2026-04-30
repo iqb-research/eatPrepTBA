@@ -8,16 +8,43 @@
 #' `r lifecycle::badge("experimental")`
 #'
 #' Calculates estimated processing and loading times for units and pages.
-#' - loading_time: Time interval between the player's “LOADING” and “RUNNING” states per playback of the unit, 
-#'            including the duration of unsuccessful loading attempts
-#' - unit_time: Time interval between the player's “RUNNING” state and the next timestamp 
-#'            (usually the LOADING of the next unit, sometimes the end of the booklet), per playback of the unit
-#' - unit_n_play: Number of playbacks of the unit in this session
+#' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
+#' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
+#' - unit_time: Time interval at each playback of the unit between the player's “RUNNING” state and 
+#'   the next timestamp (usually the LOADING of the next unit, re-loading of the same unit, 
+#'   sometimes the end of the booklet), summed over playbacks
+#' - unit_loadtime: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit, 
+#'   including the duration of unsuccessful loading attempts, summed over playbacks
+#' - unit_playbacks: Tibble containing one row with information for each playback of the unit
+#'   - unit_start_i: Running number of unit playbacks
+#'   - unit_time_i: Time interval at each playback of the unit between the player's “RUNNING” state and 
+#'   the next significant entry (usually the LOADING of the next unit, re-loading of the same unit, 
+#'   sometimes the end of the booklet)
+#'   - unit_end_time_i: Timestamp of the next significant log entry (usually the LOADING of the next unit, re-loading of the same unit, 
+#'   sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
+#'   - unit_start_time_i: Timestamp of start of current unit playback
+#'   - unit_loadtime_i: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit, 
+#'   including the duration of unsuccessful loading attempts
+#'   - unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
+#'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
+#'     In this case, load times were not calculated.
 #' - n_failed_loadings: Number of unsuccessful loading attempts for the unit
-#' - page_time: Time interval between CURRENT_PAGE_ID = [...] (page load completion) and
-#'            the next page load completion or until the end of the booklet
-#' - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
-#'                  In this case, load times were not calculated.
+#' - unit_page_logs: Tibble containing one row with information for each page of the unit 
+#'   NULL when a unit only has one page.
+#'   - page_id: Digit(s) extracted from the log entry for this page
+#'   - page_start_time: Timestamp at which page is logged in log entry
+#'   - page_n_play: Number of playbacks of current page
+#'   - page_time: Time interval between CURRENT_PAGE_ID = [...] (page load completion) and
+#'     the next page load completion, the loading of a new unit, or until the end of the booklet,
+#'     summed over playbacks of current page
+#'   - page_logs_i: Tibble containing one row with information for each playback of the page
+#'     - page_start_i: Running number of playbacks of the page
+#'     - page_time_i: Time interval between CURRENT_PAGE_ID = [...] (page load completion) and
+#'       the next page load completion, the loading of a new unit, or until the end of the booklet
+#'     - page_end_time_i: Timestamp of the next page load completion, the loading of a new unit, 
+#'       or the end of the booklet (i. e. the final timestamp within the current booklet playback)
+#'     - page_start_time_i: Timestamp of CURRENT_PAGE_ID = [...] (page load completion)
+#' - unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 #'                  
 #' Data grouped by group, login, booklet, unit_key.
 #' Note: unit_alias is not taken into account here and is not used for grouping
@@ -153,7 +180,7 @@ estimate_unit_times <- function(logs) {
     unit_logs_prep %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
     dplyr::summarise( # Adds up all loading attempts from various unit plays
-      n_failed_loadings = sum(duplicate_loadings==TRUE),
+      n_failed_loadings = sum(duplicate_loadings==1),
       .groups = "drop"
     )
   
@@ -168,7 +195,7 @@ estimate_unit_times <- function(logs) {
       # bis zur nächsten Aktion innerhalb des Booklets
       ts_prev = dplyr::lag(ts),
       unit_loadtime = ts - ts_prev # Unit Loadtime hier definiert als Zeitspanne von 
-      # letztem PLAYER=LOADING bis zu PLAYER=RUNNING
+      # PLAYER=LOADING bis zu PLAYER=RUNNING (erfolglose Ladeversuche inklusive)
     ) %>%
     dplyr::mutate(
       unit_loadtime = dplyr::case_when(
@@ -196,7 +223,7 @@ estimate_unit_times <- function(logs) {
                                   "unit_loadstart_i" = "ts_prev",
                                   "run_no_load_i" = "run_no_load"))) %>%
     tidyr::nest(
-      unit_logs_i = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
+      unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
   
   # Bring stats together
@@ -267,7 +294,7 @@ estimate_unit_times <- function(logs) {
       unit_page_logs_prep %>%
       dplyr::summarise(
         page_start_time = min(ts),
-        page_n_start = length(page_time),
+        page_n_play = length(page_time),
         page_time = sum(page_time, na.rm=TRUE),
         .groups = "drop"
       ) %>%
@@ -276,7 +303,7 @@ estimate_unit_times <- function(logs) {
         by = dplyr::join_by(!!! c(groups_unit, "page_id"))
       ) %>%
       tidyr::nest(unit_page_logs = dplyr::any_of(c("page_id", "page_start_time", 
-                                                   "page_n_start", "page_time", "page_logs_i")))
+                                                   "page_n_play", "page_time", "page_logs_i")))
     
     # unit_page_logs$unit_page_logs[[4]]$page_logs_i
     
