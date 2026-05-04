@@ -37,7 +37,7 @@ library(eatPrepTBA)
 To log in to the IQB Studio, you can call the function `login_studio()`.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "15.0.1")
+login <- login_studio(keyring = TRUE, app_version = "16.0.0", change_key = TRUE)
 ```
 
 You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio). This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
@@ -97,7 +97,7 @@ units %>% readr::write_rds("inst/extdata/example_units.rds")
 units <- readr::read_rds(system.file("extdata", "example_units.rds", package = "eatPrepTBA"))
 ```
 
-`get_units()` returns a tibble (data frame) with one row per unit and several metadata columns, including nested list-columns.
+`get_units()` returns a tibble with one row per unit and several metadata columns, including nested list-columns.
 
 ```{r}
 units
@@ -115,7 +115,6 @@ Four of these variables are already familiar from the workspace information:
 - `ws_label`: the name of the respective workspace
 - `wsg_id`: the ID of the workspace group of the respective workspace
 - `wsg_label`: the name of the workspace group of the respective workspace
-
 
 Like workspaces, each unit has its own unique ID and label. Each unit also has a unit key and sometimes a description and information about its state.
 
@@ -141,7 +140,26 @@ To check for updates and changes via the Editor, you can have a look at the vari
 - `last_change_metadata`: timestamp of the last change to the metadata.
 - `last_change_metadata_user`: user who last changed the metadata.
 
+The coding scheme of a unit defines how responses in a unit are interpreted or scored. `get_units()` returns it in JSON format. In the Studio, it is not possible to check for mistakes in the coding scheme across several units. With eatPrepTBA, you can check several units at once.
 
+- `coding_scheme`: the coding scheme of the respective unit in JSON format.
+- `scheme_type`: the type of coding scheme used for the unit.
+
+The variables `unit_variables`, `unit_profiles`, `items_list`, and `items_profiles` are list-columns containing nested information rather than single values.
+
+- `unit_variables` which individual variables a unit contains. An item is sometimes derived only from multiple variables, for example by summing several true/false statements. Each row represents one variable (that is, one basic variable), but during coding a sum is calculated, and that sum becomes the item.
+
+For a closer look at the variables inside the unit, the lists can be unnested.
+
+```{r, eval = FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+# undo nested structure
+units_unnested <- units %>% 
+  select(unit_key, unit_variables) %>% 
+  unnest(unit_variables)
+
+units_unnested
+```
 
 
 
