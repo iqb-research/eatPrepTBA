@@ -147,19 +147,22 @@ The coding scheme of a unit defines how responses in a unit are interpreted or s
 
 The variables `unit_variables`, `unit_profiles`, `items_list`, and `items_profiles` are list-columns containing nested information rather than single values.
 
-- `unit_variables` which individual variables a unit contains. An item is sometimes derived only from multiple variables, for example by summing several true/false statements. Each row represents one variable (that is, one basic variable), but during coding a sum is calculated, and that sum becomes the item.
+- `unit_variables`: which individual variables a unit contains. An item is sometimes derived only from multiple variables, for example by summing several true/false statements. Each row represents one variable (that is, one basic variable), but during coding a sum is calculated, and that sum becomes the item.
 
 For a closer look at the variables inside the unit, the lists can be unnested.
 
-```{r, eval = FALSE, message=FALSE, warning=FALSE}
+```{r, eval = TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
 # undo nested structure
 units_unnested <- units %>% 
   select(unit_key, unit_variables) %>% 
   unnest(unit_variables)
+```
 
+```{r}
 units_unnested
 ```
+
 
 
 
