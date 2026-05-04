@@ -4,10 +4,19 @@
 \alias{estimate_unit_times}
 \title{Estimates loading and stay times for units, unit plays and pages from log data}
 \usage{
-estimate_unit_times(logs)
+estimate_unit_times(logs, use_unit_alias = FALSE)
 }
 \arguments{
 \item{logs}{Tibble. Must be a logs tibble retrieved with \code{get_logs()} or \code{read_logs()}.}
+
+\item{use_unit_alias}{Boolean value. Determines whether to use unit_alias as unit identifier. If
+FALSE, use unit_key instead, which is the default.
+By default, unit_alias == unit_key (mapping to the Studio unit). In special cases —
+particularly for unit start pages and units that appear identically in multiple test
+booklets but are to be evaluated separately (which is rare; this has so far only
+applied to instruction pages or clarification questions) — a different unit_alias
+is intentionally assigned to logically identical units. In these cases, setting this
+parameter to TRUE can be advisable.}
 }
 \value{
 Data frame containing various times and timestamps per unit and page
@@ -16,6 +25,7 @@ Data frame containing various times and timestamps per unit and page
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
 Calculates estimated processing and loading times for units and pages.
+New columns and nested columns:
 \itemize{
 \item unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 \item unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
@@ -60,9 +70,9 @@ or the end of the booklet (i. e. the final timestamp within the current booklet 
 }
 }
 \item unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
+\item unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
+use_unit_alias
 }
 
-Data grouped by group, login, booklet, unit_key.
-Note: unit_alias is not taken into account here and is not used for grouping
-or sorting; it is only reinserted at the end for informational purposes.
+Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 }
