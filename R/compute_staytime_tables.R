@@ -514,6 +514,8 @@ compute_staytime_tables <- function(fach,
 #' Function for rendering pre-existing quantile tables of unit, page and item
 #' stay times into a shape and layout suitable for a quarto document.
 #' Attention! Dataset needs to be called "data" (Philipp).
+#' 
+#' @keywords internal
 
 layout_staytime_tables <- function(data,
                                    id = "unit-table",
