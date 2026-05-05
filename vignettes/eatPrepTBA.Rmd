@@ -1,5 +1,5 @@
 ---
-title: "Get started with eatPrepTBA"
+title: "Introduction to the IQB-Studio with eatPrepTBA"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{eatPrepTBA}
@@ -9,7 +9,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-`eatPrepTBA` is an R package designed to support the preparation and management of technology-based assessments (TBA) used in IQB research workflows. It provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some routines for preparing and blending data from these different resources to manage TBA studies.
+`eatPrepTBA` is an R package designed to support the preparation and management of technology-based assessments (TBA) used in IQB research workflows. It provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some routines for preparing and combining data from these different resources to manage TBA studies.
 
 ```{r, include = FALSE}
 # originalTestMode <- getOption("eatPrepTBA.test_mode")
@@ -37,7 +37,7 @@ library(eatPrepTBA)
 To log in to the IQB Studio, you can call the function `login_studio()`.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "16.0.0", change_key = TRUE)
+login <- login_studio(keyring = TRUE, app_version = "16.0.0")
 ```
 
 You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio). This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
@@ -48,7 +48,7 @@ The current `app_version` needs to be updated manually and can be found [here](h
 knitr::include_graphics("images/Studio_Login.png")
 ```
 
-If you use the argument `keyring = TRUE`, your login data will be saved locally to your computer, so that you don't have to login every time you call `login_studio()`. If you want to change your login information (e.g. after accidentally entering the wrong password), you can add the argument `change_key = TRUE` to the `login_studio()`-function. This will call the dialogue for entering your login information again.
+If you use the argument `keyring = TRUE`, your login data will be saved locally to your computer, so that you don't have to log in every time you call `login_studio()`. If you want to change your login information (e.g. after accidentally entering the wrong password), you can add the argument `change_key = TRUE` to the `login_studio()`-function. This will call the dialogue for entering your login information again.
 
 The function itself invisibly provides an access token, i.e., something like a key to all of your studies. This can be used on other function calls to retrieve data from the IQB-Studio. To use this key in other functions, it should be assigned to an `R` object, e.g., `login`. Calling the `login` object returns a list of workspaces that can be accessed with your credentials.
 
@@ -125,6 +125,14 @@ Like workspaces, each unit has its own unique ID and label. Each unit also has a
 - `description`: the description or notes stored for the unit.
 - `state_id`: If no state is set, this variable is 0. The package can also attach the corresponding `state_label` (e.g. `state_id = 1`  means “zu klären”) and `state_color` when those settings exist.
 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Studio_Unit_Overview.png")
+```
+
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Studio_State_ID.png")
+```
+
 In the Studio, the tab "Verona Module" shows information about the software component behind a unit’s editor, preview, or coding interface.
 
 - `editor`: the editor module assigned to the unit
@@ -140,16 +148,23 @@ To check for updates and changes via the Editor, you can have a look at the vari
 - `last_change_metadata`: timestamp of the last change to the metadata.
 - `last_change_metadata_user`: user who last changed the metadata.
 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Studio_Verona.png")
+```
+
 The coding scheme of a unit defines how responses in a unit are interpreted or scored. `get_units()` returns it in JSON format. In the Studio, it is not possible to check for mistakes in the coding scheme across several units. With eatPrepTBA, you can check several units at once.
 
 - `coding_scheme`: the coding scheme of the respective unit in JSON format.
-- `scheme_type`: the type of coding scheme used for the unit.
+
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Studio_Coding_Scheme.png")
+```
 
 The variables `unit_variables`, `unit_profiles`, `items_list`, and `items_profiles` are list-columns containing nested information rather than single values.
 
-- `unit_variables`: which individual variables a unit contains. An item is sometimes derived only from multiple variables, for example by summing several true/false statements. Each row represents one variable (that is, one basic variable), but during coding a sum is calculated, and that sum becomes the item.
+- `unit_variables`: which individual variables a unit contains. An item is sometimes derived from multiple variables, for example by summing several true/false statements. Each row represents one variable (that is, one "Basisvariable"), but during coding a sum is calculated, and that sum becomes the item.
 
-For a closer look at the variables inside the unit, the lists can be unnested.
+For a closer look at the variables inside the unit, the lists can be unnested:
 
 ```{r, eval = TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
