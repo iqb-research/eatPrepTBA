@@ -48,7 +48,8 @@ booklet is treated as containing a special needs school study design.}
 \item{output_path}{String. Directory to store prepared tables in.}
 }
 \value{
-None; saves tables, including quantile dot plots, ready for using in quarto document
+A tibble. Also saves large tibble with name "tab_{domain}.RData" under output_path, including quantile dot plots.
+This can then be incorporated into a quarto document as described in the example below.
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
@@ -63,6 +64,29 @@ This string is passed to the function as the argument FS_marker.
 }
 \details{
 Author: Philipp Franikowski, restructured by Lea Musiolek
+
+The resulting saved tibble can be incorporated into a Quarto document using
+\code{load("output_path/tab_\\{domain\\}.RData")}
+
+\preformatted{
+::: panel-tabset
+
+### Units
+
+\verb{```{r}}
+#| column: screen
+tab
+\verb{```}
+
+### Items
+
+\verb{```{r}}
+#| column: screen
+tab_item
+\verb{```}
+
+:::
+}
 }
 \examples{
 \dontrun{
@@ -74,15 +98,15 @@ prep_path <- "..."
 db_path <- "..."
 output_path <- "..."
 
-unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # Unit Metadaten
-units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # Unit Kodierschema
-final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #Finale Ergebnisdatei
+unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
+units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
+final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #final results file
 
-log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # Output
-# von estimate_unit_times()
-unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # Tabelle
-# mit einer Zeile pro Unit, Spalten für unit_key, Fach als Buchstabe, und Domain 
-# (Fach und Kompetenz) als Kombi aus 2 Buchstaben
+log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # output
+# of estimate_unit_times()
+unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # table
+# with one row per unit, columns for unit_key, school subject as letter, and testing domain
+# (subject and competence type) as 2-letter combination
 
 eatPrepTBA::compute_staytime_tables(fach,
                                     log_times,
@@ -94,5 +118,7 @@ eatPrepTBA::compute_staytime_tables(fach,
                                     FS_marker,
                                     output_path)
 }
+
+# Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
 
 }
