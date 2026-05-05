@@ -5,6 +5,11 @@
 Takes various data sources with unit, item and participant stay times
 and metadata, and computes quantiles for use in reports. Uses the
 layout_staytime_tables function to layout them for quarto reports.
+IMPORTANT: The function assumes that there is one study design for
+regular schools (RS) and one for special needs schools (FS), and that
+the booklets with FS design can be identified with certainty by a string
+which appears as a substring of final_responses\$booklet_id entries.
+This string is passed to the function as the argument FS_marker.
 
 ## Usage
 
@@ -16,7 +21,9 @@ compute_staytime_tables(
   final_responses,
   units_cs,
   unit_meta,
-  students_select
+  students_select,
+  FS_marker,
+  output_path
 )
 ```
 
@@ -28,7 +35,7 @@ compute_staytime_tables(
 
 - log_times:
 
-  Data frame. Log data with stay times for one subject. Result of
+  Data frame. Log data with stay times for one school subject. Result of
   pulling log data with eatPrepTBA::get_logs() and then using
   eatPrepTBA::estimate_unit_times(). If necessary, data for the subject
   in question needs to be selected.
@@ -58,18 +65,87 @@ compute_staytime_tables(
 
   Data frame. Unit-wise metadata, exported directly from IQB Studio.
   Relevant variables: ws_id, unit_id, unit_key, unit_label,
-  unit_metadata, item_metadata
+  unit_metadata, item_metadata, Aufgabenzeit
 
 - students_select:
 
   Vector of strings. If necessary, contains the IDSTUDs of students to
   include in the analysis. Otherwise, NULL
 
+- FS_marker:
+
+  String. If this string appears in final_responses\$booklet_id, then
+  the respective booklet is treated as containing a special needs school
+  study design.
+
+- output_path:
+
+  String. Directory to store prepared tables in.
+
 ## Value
 
-None; saves tables, including quantile dot plots, ready for using in
-quarto document
+A tibble. Also saves large tibble with name "tab_domain.RData" under
+output_path, including quantile dot plots. This can then be incorporated
+into a quarto document as described in the example below.
 
 ## Details
 
 Author: Philipp Franikowski, restructured by Lea Musiolek
+
+The resulting saved tibble can be incorporated into a Quarto document
+using `load("output_path/tab_\{domain\}.RData")`
+
+
+    ::: panel-tabset
+
+    ### Units
+
+    \verb{```{r}}
+    #| column: screen
+    tab
+    \verb{```}
+
+    ### Items
+
+    \verb{```{r}}
+    #| column: screen
+    tab_item
+    \verb{```}
+
+    :::
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+fach <- c("F")
+FS_marker <- "S"
+
+data_path <- "..."
+prep_path <- "..."
+db_path <- "..."
+output_path <- "..."
+
+unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
+units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
+final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #final results file
+
+log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # output
+# of estimate_unit_times()
+unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # table
+# with one row per unit, columns for unit_key, school subject as letter, and testing domain
+# (subject and competence type) as 2-letter combination
+
+eatPrepTBA::compute_staytime_tables(fach,
+                                    log_times,
+                                    unit_domains,
+                                    final_responses,
+                                    units_cs,
+                                    unit_meta,
+                                    students_select,
+                                    FS_marker,
+                                    output_path)
+} # }
+
+# Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
+```

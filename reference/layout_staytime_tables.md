@@ -25,39 +25,40 @@ layout_staytime_tables(
 
 - data:
 
-  description
+  Pre-computed quantile tables of stay times
 
 - id:
 
-  description
+  String. Either "unit-table" (default) or "item-table", changes some
+  details about the layout.
 
 - subject:
 
-  description
+  String. Default is "dep". Legacy parameter.
 
 - filterable:
 
-  description
+  Boolean. Default is TRUE. Necessary for reactable function.
 
 - searchable:
 
-  description
+  Boolean. Default is TRUE. Necessary for reactable function.
 
 - sortable:
 
-  description
+  Boolean. Default is TRUE. Necessary for reactable function.
 
 - views:
 
-  description
+  Boolean. Default is TRUE. Legacy parameter.
 
 - download:
 
-  description
+  String. Default is NULL. Download file name (legacy).
 
 ## Value
 
-Tables, including quantile dot plots, ready for using in quarto document
+Tables, including quantile dot plots, ready for use in quarto document
 
 ## Details
 
