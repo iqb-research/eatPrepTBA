@@ -19,7 +19,11 @@ is intentionally assigned to logically identical units. In these cases, setting 
 parameter to TRUE can be advisable.}
 }
 \value{
+<<<<<<< HEAD
 Tibble containing various times and timestamps per unit and page
+=======
+Data frame containing various times and timestamps per unit and page
+>>>>>>> 7a78b0e536e712b32c8f223e67277692e7f2fad7
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
