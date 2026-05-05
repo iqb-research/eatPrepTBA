@@ -24,7 +24,8 @@
 #' booklet is treated as containing a special needs school study design.
 #' @param output_path String. Directory to store prepared tables in.
 #'
-#' @return None; saves tables, including quantile dot plots, ready for using in quarto document
+#' @return Saves large tibble with name "tab_{domain}.RData" under output_path, including quantile dot plots.
+#' This can then be incorporated into a quarto document as described in the example below.
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
@@ -47,15 +48,15 @@
 #' db_path <- "..."
 #' output_path <- "..."
 #' 
-#' unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # Unit Metadaten
-#' units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # Unit Kodierschema
-#' final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #Finale Ergebnisdatei
+#' unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
+#' units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
+#' final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #final results file
 #' 
-#' log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # Output
-#' # von estimate_unit_times()
-#' unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # Tabelle
-#' # mit einer Zeile pro Unit, Spalten für unit_key, Fach als Buchstabe, und Domain 
-#' # (Fach und Kompetenz) als Kombi aus 2 Buchstaben
+#' log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # output
+#' # of estimate_unit_times()
+#' unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), collapse="")) # table
+#' # with one row per unit, columns for unit_key, school subject as letter, and testing domain 
+#' # (subject and competence type) as 2-letter combination
 #' 
 #' eatPrepTBA::compute_staytime_tables(fach,
 #'                                     log_times,
@@ -67,11 +68,12 @@
 #'                                     FS_marker,
 #'                                     output_path)
 #' }
+#' 
+#' # The resulting saved tibble can be incorporated into a quarto document using
+#' load("output_path/tab_{domain}.RData")
+#' # Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
 #'
 #' @export
-
-
-# design_codes (z.B. FS, RS etc, s.u.), output_path, ggf. meta_cols
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -686,7 +688,7 @@ layout_staytime_tables <- function(data,
 #   }
 #   columns_json <- jsonlite::toJSON(columns)
 #   callback <- glue::glue("Reactable.downloadDataCSV('{id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
-#   htmltools::browsable(tags$button(shiny::icon("download"), "Herunterladen", onclick = callback))
+#   htmltools::browsable(htmltools::tags$button(shiny::icon("download"), "Herunterladen", onclick = callback))
 # }
 
 # # Filterfunktionen (allgemein)
@@ -723,7 +725,7 @@ layout_staytime_tables <- function(data,
 #         justifyContent = "center",
 #         height = "100%"
 #       ),
-#       tags$input(
+#       htmltools::tags$input(
 #         style = htmltools::css(
 #           width = "90%"
 #         ),
@@ -995,7 +997,7 @@ generate_checkbox <- function(label, checked = NULL, id = "item-table", columns,
     {filter_code}
     }})(event)")
   
-  tags$input(
+  htmltools::tags$input(
     label,
     type = "checkbox",
     checked = if (is.null(checked) || !checked) NULL else checked,

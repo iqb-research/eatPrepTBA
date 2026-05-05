@@ -10,7 +10,7 @@
 #'        is intentionally assigned to logically identical units. In these cases, setting this
 #'        parameter to TRUE can be advisable.
 #'
-#' @return Data frame containing various times and timestamps per unit and page
+#' @return Tibble containing various times and timestamps per unit and page
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
