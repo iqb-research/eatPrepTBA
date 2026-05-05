@@ -7,7 +7,7 @@ Provides a routine to login to an instance of the IQB Studio Lite.
 ``` r
 login_studio(
   base_url = "https://www.iqb-studio.de/",
-  app_version = "13.8.0",
+  app_version = "16.0.0",
   keyring = FALSE,
   change_key = FALSE,
   dialog = TRUE,
@@ -25,7 +25,7 @@ login_studio(
 - app_version:
 
   Character. App version of the IQB Studio instance. Defaults to
-  "13.8.0".
+  "16.0.0".
 
 - keyring:
 
@@ -63,7 +63,7 @@ request on the `base_url` (default is "https://www.iqb-studio.de/) with
 the `name` and the `password` provided by the user:
 
     curl --location --request POST '{base_url}/api/login?username={name}&password={password}'
-    --header 'app-version: 13.8.0'
+    --header 'app-version: 16.0.0'
     }'
 
 Note that the name and the password are only available to the function

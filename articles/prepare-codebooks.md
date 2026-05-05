@@ -3,13 +3,15 @@
 ![](figures/logo.png)
 
 ``` r
+
 library(eatPrepTBA)
-#> ℹ eatPrepTBA v0.9.8.9006
+#> ℹ eatPrepTBA v0.9.8.9007
 ```
 
 ## Login Procedure
 
 ``` r
+
 login <- login_studio(keyring = TRUE, app_version = "12.3.1")
 workspace <- access_workspace(login, ws_id = c(908))
 ```
@@ -17,10 +19,12 @@ workspace <- access_workspace(login, ws_id = c(908))
 If you want to retrieve all codes:
 
 ``` r
+
 cb_all <- prepare_codebook(workspace = workspace)
 ```
 
 ``` r
+
 cb_all
 #> # A tibble: 206 × 7
 #>    unit_key unit_label             variable_id variable_label code_id code_label
@@ -44,11 +48,13 @@ cb_all
 If you want to retrieve only codes:
 
 ``` r
+
 cb_manual <- prepare_codebook(workspace = workspace, 
                               manual = TRUE)
 ```
 
 ``` r
+
 cb_manual
 #> # A tibble: 206 × 7
 #>    unit_key unit_label             variable_id variable_label code_id code_label

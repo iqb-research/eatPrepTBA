@@ -17,6 +17,7 @@ You can install the development version of eatPrepTBA from
 [GitHub](https://github.com/) with:
 
 ``` r
+
 # install.packages("devtools")
 devtools::install_github("iqb-research/eatPrepTBA")
 ```
@@ -26,6 +27,7 @@ devtools::install_github("iqb-research/eatPrepTBA")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
+
 library(eatPrepTBA)
 #> ℹ eatPrepTBA v0.9.8.9001
 ```

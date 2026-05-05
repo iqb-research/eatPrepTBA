@@ -3,6 +3,7 @@
 ## Preparations
 
 ``` r
+
 # library(eatPrepTBA)
 ```
 
@@ -17,6 +18,7 @@ retrieve data from the IQB Testcenter. To use this key in other
 functions, it should be assigned to an `R` object, e.g., `login`.
 
 ``` r
+
 # login <- create_login()
 ```
 
@@ -39,6 +41,7 @@ course). This workspace should again be assigned to an object, i.e.,
 and information about the path to find the associated files.
 
 ``` r
+
 # workspace <- access_workspace(login = login, label = "eatPrepTBA Documentation")
 # workspace <- access_workspace(login = login, id = 134)
 ```
@@ -63,6 +66,7 @@ and return the associated testtaker information
 i.e., a list of all logins for potential testtakers.
 
 ``` r
+
 # list_testtakers(workspace = workspace)
 # get_testtakers(workspace = workspace)
 ```
@@ -75,6 +79,7 @@ and return the associated designs
 ([`get_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/get_booklets.md)).
 
 ``` r
+
 # list_booklets(workspace = workspace)
 # get_booklets(workspace = workspace)
 ```
@@ -89,6 +94,7 @@ i.e., the item information and the coding scheme used for scoring the
 responses.
 
 ``` r
+
 # list_units(workspace = workspace)
 # get_units(workspace = workspace)
 ```
