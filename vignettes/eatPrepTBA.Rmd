@@ -167,11 +167,10 @@ The variables `unit_variables`, `unit_profiles`, `items_list`, and `items_profil
 For a closer look at the variables inside the unit, the lists can be unnested:
 
 ```{r, eval = TRUE, message=FALSE, warning=FALSE}
-library(tidyverse)
 # undo nested structure
-units_unnested <- units %>% 
-  select(unit_key, unit_variables) %>% 
-  unnest(unit_variables)
+units_unnested <- units |>
+  dplyr::select(unit_key, unit_variables) |>
+  tidyr::unnest(unit_variables)
 ```
 
 ```{r}
