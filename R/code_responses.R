@@ -226,7 +226,7 @@ code_responses <- function(responses,
     dplyr::mutate(
       unit_codes = purrr::pmap(
         .l = list(coding_scheme, unit_responses),
-        .f = eatAutoCode:::code_responses_array,
+        .f = eatAutoCode::code_responses_array,
         .progress = list(
           type ="custom",
           show_after = 0,
