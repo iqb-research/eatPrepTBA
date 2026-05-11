@@ -13,5 +13,5 @@ read_responses(files)
 A tibble.
 }
 \description{
-This function only returns the testtakers information for a downloaded testtakers file.
+This function returns responses for downloaded responses files.
 }
