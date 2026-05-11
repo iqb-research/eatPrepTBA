@@ -9,7 +9,12 @@ unnest_responses <- function(json, is_parsed = TRUE) {
       json
   }
 
-  json_parsed <- merge_geometry_variable_codes(json_parsed)
+  json_ids <- response_json_ids(json_parsed)
+
+  if ("geometryVariableCodes" %in% json_ids) {
+    json_parsed <- merge_geometry_variable_codes(json_parsed, json_ids)
+    json_ids <- response_json_ids(json_parsed)
+  }
 
   if (length(json_parsed) == 0) {
     return(tibble::tibble(
@@ -18,7 +23,7 @@ unnest_responses <- function(json, is_parsed = TRUE) {
     ))
   }
 
-  if ("lastSeenPageIndex" %in% purrr::map_chr(json_parsed, "id")) {
+  if ("lastSeenPageIndex" %in% json_ids) {
     return(tibble::tibble(
       id = "elementCodes",
       content = as.character(jsonlite::toJSON(json_parsed))
@@ -43,12 +48,12 @@ unnest_responses <- function(json, is_parsed = TRUE) {
   }
 }
 
-merge_geometry_variable_codes <- function(json_parsed) {
+response_json_ids <- function(json_parsed) {
   if (length(json_parsed) == 0) {
-    return(json_parsed)
+    return(character())
   }
 
-  ids <- purrr::map_chr(json_parsed, function(x) {
+  vapply(json_parsed, function(x) {
     id <- x[["id"]]
 
     if (is.null(id) || length(id) == 0) {
@@ -56,8 +61,10 @@ merge_geometry_variable_codes <- function(json_parsed) {
     } else {
       as.character(id[[1]])
     }
-  })
+  }, character(1), USE.NAMES = FALSE)
+}
 
+merge_geometry_variable_codes <- function(json_parsed, ids = response_json_ids(json_parsed)) {
   geometry_idx <- which(ids == "geometryVariableCodes")
 
   if (length(geometry_idx) == 0) {
@@ -67,10 +74,10 @@ merge_geometry_variable_codes <- function(json_parsed) {
   element_idx <- which(ids == "elementCodes")
 
   collect_content <- function(idx) {
-    json_parsed[idx] %>%
-      purrr::map("content") %>%
-      purrr::compact() %>%
-      purrr::flatten()
+    content <- lapply(json_parsed[idx], `[[`, "content")
+    content <- content[!vapply(content, is.null, logical(1))]
+
+    unlist(content, recursive = FALSE)
   }
 
   geometry_content <- collect_content(geometry_idx)
