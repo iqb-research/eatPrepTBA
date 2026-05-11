@@ -10,7 +10,7 @@ get_results(workspace)
 \S4method{get_results}{WorkspaceTestcenter}(workspace)
 }
 \arguments{
-\item{workspace}{\linkS4class{WorkspaceTestcenter}. Workspace information necessary to retrieve results information.}
+\item{workspace}{\link[=WorkspaceTestcenter-class]{WorkspaceTestcenter}. Workspace information necessary to retrieve results information.}
 }
 \value{
 A tibble.

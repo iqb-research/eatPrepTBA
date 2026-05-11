@@ -5,7 +5,7 @@
 \alias{Workspace-class}
 \title{Workspace access}
 \description{
-A class containing the token to communicate with the Testcenter API. Objects of this class will be created by the function \code{\link[=access_workspace]{access_workspace()}} after entering a valid \linkS4class{Login} object.
+A class containing the token to communicate with the Testcenter API. Objects of this class will be created by the function \code{\link[=access_workspace]{access_workspace()}} after entering a valid \link[=Login-class]{Login} object.
 }
 \section{Slots}{
 
