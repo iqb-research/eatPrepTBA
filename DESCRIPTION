@@ -1,13 +1,15 @@
 Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assessment (TBA)
-Version: 0.9.8.9006
+Version: 0.9.8.9008
 Authors@R: 
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2109-7388")),
     person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-6688-1267")),
     person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585")),
     person(given = "Kristoph", family ="Schumann", email = "kristoph.schumann@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-9502-6083")),
-    person(given = "Edna", family ="Grewers", email = "edna.grewers@iqb.hu-berlin.de", role = c("ctb")))
+    person(given = "Edna", family ="Grewers", email = "edna.grewers@iqb.hu-berlin.de", role = c("ctb")),
+    person(given = "Lea", family = "Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807"))
+    )
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
@@ -23,6 +25,7 @@ Imports:
     curl,
     dplyr,
     eatAutoCode,
+    eatWidget,
     glue,
     htmltools,
     httr2,
@@ -47,7 +50,9 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown
-Remotes: iqb-research/eatAutoCode
+Remotes: 
+    iqb-research/eatAutoCode,
+    iqb-research/eatWidget
 Config/testthat/edition: 3
 URL: https://iqb-research.github.io/eatPrepTBA/
 VignetteBuilder: knitr
