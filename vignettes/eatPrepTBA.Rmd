@@ -81,7 +81,7 @@ workspace <- access_workspace(login = login, ws_id = c(918, 919))
 
 ## Accessing the units in a workspace
 
-From the `workspace` object, you can now extract the units using the `get_units()` function. This function allows you to look at many units at once, instead of having to go through them one by one like in the Studio. Depending on how many workspaces you access, this might take a moment to load.
+Using the `workspace` object, you can now extract the units using the `get_units()` function. This function allows you to look at many units at once, instead of having to go through them one by one like in the Studio. Depending on how many workspaces you access, this might take a moment to load.
 
 ```{r, eval = FALSE}
 units <- get_units(workspace = workspace)
