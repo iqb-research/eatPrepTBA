@@ -10,7 +10,7 @@ add_groups(workspace, group_names)
 \S4method{add_groups}{WorkspaceStudio}(workspace, group_names)
 }
 \arguments{
-\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to add groups}
+\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to add groups}
 
 \item{group_names}{Character. Names of the groups to be added (already available groups will not result in duplicate groups)}
 }

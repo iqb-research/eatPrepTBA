@@ -10,7 +10,7 @@ get_settings(workspace, metadata = TRUE)
 \S4method{get_settings}{WorkspaceStudio}(workspace, metadata = TRUE)
 }
 \arguments{
-\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
+\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
 
 \item{metadata}{Logical. Should the unit and item metadata profiles be retrieved. Defaults to \code{TRUE}.}
 }
