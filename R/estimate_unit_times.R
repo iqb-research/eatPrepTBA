@@ -38,14 +38,13 @@
 #'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 #'     In this case, load times were not calculated.
 #' - n_failed_loadings: Number of unsuccessful loading attempts for the unit
-#' - focus_lost_events: Tibble containing timestamps and flags for focus lost events within each unit
-#'   - focus_lost_ts: Timestamp when focus was lost (FOCUS : "HAS_NOT")
-#'   - focus_lost_unfollowed: Boolean flag = TRUE when this focus lost event is NOT followed by a 
-#'     focus regained event (FOCUS : "HAS") before another focus lost event appears
-#' - focus_regained_events: Tibble containing timestamps and flags for focus regained events within each unit
-#'   - focus_regained_ts: Timestamp when focus was regained (FOCUS : "HAS")
-#'   - focus_regained_unpreceded: Boolean flag = TRUE when this focus regained event is NOT preceded 
-#'     by a focus lost event (or preceded by another focus regained event instead)
+#' - focus_events: Tibble containing all focus lost and regained events within each unit, ordered chronologically
+#'   - focus_event_ts: Timestamp of the focus event
+#'   - focus_event_type: Type of event ("LOST" or "REGAINED")
+#'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event 
+#'     before another lost event appears
+#'   - focus_event_unpreceded: Boolean flag for regained focus events = TRUE when NOT preceded by a lost event 
+#'     (or preceded by another regained event instead)
 #' - unit_page_logs: Tibble containing one row with information for each page of the unit 
 #'   NULL when a unit only has one page.
 #'   - page_id: Digit(s) extracted from the log entry for this page
@@ -222,68 +221,51 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
   # Focus events extraction
   print("Berechne Focus-Events")
   
-  # Extract focus lost and regained events
-  focus_events <-
+  # Extract and combine focus lost and regained events
+  focus_events_combined <-
     all_ts %>%
     dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::arrange("ts", by_group=TRUE) %>%
-    dplyr::mutate(
-      event_type = ts_name,
-      event_ts = ts
-    ) %>%
-    dplyr::ungroup() %>%
-    dplyr::select(dplyr::all_of(c(groups_unit, "event_type", "event_ts")))
+    dplyr::ungroup()
   
-  # Identify focus lost events not followed by regain before another loss
-  if (nrow(focus_events) > 0) {
-    focus_lost_events <-
-      focus_events %>%
-      dplyr::filter(event_type == "focus_lost_ts") %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-      dplyr::arrange("event_ts", by_group=TRUE) %>%
+  if (nrow(focus_events_combined) > 0) {
+    # Process each unit's focus events
+    focus_events_nested <-
+      focus_events_combined %>%
       dplyr::mutate(
-        focus_lost_i = seq_along(event_ts),
+        event_type = dplyr::case_when(
+          ts_name == "focus_lost_ts" ~ "LOST",
+          ts_name == "focus_regained_ts" ~ "REGAINED",
+          .default = NA_character_
+        ),
+        focus_event_ts = ts
+      ) %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+      dplyr::arrange("focus_event_ts", by_group=TRUE) %>%
+      dplyr::mutate(
+        focus_event_i = seq_along(focus_event_ts),
         next_event_type = dplyr::lead(event_type),
-        focus_lost_unfollowed = dplyr::case_when(
-          is.na(next_event_type) ~ TRUE,  # Last event is lost focus
-          next_event_type == "focus_lost_ts" ~ TRUE,  # Next event is also lost (no regain between)
-          .default = FALSE
-        )
-      ) %>%
-      dplyr::select(dplyr::all_of(c(groups_unit, "focus_lost_i", 
-                                    "focus_lost_ts" = "event_ts", "focus_lost_unfollowed"))) %>%
-      dplyr::ungroup()
-    
-    focus_regained_events <-
-      focus_events %>%
-      dplyr::filter(event_type == "focus_regained_ts") %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-      dplyr::arrange("event_ts", by_group=TRUE) %>%
-      dplyr::mutate(
-        focus_regained_i = seq_along(event_ts),
         prev_event_type = dplyr::lag(event_type),
-        focus_regained_unpreceded = dplyr::case_when(
-          is.na(prev_event_type) ~ TRUE,  # First event is regain (no loss before)
-          prev_event_type == "focus_regained_ts" ~ TRUE,  # Prev event is also regain (no loss between)
+        # Flag for lost focus events not followed by regain before another loss
+        focus_event_unfollowed = dplyr::case_when(
+          event_type == "LOST" & (is.na(next_event_type) | next_event_type == "LOST") ~ TRUE,
+          .default = FALSE
+        ),
+        # Flag for regained focus events not preceded by loss (or preceded by another regain)
+        focus_event_unpreceded = dplyr::case_when(
+          event_type == "REGAINED" & (is.na(prev_event_type) | prev_event_type == "REGAINED") ~ TRUE,
           .default = FALSE
         )
       ) %>%
-      dplyr::select(dplyr::all_of(c(groups_unit, "focus_regained_i", 
-                                    "focus_regained_ts" = "event_ts", "focus_regained_unpreceded"))) %>%
+      dplyr::select(dplyr::all_of(c(groups_unit, "focus_event_i", "focus_event_ts", 
+                                    "event_type", "focus_event_unfollowed", "focus_event_unpreceded"))) %>%
+      dplyr::rename(focus_event_type = "event_type") %>%
+      tidyr::nest(focus_events = c("focus_event_i", "focus_event_ts", "focus_event_type", 
+                                   "focus_event_unfollowed", "focus_event_unpreceded")) %>%
       dplyr::ungroup()
-    
-    # Nest focus events
-    focus_lost_nested <-
-      focus_lost_events %>%
-      tidyr::nest(focus_lost_events = c("focus_lost_i", "focus_lost_ts", "focus_lost_unfollowed"))
-    
-    focus_regained_nested <-
-      focus_regained_events %>%
-      tidyr::nest(focus_regained_events = c("focus_regained_i", "focus_regained_ts", "focus_regained_unpreceded"))
   } else {
-    focus_lost_nested <- tibble::tibble()
-    focus_regained_nested <- tibble::tibble()
+    focus_events_nested <- tibble::tibble()
   }
   
   # Bring stats together
@@ -305,25 +287,15 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       by = dplyr::join_by(!!! groups_unit)
     )
   
-  # Add focus events if available
-  if (nrow(focus_lost_nested) > 0) {
+  # Add combined focus events if available
+  if (nrow(focus_events_nested) > 0) {
     unit_logs <- unit_logs %>%
       dplyr::left_join(
-        focus_lost_nested,
+        focus_events_nested,
         by = dplyr::join_by(!!! groups_unit)
       )
   } else {
-    unit_logs$focus_lost_events <- NA
-  }
-  
-  if (nrow(focus_regained_nested) > 0) {
-    unit_logs <- unit_logs %>%
-      dplyr::left_join(
-        focus_regained_nested,
-        by = dplyr::join_by(!!! groups_unit)
-      )
-  } else {
-    unit_logs$focus_regained_events <- NA
+    unit_logs$focus_events <- NA
   }
   
   # Page times
