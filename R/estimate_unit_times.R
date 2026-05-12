@@ -19,25 +19,33 @@
 #' New columns and nested columns:
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
-#' - unit_time: Time interval at each playback of the unit between the player's “RUNNING” state and 
+#' - unit_time: Time interval at each playback of the unit between the player's "RUNNING" state and 
 #'   the next timestamp (usually the LOADING of the next unit, re-loading of the same unit, 
 #'   sometimes the end of the booklet), summed over playbacks
-#' - unit_loadtime: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit, 
+#' - unit_loadtime: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit, 
 #'   including the duration of unsuccessful loading attempts, summed over playbacks
 #' - unit_playbacks: Tibble containing one row with information for each playback of the unit
 #'   - unit_start_i: Running number of unit playbacks
-#'   - unit_time_i: Time interval at each playback of the unit between the player's “RUNNING” state and 
+#'   - unit_time_i: Time interval at each playback of the unit between the player's "RUNNING" state and 
 #'   the next significant entry (usually the LOADING of the next unit, re-loading of the same unit, 
 #'   sometimes the end of the booklet)
 #'   - unit_end_time_i: Timestamp of the next significant log entry (usually the LOADING of the next unit, re-loading of the same unit, 
 #'   sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
 #'   - unit_start_time_i: Timestamp of start of current unit playback
-#'   - unit_loadtime_i: Time interval between the player's “LOADING” and “RUNNING” states at each playback of the unit, 
+#'   - unit_loadtime_i: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit, 
 #'   including the duration of unsuccessful loading attempts
 #'   - unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
 #'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 #'     In this case, load times were not calculated.
 #' - n_failed_loadings: Number of unsuccessful loading attempts for the unit
+#' - focus_lost_events: Tibble containing timestamps and flags for focus lost events within each unit
+#'   - focus_lost_ts: Timestamp when focus was lost (FOCUS : "HAS_NOT")
+#'   - focus_lost_unfollowed: Boolean flag = TRUE when this focus lost event is NOT followed by a 
+#'     focus regained event (FOCUS : "HAS") before another focus lost event appears
+#' - focus_regained_events: Tibble containing timestamps and flags for focus regained events within each unit
+#'   - focus_regained_ts: Timestamp when focus was regained (FOCUS : "HAS")
+#'   - focus_regained_unpreceded: Boolean flag = TRUE when this focus regained event is NOT preceded 
+#'     by a focus lost event (or preceded by another focus regained event instead)
 #' - unit_page_logs: Tibble containing one row with information for each page of the unit 
 #'   NULL when a unit only has one page.
 #'   - page_id: Digit(s) extracted from the log entry for this page
@@ -112,7 +120,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
         stringr::str_detect(log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
         is_max_ts ~ "booklet_end_ts",
         log_entry == "PLAYER = PAUSED" ~ "n_paused",
-        log_entry == "FOCUS : \"HAS_NOT\"" ~ "n_lost_focus",
+        log_entry == "FOCUS : \"HAS_NOT\"" ~ "focus_lost_ts",
+        log_entry == "FOCUS : \"HAS\"" ~ "focus_regained_ts",
         .default = NA_character_
       ),
       page_id = dplyr::case_when(
@@ -130,23 +139,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
     )
   
   all_ts <- all_ts %>%
-    # dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit, "ts_name")))) %>%
-    # dplyr::mutate(
-    #   n_play = ifelse(ts_name == "unit_start_ts", seq_along(ts_name), NA_integer_)
-    # ) %>%
-    # dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-    # dplyr::arrange("ts", by_group=TRUE) %>%
-    # tidyr::fill(n_play) %>%
-    # dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit, "n_play")))) %>% # n_play m. E. 
-    # fehlerhaft, 
-    # weil tw. PLAYER=LOADING als Ende des letzten Units gewertet wird
-    # dplyr::mutate(
-    #   n_ts = seq_along(ts_name),
-    #   ts_name = ifelse((n_ts == max(n_ts) & n_ts != 1), "unitplay_last_ts", ts_name), # Lea: 
-    #   # Nicht nutzbar für Berechnung der Spielzeiten
-    #   # einzelner Unit-Plays, weil dazwischen tw. andere Units eingespielt wurden.
-    #   # Ferner wird tw. Der Start-ts auch als End-ts (letzter ts im Play) markiert.
-    # ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(!is.na(ts_name))
   
@@ -165,21 +157,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
     dplyr::arrange("ts", by_group=TRUE)
   
   # Nach wiederholten Ladeversuchen, und Unit-Starts ohne vorheriges Laden suchen
-  
-  ## Loop: too slow
-  # print("Finde wiederholte Ladeversuche, sowie Unit-Starts ohne vorheriges Laden")
-  # unit_logs_prep$duplicate_loadings <- FALSE
-  # unit_logs_prep$run_no_load <- FALSE
-  # pb = utils::txtProgressBar(min = 0, max = nrow(unit_logs_prep), initial = 2) 
-  # for (row in 2:nrow(unit_logs_prep)) {
-  #   unit_logs_prep$duplicate_loadings[[row]] <- (unit_logs_prep[row, "playercode"] == 0 &
-  #                                           unit_logs_prep[row-1, "playercode"] == 0 &
-  #                                           unit_logs_prep[row, "lag_unit_equal"] == 1)
-  #   unit_logs_prep$run_no_load[[row]] <- (unit_logs_prep[row, "playercode"] == 1 &
-  #                                           (unit_logs_prep[row-1, "playercode"] != 0 |
-  #                                              unit_logs_prep[row, "lag_unit_equal"] == 0))
-  #   utils::setTxtProgressBar(pb,row)
-  # }
   
   # mutate() is faster
   unit_logs_prep <- unit_logs_prep %>%
@@ -242,6 +219,73 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
   
+  # Focus events extraction
+  print("Berechne Focus-Events")
+  
+  # Extract focus lost and regained events
+  focus_events <-
+    all_ts %>%
+    dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts") %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
+    dplyr::arrange("ts", by_group=TRUE) %>%
+    dplyr::mutate(
+      event_type = ts_name,
+      event_ts = ts
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(dplyr::all_of(c(groups_unit, "event_type", "event_ts")))
+  
+  # Identify focus lost events not followed by regain before another loss
+  if (nrow(focus_events) > 0) {
+    focus_lost_events <-
+      focus_events %>%
+      dplyr::filter(event_type == "focus_lost_ts") %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+      dplyr::arrange("event_ts", by_group=TRUE) %>%
+      dplyr::mutate(
+        focus_lost_i = seq_along(event_ts),
+        next_event_type = dplyr::lead(event_type),
+        focus_lost_unfollowed = dplyr::case_when(
+          is.na(next_event_type) ~ TRUE,  # Last event is lost focus
+          next_event_type == "focus_lost_ts" ~ TRUE,  # Next event is also lost (no regain between)
+          .default = FALSE
+        )
+      ) %>%
+      dplyr::select(dplyr::all_of(c(groups_unit, "focus_lost_i", 
+                                    "focus_lost_ts" = "event_ts", "focus_lost_unfollowed"))) %>%
+      dplyr::ungroup()
+    
+    focus_regained_events <-
+      focus_events %>%
+      dplyr::filter(event_type == "focus_regained_ts") %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+      dplyr::arrange("event_ts", by_group=TRUE) %>%
+      dplyr::mutate(
+        focus_regained_i = seq_along(event_ts),
+        prev_event_type = dplyr::lag(event_type),
+        focus_regained_unpreceded = dplyr::case_when(
+          is.na(prev_event_type) ~ TRUE,  # First event is regain (no loss before)
+          prev_event_type == "focus_regained_ts" ~ TRUE,  # Prev event is also regain (no loss between)
+          .default = FALSE
+        )
+      ) %>%
+      dplyr::select(dplyr::all_of(c(groups_unit, "focus_regained_i", 
+                                    "focus_regained_ts" = "event_ts", "focus_regained_unpreceded"))) %>%
+      dplyr::ungroup()
+    
+    # Nest focus events
+    focus_lost_nested <-
+      focus_lost_events %>%
+      tidyr::nest(focus_lost_events = c("focus_lost_i", "focus_lost_ts", "focus_lost_unfollowed"))
+    
+    focus_regained_nested <-
+      focus_regained_events %>%
+      tidyr::nest(focus_regained_events = c("focus_regained_i", "focus_regained_ts", "focus_regained_unpreceded"))
+  } else {
+    focus_lost_nested <- tibble::tibble()
+    focus_regained_nested <- tibble::tibble()
+  }
+  
   # Bring stats together
   unit_logs <-
     unit_logs_prep %>%
@@ -261,6 +305,27 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       by = dplyr::join_by(!!! groups_unit)
     )
   
+  # Add focus events if available
+  if (nrow(focus_lost_nested) > 0) {
+    unit_logs <- unit_logs %>%
+      dplyr::left_join(
+        focus_lost_nested,
+        by = dplyr::join_by(!!! groups_unit)
+      )
+  } else {
+    unit_logs$focus_lost_events <- NA
+  }
+  
+  if (nrow(focus_regained_nested) > 0) {
+    unit_logs <- unit_logs %>%
+      dplyr::left_join(
+        focus_regained_nested,
+        by = dplyr::join_by(!!! groups_unit)
+      )
+  } else {
+    unit_logs$focus_regained_events <- NA
+  }
+  
   # Page times
   if (any(!is.na(all_ts$page_id))) {
     print("Berechne Seiten-Bearbeitungszeiten")
@@ -278,7 +343,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       dplyr::mutate(
         ts_next = dplyr::lead(ts),
         page_time = ts_next - ts
-        # ts = ifelse(ts_name == "page_start_ts", ts, ts_next)
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit)))) %>%
       dplyr::filter(
@@ -320,8 +384,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       ) %>%
       tidyr::nest(unit_page_logs = dplyr::any_of(c("page_id", "page_start_time", 
                                                    "page_n_play", "page_time", "page_logs_i")))
-    
-    # unit_page_logs$unit_page_logs[[4]]$page_logs_i
     
     unit_logs <- unit_logs %>%
       dplyr::left_join(
