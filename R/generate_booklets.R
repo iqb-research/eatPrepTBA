@@ -16,8 +16,15 @@ generate_booklets <- function(
 ) {
 
   cli_setting()
+  # input validation
+  booklets_cols <- c("booklet_id", "booklet_label", "booklet_units")
+  checkmate::assert_tibble(booklets)
+  if(!(all(booklets_cols %in% colnames(booklets)))) stop(paste0("'booklets' must contain the columns {", paste0(booklets_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(booklets_cols, colnames(booklets)), collapse = ", "), "}."))
+  checkmate::assert_character(app_version, len = 1)
+  checkmate::assert_character(login, null.ok = TRUE)
 
-  if (!is.null(login)) {
+  # function
+    if (!is.null(login)) {
     app_version <- login@app_version
   }
 
