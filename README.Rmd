@@ -23,8 +23,7 @@ The goal of eatPrepTBA is to provide wrapper functions to interact with the IQB 
 
 ## Package governance
 
-This package was originally authored and created by Philipp Franikowski.
-**Current package maintenance** is provided by Karoline A. Sachse, Kristoph Schumann, and Jakob Schaefer.
+This package was originally authored and created by Philipp Franikowski. **Current package maintenance** is provided by Karoline A. Sachse, Kristoph Schumann, and Jakob Schaefer.
 
 
 ## Installation
