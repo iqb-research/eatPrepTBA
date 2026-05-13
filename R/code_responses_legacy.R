@@ -27,11 +27,19 @@ code_responses_legacy <- function(responses,
 ) {
   cli_setting()
   # input validation
+  responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id", "response_id")
   checkmate::assert_tibble(responses)
+  if(!(all(responses_cols %in% colnames(responses)))) stop(paste0("'responses' must contain the columns {", paste0(responses_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(responses_cols, colnames(responses)), collapse = ", "), "}."))
+  units_cols <- c("unit_key", "coding_scheme")
   checkmate::assert_tibble(units)
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+
+  codes_manual_cols <- c("group_id", "booklet_id", "login_code", "variable_id", "unit_key", "code_id", "status", "status_miss", "code_score", "code_score_miss")
   checkmate::assert_tibble(codes_manual, null.ok = TRUE)
+  if(!(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
+  missings_cols <- c("code_id", "status", "score", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(missings)) if(!(all(c("code_id", "status", "score", "code_type") %in% colnames(missings)))) stop(paste0("'missings' must contain the columns 'code_id', 'status', 'score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+  if(!(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
 
   checkmate::assert_character(by, null.ok = TRUE)
   checkmate::assert_numeric(n_cores, null.ok = TRUE)
