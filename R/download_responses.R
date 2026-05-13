@@ -1,0 +1,80 @@
+#' Downloads responses directly from Testcenter
+#'
+#' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve unit information and resources from the API.
+#' @param groups Character. Name of the groups to be retrieved or all groups if not specified.
+#' @param units_filter_off Character. Names of the units to be removed from the dataset.
+#'
+#' @description
+#' This function downloads responses for the selected groups.
+#'
+#' @return A tibble.
+#' @export
+#'
+#' @aliases
+#' download_responses,WorkspaceTestcenter-method
+setGeneric("download_responses", function(workspace,
+                                          groups = NULL,
+                                          units_filter_off = NULL) {
+  cli_setting()
+
+  standardGeneric("download_responses")
+})
+
+#' @describeIn download_responses Get responses of a given Testcenter workspace
+setMethod("download_responses",
+          signature = signature(workspace = "WorkspaceTestcenter"),
+          function(workspace,
+                   groups = NULL,
+                   units_filter_off = NULL) {
+            if (is.null(groups)) {
+              groups <- get_results(workspace)$groupName
+            }
+
+            base_req <- workspace@login@base_req
+            ws_id <- workspace@ws_id
+
+            # TODO: Loop, but no safe-run by now
+            run_req <- function(group) {
+              body <- base_req(
+                method = "GET",
+                endpoint = c("workspace", ws_id, "report", "response"),
+                query = list(dataIds = group)
+              ) %>%
+                httr2::req_perform()
+
+              # Makes it a bit safer in case of an empty body.
+              tryCatch(
+                error = function(cnd) {
+                  cli::cli_alert_warning("Group {group} is empty")
+                  return(NULL)
+                },
+                body %>% httr2::resp_body_json()
+              )
+            }
+
+            n_groups <- length(groups)
+
+            resp <-
+              groups %>%
+              purrr::map(run_req, .progress = "Downloading responses")
+
+            if (!is.null(resp)) {
+              responses_raw <-
+                resp %>%
+                purrr::flatten() %>%
+                # Rectangularize to tibble.
+                tibble::enframe(name = NULL) %>%
+                dplyr::mutate(
+                  value = purrr::map(value, function(x) {
+                    x %>%
+                      purrr::discard(is.null) %>%
+                      tibble::as_tibble()
+                  })
+                ) %>%
+                tidyr::unnest(value)
+
+              responses_raw
+            } else {
+              tibble::tibble()
+            }
+          })

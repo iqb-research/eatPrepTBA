@@ -2,6 +2,7 @@
 #'
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve unit information and resources from the API.
 #' @param groups Character. Name of the groups to be retrieved or all groups if not specified.
+#' @param units_filter_off Character. Names of the units to be removed from the dataset.
 #'
 #' @description
 #' This function returns responses for the selected groups.
@@ -12,7 +13,8 @@
 #' @aliases
 #' get_responses,WorkspaceTestcenter-method
 setGeneric("get_responses", function(workspace,
-                                     groups = NULL) {
+                                     groups = NULL,
+                                     units_filter_off = NULL) {
   cli_setting()
 
   standardGeneric("get_responses")
@@ -22,7 +24,8 @@ setGeneric("get_responses", function(workspace,
 setMethod("get_responses",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,
-                   groups = NULL) {
+                   groups = NULL,
+                   units_filter_off = NULL) {
             if (is.null(groups)) {
               groups <- get_results(workspace)$groupName
             }
@@ -110,6 +113,14 @@ setMethod("get_responses",
                     laststate_nest = "laststate"
                   ))
                 ) %>%
+                # Hotfix to remove empty group data (better do that earlier?)
+                dplyr::filter(
+                  !is.na(group_id)
+                ) %>%
+                # Hotfix to remove too large units
+                dplyr::filter(
+                  !(unit_key %in% units_filter_off)
+                ) %>%
                 dplyr::group_by(
                   dplyr::across(dplyr::any_of(c("group_id", "login_name",
                                                 "login_code", "booklet_id",
@@ -143,9 +154,11 @@ setMethod("get_responses",
                   dplyr::any_of(c(
                     coded = "responses_content",
                     responses = "elementCodes_content",
+                    geometry_variables = "geometryVariableCodes_content",
                     state_variables = "stateVariableCodes_content",
                     coded_ts = "responses_ts",
                     responses_ts = "elementCodes_ts",
+                    geometry_variables_ts = "geometryVariableCodes_ts",
                     state_variables_ts = "stateVariableCodes_ts",
                     player = "PLAYER",
                     presentation_progress = "PRESENTATION_PROGRESS",

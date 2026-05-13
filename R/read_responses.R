@@ -49,6 +49,8 @@ read_responses <- function(files) {
   }
 
   responses_raw %>%
+    # TODO: Remove hotfix?
+    dplyr::filter(!is.na(responses)) %>%
     dplyr::select(
       dplyr::any_of(c(
         file = "file",
@@ -95,9 +97,11 @@ read_responses <- function(files) {
       dplyr::any_of(c(
         coded = "responses_content",
         responses = "elementCodes_content",
+        geometry_variables = "geometryVariableCodes_content",
         state_variables = "stateVariableCodes_content",
         coded_ts = "responses_ts",
         responses_ts = "elementCodes_ts",
+        geometry_variables_ts = "geometryVariableCodes_ts",
         state_variables_ts = "stateVariableCodes_ts",
         player = "PLAYER",
         presentation_progress = "PRESENTATION_PROGRESS",
