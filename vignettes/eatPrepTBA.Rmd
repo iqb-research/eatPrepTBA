@@ -60,7 +60,7 @@ All workspaces are part of a workspace group and have a unique ID.
 You can access a workspace with the function `access_workspace()`. With the argument `ws_id = x`, you choose which workspace to access. 
 
 ```{r, eval=FALSE}
-workspace <- access_workspace(login = login, ws_id = 918)
+workspace <- access_workspace(login = login, ws_id = 1300)
 ```
 
 The ID of a workspace can be found by looking at its URL in the Studio (last digits) or by calling the `login` object, which prints a list of the workspace groups and workspaces that you have access to, including their respective IDs (`ws_id`). 
@@ -74,7 +74,7 @@ You should save your output into an object (e.g., "workspace") to be able to wor
 You can also access multiple workspaces at the same time:
 
 ```{r, eval=FALSE}
-workspace <- access_workspace(login = login, ws_id = c(918, 919))
+workspace <- access_workspace(login = login, ws_id = c(1300, 919))
 ```
 
 
@@ -88,6 +88,10 @@ units <- get_units(workspace = workspace)
 ```
 
 ```{r eval = FALSE, echo = FALSE}
+# Anonymize the output
+units$last_change_definition_user <- "Max Mustermann"
+units$last_change_scheme_user <- "Max Mustermann"
+units$last_change_metadata_user <- "Max Mustermann"
 # This is used once for the creation of an example unit tibble...
 units %>% readr::write_rds("inst/extdata/example_units.rds")
 ```
