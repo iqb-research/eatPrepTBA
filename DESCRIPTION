@@ -5,8 +5,7 @@ Authors@R:
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2109-7388")),
     person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-6688-1267")),
-    person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585")),
-    person(given = "Alina", family ="Apel", email = "apelaliz@hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0000-2361-7394"))
+    person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585"))
     )
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
