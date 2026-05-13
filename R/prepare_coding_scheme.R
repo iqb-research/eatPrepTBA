@@ -10,7 +10,12 @@
 #' @return A tibble.
 #' @export
 prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
-  if (is.null(coding_scheme)) {
+  if (
+    is.null(coding_scheme) ||
+    length(coding_scheme) != 1 ||
+    is.na(coding_scheme) ||
+    coding_scheme %in% c("", "NA", "null")
+  ) {
     return(tibble::tibble())
   }
 
@@ -20,6 +25,7 @@ prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
     purrr::pluck("variableCodings") %>%
     purrr::list_transpose() %>%
     tibble::as_tibble()
+
 
   # For legacy reasons
   if (!tibble::has_name(scheme_table, "alias")) {
@@ -103,12 +109,13 @@ prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
         dplyr::mutate(
           dplyr::across(dplyr::any_of(c("rule_parameter")),
                         list_to_character)
-        )
+        ) %>%
+        normalize_scheme()
     } else {
-      prepared_rule_sets
+      normalize_scheme(prepared_rule_sets)
     }
   } else {
-    prepared_scheme
+    normalize_scheme(prepared_scheme)
   }
 }
 
@@ -214,3 +221,41 @@ prepare_rules <- function(rules) {
   }
 }
 
+normalize_scheme <- function(tbl) {
+  required_cols <- c(
+    "variable_id",
+    "variable_ref",
+    "variable_label",
+    "variable_source_type",
+    "variable_source_processing",
+    "variable_source_solver_expression",
+    "derive_sources",
+    "variable_processing",
+    "variable_fragmenting",
+    "variable_general_instruction",
+    "variable_code_model",
+    "variable_page_ref",
+    "code_id",
+    "code_type",
+    "code_label",
+    "code_score",
+    "code_manual_instruction",
+    "rule_set_operator",
+    "rule_operator",
+    "rule_method",
+    "rule_parameter",
+    "rule_set_no",
+    "variable_level",
+    "variable_sources"
+  )
+
+  missing <- setdiff(required_cols, names(tbl))
+
+  tbl[missing] <- NA
+
+  tbl %>%
+    dplyr::select(any_of(required_cols)) %>%
+    dplyr::mutate(
+      variable_code_model = as.character(variable_code_model)
+    )
+}
