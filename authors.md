@@ -2,10 +2,10 @@
 
 ## Authors
 
-- **Philipp Franikowski**. Author, maintainer.
+- **Philipp Franikowski**. Author.
   [](https://orcid.org/0000-0002-2109-7388)
 
-- **Karoline Sachse**. Contributor.
+- **Karoline Sachse**. Maintainer, contributor.
   [](https://orcid.org/0000-0001-6688-1267)
 
 - **Jakob Schäfer**. Contributor.
