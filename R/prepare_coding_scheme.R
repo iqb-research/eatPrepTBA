@@ -19,32 +19,34 @@ prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
     return(tibble::tibble())
   }
 
-  scheme_table <-
+  variable_codings <-
     coding_scheme %>%
     jsonlite::parse_json() %>%
-    purrr::pluck("variableCodings") %>%
-    purrr::list_transpose() %>%
-    tibble::as_tibble()
+    purrr::pluck("variableCodings")
 
+  if (is.null(variable_codings) || length(variable_codings) == 0) {
+    return(tibble::tibble())
+  }
+
+  scheme_table <- records_to_tibble(variable_codings)
 
   # For legacy reasons
   if (!tibble::has_name(scheme_table, "alias")) {
-    scheme_table <-
-      scheme_table %>%
-      dplyr::mutate(
-        alias = id
-      )
+    scheme_table$alias <- as.list(scheme_table$id)
   }
 
   scheme_table <-
     scheme_table %>%
     tidyr::unnest(alias, keep_empty = TRUE) %>%
     dplyr::mutate(
-      alias = ifelse(is.na(alias), id, alias)
+      id = list_to_character(id),
+      alias = dplyr::coalesce(list_to_character(alias), id)
     )
 
   # Level of variable in dependency tree (makes it easier to search for dependencies)
-  source_tree <- prepare_source_tree(coding_scheme)
+  source_tree <-
+    prepare_source_tree(coding_scheme) %>%
+    complete_schema(source_tree_schema(), keep_extra = FALSE)
 
   prepared_scheme <-
     scheme_table %>%
@@ -64,19 +66,18 @@ prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
       variable_page_ref = "page",
       codes = "codes"
     ))) %>%
-    dplyr::filter(dplyr::if_any(c("variable_source_type"), function(x) {
+    complete_schema(variable_schema(), keep_extra = FALSE) %>%
+    dplyr::filter(
       if (filter_has_codes) {
-        x != "BASE_NO_VALUE"
-      } else TRUE
-    })) %>%
+        is.na(variable_source_type) | variable_source_type != "BASE_NO_VALUE"
+      } else {
+        TRUE
+      }
+    ) %>%
     dplyr::left_join(source_tree, by = dplyr::join_by("variable_ref")) %>%
+    complete_schema(combine_schemas(variable_schema(), source_tree_schema()), keep_extra = FALSE) %>%
     dplyr::mutate(
-      variable_source_parameters = purrr::map(variable_source_parameters, function(source_parameters) {
-        tibble::tibble(
-          variable_source_processing = list(source_parameters$processing),
-          variable_source_solver_expression = source_parameters$solverExpression,
-        )
-      }),
+      variable_source_parameters = purrr::map(variable_source_parameters, prepare_source_parameters),
       codes = purrr::map(codes, prepare_codes)
     ) %>%
     tidyr::unnest(c(codes, variable_source_parameters), keep_empty = TRUE) %>%
@@ -87,42 +88,36 @@ prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
                     list_to_integer)
     )
 
-  if (tibble::has_name(prepared_scheme, "rule_sets")) {
-    prepared_rule_sets <-
-      prepared_scheme %>%
-      dplyr::mutate(
-        rule_sets = purrr::map(rule_sets, prepare_rule_sets)
-      ) %>%
-      tidyr::unnest(rule_sets, keep_empty = TRUE) %>%
-      dplyr::mutate(
-        # ruleOperatorAnd and ruleSetOpertorAnd will be recoded
-        dplyr::across(dplyr::any_of(c("rule_set_operator", "rule_operator")),
-                      function(x) ifelse(x, "AND", "OR")),
-      )
+  prepared_scheme %>%
+    dplyr::mutate(
+      rule_sets = purrr::map(rule_sets, prepare_rule_sets)
+    ) %>%
+    tidyr::unnest(rule_sets, keep_empty = TRUE) %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("rule_set_operator", "rule_operator")),
+                    operator_to_character),
+      rules = purrr::map(rules, prepare_rules)
+    ) %>%
+    tidyr::unnest(rules, keep_empty = TRUE) %>%
+    normalize_scheme()
+}
 
-    if (tibble::has_name(prepared_rule_sets, "rules")) {
-      prepared_rule_sets %>%
-        dplyr::mutate(
-          rules = purrr::map(rules, prepare_rules)
-        ) %>%
-        tidyr::unnest(rules, keep_empty = TRUE) %>%
-        dplyr::mutate(
-          dplyr::across(dplyr::any_of(c("rule_parameter")),
-                        list_to_character)
-        ) %>%
-        normalize_scheme()
-    } else {
-      normalize_scheme(prepared_rule_sets)
-    }
-  } else {
-    normalize_scheme(prepared_scheme)
+prepare_source_parameters <- function(source_parameters) {
+  if (is.null(source_parameters) || length(source_parameters) == 0) {
+    return(empty_schema(source_parameter_schema()))
   }
+
+  tibble::tibble(
+    variable_source_processing = list(purrr::pluck(source_parameters, "processing")),
+    variable_source_solver_expression = scalar_to_character(
+      purrr::pluck(source_parameters, "solverExpression", .default = NA_character_)
+    )
+  ) %>%
+    complete_schema(source_parameter_schema(), keep_extra = FALSE)
 }
 
 prepare_codes <- function(codes) {
-  codes %>%
-    purrr::list_transpose() %>%
-    tibble::as_tibble() %>%
+  records_to_tibble(codes) %>%
     dplyr::select(any_of(c(
       code_id = "id",
       code_type = "type",
@@ -131,131 +126,432 @@ prepare_codes <- function(codes) {
       code_manual_instruction = "manualInstruction",
       rule_set_operator = "ruleSetOperatorAnd",
       rule_sets = "ruleSets"
-    ))
+    ))) %>%
+    complete_schema(code_schema(), keep_extra = FALSE) %>%
+    dplyr::mutate(
+      rule_set_operator = operator_to_character(rule_set_operator)
     )
 }
 
 prepare_rule_sets <- function(rule_sets) {
-  if (!is.null(rule_sets)) {
-    if (is.null(names(rule_sets)) & length(rule_sets) > 0) {
-      rule_sets %>%
-        purrr::imap(function(x, i) {
-          x %>%
-            tibble::as_tibble() %>%
-            dplyr::mutate(
-              rule_set_no = i,
-              dplyr::across(dplyr::any_of(c("valueArrayPos")),
-                            list_to_character)
-            )
-        }) %>%
-        # purrr::list_transpose() %>%
-        # tibble::as_tibble() %>%
-        dplyr::bind_rows() %>%
-        dplyr::rename(dplyr::any_of(c(
-          rule_operator = "ruleOperatorAnd",
-          rule_set_array_position = "valueArrayPos"
-        )))
+  records_to_tibble(rule_sets) %>%
+    dplyr::mutate(
+      rule_set_no = dplyr::row_number()
+    ) %>%
+    dplyr::rename(dplyr::any_of(c(
+      rule_operator = "ruleOperatorAnd",
+      rule_set_array_position = "valueArrayPos"
+    ))) %>%
+    complete_schema(rule_set_schema(), keep_extra = FALSE) %>%
+    dplyr::mutate(
+      rule_operator = operator_to_character(rule_operator),
+      rule_set_array_position = list_to_character(rule_set_array_position)
+    )
+}
+
+prepare_rules <- function(rules) {
+  records_to_tibble(rules) %>%
+    dplyr::rename(dplyr::any_of(c(
+      rule_method = "method",
+      rule_fragment_position = "fragment",
+      rule_parameter = "parameters"
+    ))) %>%
+    complete_schema(rule_schema(), keep_extra = FALSE) %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("rule_fragment_position", "rule_parameter")),
+                    list_to_character)
+    )
+}
+
+normalize_scheme <- function(tbl) {
+  tbl %>%
+    complete_schema(final_scheme_schema(), keep_extra = FALSE) %>%
+    dplyr::mutate(
+      variable_code_model = list_to_character(variable_code_model),
+      dplyr::across(dplyr::any_of(c("rule_set_operator", "rule_operator")),
+                    operator_to_character)
+    )
+}
+
+records_to_tibble <- function(records) {
+  records <- as_record_list(records)
+
+  if (length(records) == 0) {
+    return(tibble::tibble())
+  }
+
+  records %>%
+    purrr::map(record_to_tibble) %>%
+    dplyr::bind_rows()
+}
+
+as_record_list <- function(records) {
+  if (is.null(records) || length(records) == 0) {
+    return(list())
+  }
+
+  if (!is.list(records)) {
+    if (length(records) == 1 && is.na(records)) {
+      return(list())
     }
+
+    return(list(records))
+  }
+
+  if (is_record(records)) {
+    return(list(records))
+  }
+
+  records
+}
+
+is_record <- function(x) {
+  is.list(x) &&
+    !is.null(names(x)) &&
+    any(nzchar(names(x)))
+}
+
+record_to_tibble <- function(record) {
+  record %>%
+    purrr::map(function(value) {
+      if (is.null(value) || is.list(value) || length(value) != 1) {
+        list(value)
+      } else {
+        value
+      }
+    }) %>%
+    tibble::as_tibble(.rows = 1)
+}
+
+complete_schema <- function(tbl, schema, keep_extra = TRUE) {
+  tbl <- tibble::as_tibble(tbl)
+  missing <- setdiff(names(schema), names(tbl))
+
+  for (col in missing) {
+    tbl[[col]] <- missing_schema_column(schema[[col]], nrow(tbl))
+  }
+
+  for (col in intersect(names(schema), names(tbl))) {
+    tbl[[col]] <- coerce_schema_column(tbl[[col]], schema[[col]])
+  }
+
+  if (keep_extra) {
+    tbl %>%
+      dplyr::select(dplyr::all_of(names(schema)), dplyr::everything())
   } else {
-    if (!is.null(rule_sets$rules)) {
-      tibble::tibble()
-    }
+    tbl %>%
+      dplyr::select(dplyr::all_of(names(schema)))
   }
 }
 
-list_to_character <- function(x) {
-  purrr::map_chr(x, function(x) {
-    if (is.null(x)) {
-      return(NA_character_)
+empty_schema <- function(schema) {
+  complete_schema(tibble::tibble(), schema, keep_extra = FALSE)
+}
+
+combine_schemas <- function(...) {
+  schemas <- list(...)
+  combined <- list()
+
+  for (schema in schemas) {
+    for (col in names(schema)) {
+      combined[[col]] <- schema[[col]]
+    }
+  }
+
+  combined
+}
+
+missing_schema_column <- function(prototype, n) {
+  if (is.list(prototype)) {
+    return(rep(list(NULL), n))
+  }
+
+  if (is.integer(prototype)) {
+    return(rep(NA_integer_, n))
+  }
+
+  if (is.double(prototype)) {
+    return(rep(NA_real_, n))
+  }
+
+  if (is.logical(prototype)) {
+    return(rep(NA, n))
+  }
+
+  rep(NA_character_, n)
+}
+
+coerce_schema_column <- function(x, prototype) {
+  if (is.list(prototype)) {
+    if (is.list(x)) {
+      return(x)
     }
 
-    as.character(x)
-  })
+    return(as.list(x))
+  }
+
+  if (is.integer(prototype)) {
+    return(list_to_integer(x))
+  }
+
+  if (is.double(prototype)) {
+    return(list_to_double(x))
+  }
+
+  if (is.logical(prototype)) {
+    return(list_to_logical(x))
+  }
+
+  list_to_character(x)
+}
+
+source_tree_schema <- function() {
+  list(
+    variable_ref = character(),
+    variable_level = integer(),
+    variable_sources = list()
+  )
+}
+
+source_parameter_schema <- function() {
+  list(
+    variable_source_processing = list(),
+    variable_source_solver_expression = character()
+  )
+}
+
+variable_schema <- function() {
+  list(
+    variable_id = character(),
+    variable_ref = character(),
+    variable_label = character(),
+    variable_source_type = character(),
+    variable_source_parameters = list(),
+    derive_sources = list(),
+    variable_processing = list(),
+    variable_fragmenting = character(),
+    variable_general_instruction = character(),
+    variable_code_model = list(),
+    variable_page_ref = integer(),
+    codes = list()
+  )
+}
+
+code_schema <- function() {
+  list(
+    code_id = character(),
+    code_type = character(),
+    code_label = character(),
+    code_score = numeric(),
+    code_manual_instruction = character(),
+    rule_set_operator = character(),
+    rule_sets = list()
+  )
+}
+
+rule_set_schema <- function() {
+  list(
+    rule_set_no = integer(),
+    rule_set_array_position = character(),
+    rule_operator = character(),
+    rules = list()
+  )
+}
+
+rule_schema <- function() {
+  list(
+    rule_fragment_position = character(),
+    rule_method = character(),
+    rule_parameter = character()
+  )
+}
+
+final_scheme_schema <- function() {
+  c(
+    list(
+      variable_id = character(),
+      variable_ref = character(),
+      variable_label = character(),
+      variable_source_type = character()
+    ),
+    source_parameter_schema(),
+    list(
+      derive_sources = list(),
+      variable_processing = list(),
+      variable_fragmenting = character(),
+      variable_general_instruction = character(),
+      variable_code_model = character(),
+      variable_page_ref = integer(),
+      code_id = character(),
+      code_type = character(),
+      code_label = character(),
+      code_score = numeric(),
+      code_manual_instruction = character(),
+      rule_set_no = integer(),
+      rule_set_operator = character(),
+      rule_set_array_position = character(),
+      rule_operator = character(),
+      rule_fragment_position = character(),
+      rule_method = character(),
+      rule_parameter = character(),
+      variable_level = integer(),
+      variable_sources = list()
+    )
+  )
+}
+
+list_to_character <- function(x) {
+  if (is.list(x)) {
+    return(purrr::map_chr(x, scalar_to_character))
+  }
+
+  as.character(x)
 }
 
 list_to_integer <- function(x) {
-  purrr::map_int(x, function(x) {
-    if (is.null(x)) {
-      return(NA_integer_)
+  if (is.list(x)) {
+    return(purrr::map_int(x, scalar_to_integer))
+  }
+
+  suppressWarnings(as.integer(x))
+}
+
+list_to_double <- function(x) {
+  if (is.list(x)) {
+    return(purrr::map_dbl(x, scalar_to_double))
+  }
+
+  suppressWarnings(as.double(x))
+}
+
+list_to_logical <- function(x) {
+  if (is.list(x)) {
+    return(purrr::map_lgl(x, scalar_to_logical))
+  }
+
+  suppressWarnings(as.logical(x))
+}
+
+operator_to_character <- function(x) {
+  if (is.list(x)) {
+    return(purrr::map_chr(x, scalar_to_operator))
+  }
+
+  purrr::map_chr(x, scalar_to_operator)
+}
+
+scalar_to_character <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA_character_)
+  }
+
+  if (is.list(x) && length(x) == 1 && !is.list(x[[1]])) {
+    return(scalar_to_character(x[[1]]))
+  }
+
+  if (is.atomic(x)) {
+    if (length(x) == 1 && is.na(x)) {
+      return(NA_character_)
     }
 
-    as.integer(x)
-  })
+    return(paste(as.character(x), collapse = ","))
+  }
+
+  as.character(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null"))
+}
+
+scalar_to_integer <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA_integer_)
+  }
+
+  if (is.list(x)) {
+    if (length(x) == 1) {
+      return(scalar_to_integer(x[[1]]))
+    }
+
+    return(NA_integer_)
+  }
+
+  suppressWarnings(as.integer(x[[1]]))
+}
+
+scalar_to_double <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA_real_)
+  }
+
+  if (is.list(x)) {
+    if (length(x) == 1) {
+      return(scalar_to_double(x[[1]]))
+    }
+
+    return(NA_real_)
+  }
+
+  suppressWarnings(as.double(x[[1]]))
+}
+
+scalar_to_logical <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA)
+  }
+
+  if (is.list(x)) {
+    if (length(x) == 1) {
+      return(scalar_to_logical(x[[1]]))
+    }
+
+    return(NA)
+  }
+
+  suppressWarnings(as.logical(x[[1]]))
+}
+
+scalar_to_operator <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA_character_)
+  }
+
+  if (is.list(x)) {
+    if (length(x) == 1) {
+      return(scalar_to_operator(x[[1]]))
+    }
+
+    return(NA_character_)
+  }
+
+  if (is.logical(x[[1]])) {
+    if (is.na(x[[1]])) {
+      return(NA_character_)
+    }
+
+    return(ifelse(x[[1]], "AND", "OR"))
+  }
+
+  value <- scalar_to_character(x[[1]])
+
+  if (is.na(value)) {
+    return(NA_character_)
+  }
+
+  value_upper <- toupper(trimws(value))
+
+  if (value_upper %in% c("AND", "OR")) {
+    return(value_upper)
+  }
+
+  if (value_upper %in% c("TRUE", "T", "1")) {
+    return("AND")
+  }
+
+  if (value_upper %in% c("FALSE", "F", "0")) {
+    return("OR")
+  }
+
+  value
 }
 
 coerce_list <- function(x) {
   if (is.list(x)) x else list(x)
-}
-
-prepare_rules <- function(rules) {
-  if (is.null(rules) || length(rules) == 0) {
-    prepared_rules <-
-      tibble::tibble()
-  } else if (is.null(names(rules)) & length(rules) >= 1) {
-    prepared_rules <-
-      rules %>%
-      purrr::list_transpose() %>%
-      tibble::as_tibble()
-  } else {
-    prepared_rules <-
-      rules %>%
-      tibble::as_tibble()
-  }
-
-  prepared_rules <-
-    prepared_rules %>%
-    dplyr::rename(dplyr::any_of(c(
-      rule_method = "method",
-      rule_fragment_position = "fragment"
-    ))) %>%
-    dplyr::mutate(
-      dplyr::across(dplyr::any_of(c("rule_fragment_position")),
-                    list_to_character)
-    )
-
-  if (tibble::has_name(rules, "parameters")) {
-    prepared_rules %>%
-      dplyr::rename("rule_parameter" = "parameters")
-  } else {
-    prepared_rules
-  }
-}
-
-normalize_scheme <- function(tbl) {
-  required_cols <- c(
-    "variable_id",
-    "variable_ref",
-    "variable_label",
-    "variable_source_type",
-    "variable_source_processing",
-    "variable_source_solver_expression",
-    "derive_sources",
-    "variable_processing",
-    "variable_fragmenting",
-    "variable_general_instruction",
-    "variable_code_model",
-    "variable_page_ref",
-    "code_id",
-    "code_type",
-    "code_label",
-    "code_score",
-    "code_manual_instruction",
-    "rule_set_operator",
-    "rule_operator",
-    "rule_method",
-    "rule_parameter",
-    "rule_set_no",
-    "variable_level",
-    "variable_sources"
-  )
-
-  missing <- setdiff(required_cols, names(tbl))
-
-  tbl[missing] <- NA
-
-  tbl %>%
-    dplyr::select(any_of(required_cols)) %>%
-    dplyr::mutate(
-      variable_code_model = as.character(variable_code_model)
-    )
 }
