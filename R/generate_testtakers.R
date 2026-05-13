@@ -1,6 +1,6 @@
 #' Generates testtakers XML from unit information
 #'
-#' @param testtakers Must be a data frame with the columns ...
+#' @param testtakers Must be a tibble with the columns ...
 #' @param custom_texts Optional. List of custom texts to be modified.
 #' @param profiles Optional. List of profiles for the group monitor.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
@@ -15,6 +15,15 @@ generate_testtakers <- function(testtakers,
                                 app_version = "16.0.2",
                                 login = NULL) {
   cli_setting()
+  # input validation
+  testtakers_cols <- c("profile_id")
+  checkmate::assert_tibble(testtakers)
+  if(!(all(testtakers_cols %in% colnames(testtakers)))) stop(paste0("'testtakers' must contain the columns {", paste0(testtakers_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(testtakers_cols, colnames(testtakers)), collapse = ", "), "}."))
+  checkmate::assert_list(custom_texts, null.ok = TRUE)
+  checkmate::assert_list(profiles, null.ok = TRUE)
+  checkmate::assert_character(app_version)
+  checkmate::assert_character(login)
+
 
   if (!is.null(login)) {
     app_version <- login@app_version

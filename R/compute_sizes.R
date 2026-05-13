@@ -8,7 +8,9 @@
 compute_sizes <- function(data) {
   cli_setting()
   # input validation
+  data_cols <- c("name", "size", "type", "relationship_type", "unit_sizes", "booklet_sizes")
   checkmate::assert_tibble(data)
+  if(!(all(data_cols %in% colnames(data)))) stop(paste0("'data' must contain the columns {", paste0(data_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(data_cols, colnames(data)), collapse = ", "), "}."))
 
 
     dplyr::filter(type %in% c("Unit", "Booklet")) %>%

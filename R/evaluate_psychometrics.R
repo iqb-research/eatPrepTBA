@@ -26,10 +26,16 @@ evaluate_psychometrics <- function(
 
   cli_setting()
   # input validation
+  design_coded_cols <- c("id_used", "code_id", "unit_key", "variable_id", "variable_source_type", "code_score", "code_type", "value", "variable_labels", "variable_empty_valid", "empty_valid", "variable_multiple")
   checkmate::assert_tibble(design_coded)
+  if(!(all(design_coded_cols %in% colnames(design_coded)))) stop(paste0("'design_coded' must contain the columns {", paste0(design_coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_coded_cols, colnames(design_coded)), collapse = ", "), "}."))
+  units_cols <- c("unit_key", "unit_codes", "variable_sources", "variable_codes", "code_id", "variable_id", "variable_source_type", "variable_source_id", "coding_scheme", "unit_variables", "variable_multiple")
   checkmate::assert_tibble(units)
-  checkmate::assert_tibble(domains)
-  if(!all(c("domain", "unit_key") %in% colnames(domains))) stop(paste0("'domains' must contain the columns 'domain' and 'unit_key', but has the columns: ", paste0(colnames(domains), collapse = ", ")))
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  domains_cols <- c("domain", "unit_key")
+  checkmate::assert_tibble(domains, null.ok = TRUE)
+  if(!(all(domains_cols %in% colnames(domains)))) stop(paste0("'domains' must contain the columns {", paste0(domains_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(domains_cols, colnames(domains)), collapse = ", "), "}."))
+
   checkmate::assert_tibble(max_n_categories)
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_character(identifiers)
