@@ -66,3 +66,36 @@ test_that("code_responses ignores rows with missing response payloads", {
   )
   expect_equal(nrow(coded), 0)
 })
+
+test_that("code_responses returns structured empty output for missing payloads with preparation", {
+  units <- tibble::tibble(
+    ws_id = 1,
+    ws_label = "workspace",
+    unit_key = "UNIT_1",
+    unit_id = 1,
+    unit_label = "Unit 1",
+    coding_scheme = list(list(variableCodings = list())),
+    unit_variables = list(list())
+  )
+
+  responses <- tibble::tibble(
+    group_id = "group",
+    login_name = "login",
+    login_code = "code",
+    booklet_id = "booklet",
+    unit_key = "UNIT_1",
+    responses = NA_character_
+  )
+
+  coded <- NULL
+
+  expect_error(
+    coded <- code_responses(responses, units, prepare = TRUE),
+    NA
+  )
+  expect_equal(nrow(coded), 0)
+  expect_true(all(c(
+    "group_id", "login_name", "login_code", "booklet_id", "unit_key",
+    "unit_alias", "variable_id", "code_status", "code_type"
+  ) %in% names(coded)))
+})

@@ -32,7 +32,8 @@ A tibble.
 \description{
 This function automatically codes responses by using the \code{eatAutoCode}
 package. It is prepared for the response format returned by \code{\link[=get_responses]{get_responses()}}
-and \code{\link[=read_responses]{read_responses()}}. Rows with \code{responses = NA} are not sent to the
-auto-coder; they represent units with no stored response payload and are left
-for \code{\link[=complete_design]{complete_design()}} to classify against the full test design.
+and \code{\link[=read_responses]{read_responses()}}. Rows with \code{responses = NA} are removed before coding
+schemes are prepared and are not sent to the auto-coder; they represent units
+with no stored response payload and are left for \code{\link[=complete_design]{complete_design()}} to
+classify against the full test design.
 }

@@ -10,9 +10,10 @@
 #' @description
 #' This function automatically codes responses by using the `eatAutoCode`
 #' package. It is prepared for the response format returned by [get_responses()]
-#' and [read_responses()]. Rows with `responses = NA` are not sent to the
-#' auto-coder; they represent units with no stored response payload and are left
-#' for [complete_design()] to classify against the full test design.
+#' and [read_responses()]. Rows with `responses = NA` are removed before coding
+#' schemes are prepared and are not sent to the auto-coder; they represent units
+#' with no stored response payload and are left for [complete_design()] to
+#' classify against the full test design.
 #'
 #' @return A tibble.
 #' @export
@@ -42,10 +43,27 @@ code_responses <- function(responses,
 
   cli::cli_text("Time started: {start_time}")
 
+  responses_codable <-
+    responses %>%
+    dplyr::filter(!is.na(responses))
+
+  n_missing_response_payloads <- nrow(responses) - nrow(responses_codable)
+
+  if (n_missing_response_payloads > 0) {
+    cli::cli_alert_info("Ignoring {n_missing_response_payloads} row{?s} with missing response payloads for automatic coding.")
+  }
+
+  if (nrow(responses_codable) == 0) {
+    cli::cli_alert_info("No response payloads available for automatic coding.")
+    cli::cli_text("Time finished: {Sys.time()}")
+
+    return(empty_coded_responses(responses, prepare = prepare))
+  }
+
   units_prep <-
     units %>%
     dplyr::filter(
-      unit_key %in% responses$unit_key
+      unit_key %in% responses_codable$unit_key
     ) %>%
     dplyr::select(
       dplyr::all_of(c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")),
@@ -188,14 +206,14 @@ code_responses <- function(responses,
 
     # TODO: Add filter for unit_keys that are only in coding_schemes, also needs to be arranged
     responses_inserted <-
-      responses %>%
+      responses_codable %>%
       dplyr::left_join(
         codes_manual_json,
         by = dplyr::join_by("group_id", "login_code", "login_name", "booklet_id", "unit_key")
       )
 
   } else {
-    responses_inserted <- responses
+    responses_inserted <- responses_codable
   }
 
   coding_schemes_merge <-
@@ -204,7 +222,6 @@ code_responses <- function(responses,
 
   responses_for_coding <-
     responses_inserted %>%
-    dplyr::filter(!is.na(responses)) %>%
     tidyr::nest(unit_responses = -any_of(c("unit_key"))) %>%
     # Filter off units without coding scheme
     dplyr::semi_join(coding_schemes_merge, by = dplyr::join_by("unit_key")) %>%
@@ -291,4 +308,34 @@ code_responses <- function(responses,
 
     return(responses_coded)
   }
+}
+
+empty_coded_responses <- function(responses, prepare = FALSE) {
+  response_cols <- c(
+    "file", "group_id", "login_name", "login_code", "booklet_id",
+    "unit_key", "unit_alias"
+  )
+
+  out <-
+    responses %>%
+    dplyr::slice(0) %>%
+    dplyr::select(dplyr::any_of(response_cols))
+
+  missing_response_cols <- setdiff(response_cols, names(out))
+  for (col in missing_response_cols) {
+    out[[col]] <- character()
+  }
+
+  out$variable_id <- character()
+  out$value <- list()
+  out$code_id <- integer()
+  out$code_score <- double()
+  out$code_status <- character()
+
+  if (prepare) {
+    out$variable_source_type <- character()
+    out$code_type <- character()
+  }
+
+  out
 }
