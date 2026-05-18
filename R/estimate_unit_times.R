@@ -91,8 +91,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
     ) %>%
     dplyr::mutate(ts = as.numeric(ts)) %>%
     dplyr::left_join(
-      full_design,
-      by = intersect(names(.), names(full_design))
+      full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)), "testlet_no"))),
+      by = intersect(names(.), intersect(names(all_logs), names(full_design)))
     )
     
   
