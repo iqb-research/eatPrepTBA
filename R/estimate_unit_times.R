@@ -85,6 +85,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   groups_booklet <- setdiff(names(logs), c("unit_key", "unit_alias", "unit_ident", "ts", "log_entry"))
   groups_unit <- setdiff(names(logs), c("ts", "log_entry", "unit_key", "unit_alias"))
   
+  logs <- logs[!duplicated(logs), ]
+  
   all_logs <-
     logs %>%
     dplyr::filter(
@@ -255,7 +257,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       auto_block_switch = FALSE 
       )
   }
-    
   
   # Process each unit's focus events
   focus_events_nested <-
@@ -399,7 +400,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       dplyr::mutate(
         unit_has_pages = purrr::map_lgl(unit_page_logs, function(x) !is.null(x))
       )
-    
   } else {
     print("Keine Seiten-IDs; Seiten-Bearbeitungszeiten werden nicht berechnet")
   }
