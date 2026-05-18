@@ -38,6 +38,37 @@ test_that("empty parsed responses are retained as empty element codes", {
   expect_true(is.na(responses$content))
 })
 
+test_that("empty file response payloads are retained as empty element codes", {
+  responses <- unnest_responses(NA_character_, is_parsed = FALSE)
+
+  expect_equal(responses$id, "elementCodes")
+  expect_true(is.na(responses$content))
+})
+
+test_that("read_responses keeps rows with missing response payloads", {
+  response_file <- tempfile(fileext = ".csv")
+  responses_raw <- tibble::tibble(
+    groupname = "group",
+    loginname = "login",
+    code = "7kfe",
+    bookletname = "booklet",
+    unitname = c("SB_2631", "SB_2632"),
+    responses = c(
+      '[{"id":"elementCodes","content":"[]","ts":"1"}]',
+      NA_character_
+    ),
+    laststate = NA_character_
+  )
+
+  readr::write_delim(responses_raw, response_file, delim = ";")
+
+  responses <- read_responses(response_file)
+
+  expect_equal(responses$unit_key, c("SB_2631", "SB_2632"))
+  expect_equal(responses$responses[responses$unit_key == "SB_2631"], "[]")
+  expect_true(is.na(responses$responses[responses$unit_key == "SB_2632"]))
+})
+
 test_that("code_responses ignores rows with missing response payloads", {
   units <- tibble::tibble(
     ws_id = 1,
