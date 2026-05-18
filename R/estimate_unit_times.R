@@ -9,6 +9,7 @@
 #'        applied to instruction pages or clarification questions) — a different unit_alias 
 #'        is intentionally assigned to logically identical units. In these cases, setting this
 #'        parameter to TRUE can be advisable.
+#' @param full_design Tibble. Design tibble containing all columns to be joined with logs.
 #'
 #' @return Tibble containing various times and timestamps per unit and page
 #'
@@ -66,8 +67,8 @@
 #' Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 #'
 #' @export
-
-estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
+#' 
+estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
   cli_setting()
   
   if (use_unit_alias) {
@@ -88,7 +89,11 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE) {
       !log_entry %>% stringr::str_detect("TESTLETS_TIMELEFT"),
       !is.na(booklet_id)
     ) %>%
-    dplyr::mutate(ts = as.numeric(ts))
+    dplyr::mutate(ts = as.numeric(ts)) %>%
+    dplyr::left_join(
+      full_design,
+      by = intersect(names(.), names(full_design))
+    )
     
   
   all_logs <- all_logs %>%
