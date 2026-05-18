@@ -1,3 +1,10 @@
+# eatPrepTBA 0.9.8.9009
+
+* Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
+* Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
+* Preserved response report rows with empty nested response data so units without stored responses remain visible in `download_responses()` and `get_responses()`.
+* Added regression tests for response reports with empty nested response data.
+
 # eatPrepTBA 0.9.8.9008
 
 * Added `compute_staytime_tables()` for preparing stay-time quantile tables and related report output.
