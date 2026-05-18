@@ -2,7 +2,7 @@
 
 * Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
 * Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
-* Preserved response rows with empty nested response data so units without stored responses remain visible in `download_responses()`, `get_responses()`, and `read_responses()`.
+* Preserved response report rows with empty nested response data so units without stored responses remain visible in `download_responses()` and `get_responses()`.
 * Kept rows with `responses = NA` out of `code_responses()` before coding-scheme preparation so design-based missing completion in `complete_design()` remains responsible for those cases.
 * Added regression tests for response reports with empty nested response data.
 

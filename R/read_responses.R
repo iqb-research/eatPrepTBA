@@ -3,12 +3,7 @@
 #' @param files Character. Vector of paths to the csv files from the IQB Testcenter to be read.
 #'
 #' @description
-#' This function reads response files downloaded from the IQB Testcenter and
-#' prepares them for further processing with [code_responses()]. Rows with empty
-#' response payloads are kept as rows with `responses = NA` so that the observed
-#' unit structure remains available; final missing codes are assigned later by
-#' [complete_design()] when the coded data are checked against the full test
-#' design.
+#' This function only returns the testtakers information for a downloaded testtakers file.
 #'
 #' @return A tibble.
 #'
@@ -54,6 +49,8 @@ read_responses <- function(files) {
   }
 
   responses_raw %>%
+    # TODO: Remove hotfix?
+    dplyr::filter(!is.na(responses)) %>%
     dplyr::select(
       dplyr::any_of(c(
         file = "file",

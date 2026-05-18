@@ -13,10 +13,5 @@ read_responses(files)
 A tibble.
 }
 \description{
-This function reads response files downloaded from the IQB Testcenter and
-prepares them for further processing with \code{\link[=code_responses]{code_responses()}}. Rows with empty
-response payloads are kept as rows with \code{responses = NA} so that the observed
-unit structure remains available; final missing codes are assigned later by
-\code{\link[=complete_design]{complete_design()}} when the coded data are checked against the full test
-design.
+This function only returns the testtakers information for a downloaded testtakers file.
 }

@@ -1,7 +1,5 @@
 unnest_responses <- function(json, is_parsed = TRUE) {
   if (!is_parsed) {
-    json <- json[!is.na(json)]
-
     json_parsed <-
       json %>%
       purrr::map(jsonlite::parse_json) %>%
