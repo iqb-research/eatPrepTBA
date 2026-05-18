@@ -7,7 +7,12 @@
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
 #'
-#' This function automatically codes responses by using the `eatAutoCode` package. It is already prepared for the new data format of the responses received from the [get_responses()] and [read_responses()] routines. This function will soon be deleted and be part of [code_responses()].
+#' @description
+#' This function automatically codes responses by using the `eatAutoCode`
+#' package. It is prepared for the response format returned by [get_responses()]
+#' and [read_responses()]. Rows with `responses = NA` are not sent to the
+#' auto-coder; they represent units with no stored response payload and are left
+#' for [complete_design()] to classify against the full test design.
 #'
 #' @return A tibble.
 #' @export

@@ -5,7 +5,12 @@
 #' @param units_filter_off Character. Names of the units to be removed from the dataset.
 #'
 #' @description
-#' This function returns responses for the selected groups.
+#' This function returns responses for the selected groups and prepares the
+#' nested response report from the Testcenter for further processing with
+#' [code_responses()]. Units with empty response payloads are kept as rows with
+#' `responses = NA` so that the observed unit structure remains available; final
+#' missing codes are assigned later by [complete_design()] when the coded data
+#' are checked against the full test design.
 #'
 #' @return A tibble.
 #' @export

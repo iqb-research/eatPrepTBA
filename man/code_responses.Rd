@@ -24,13 +24,15 @@ code_responses(
 
 \item{codes_manual}{Tibble (optional). Data frame holding the manual codes. Defaults to \code{NULL} and does only automatic coding.}
 
-\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.
-
-This function automatically codes responses by using the \code{eatAutoCode} package. It is already prepared for the new data format of the responses received from the \code{\link[=get_responses]{get_responses()}} and \code{\link[=read_responses]{read_responses()}} routines. This function will soon be deleted and be part of \code{\link[=code_responses]{code_responses()}}.}
+\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.}
 }
 \value{
 A tibble.
 }
 \description{
-Code unit responses with coding schemes
+This function automatically codes responses by using the \code{eatAutoCode}
+package. It is prepared for the response format returned by \code{\link[=get_responses]{get_responses()}}
+and \code{\link[=read_responses]{read_responses()}}. Rows with \code{responses = NA} are not sent to the
+auto-coder; they represent units with no stored response payload and are left
+for \code{\link[=complete_design]{complete_design()}} to classify against the full test design.
 }

@@ -5,7 +5,12 @@
 #' @param units_filter_off Character. Names of the units to be removed from the dataset.
 #'
 #' @description
-#' This function downloads responses for the selected groups.
+#' This function downloads the raw response report for the selected groups. It
+#' keeps one row per reported unit, including units whose nested response
+#' payload is empty. These empty payloads are represented as empty list entries
+#' in the raw output; after [get_responses()] prepares the data, they appear as
+#' `responses = NA` and are left to [complete_design()] for design-based missing
+#' completion.
 #'
 #' @return A tibble.
 #' @export

@@ -20,7 +20,12 @@ get_responses(workspace, groups = NULL, units_filter_off = NULL)
 A tibble.
 }
 \description{
-This function returns responses for the selected groups.
+This function returns responses for the selected groups and prepares the
+nested response report from the Testcenter for further processing with
+\code{\link[=code_responses]{code_responses()}}. Units with empty response payloads are kept as rows with
+\code{responses = NA} so that the observed unit structure remains available; final
+missing codes are assigned later by \code{\link[=complete_design]{complete_design()}} when the coded data
+are checked against the full test design.
 }
 \section{Functions}{
 \itemize{

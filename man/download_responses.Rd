@@ -20,7 +20,12 @@ download_responses(workspace, groups = NULL, units_filter_off = NULL)
 A tibble.
 }
 \description{
-This function downloads responses for the selected groups.
+This function downloads the raw response report for the selected groups. It
+keeps one row per reported unit, including units whose nested response
+payload is empty. These empty payloads are represented as empty list entries
+in the raw output; after \code{\link[=get_responses]{get_responses()}} prepares the data, they appear as
+\code{responses = NA} and are left to \code{\link[=complete_design]{complete_design()}} for design-based missing
+completion.
 }
 \section{Functions}{
 \itemize{
