@@ -9,7 +9,11 @@
 #'        applied to instruction pages or clarification questions) — a different unit_alias 
 #'        is intentionally assigned to logically identical units. In these cases, setting this
 #'        parameter to TRUE can be advisable.
-#' @param full_design Tibble. Design tibble containing all columns to be joined with logs.
+#' @param full_design Tibble. Design tibble containing block information,
+#'        and all columns to be joined with logs. Relevant for finding lost focus events.
+#' @param block_self_switch Boolean value. Were subjects able to switch to the next block themselves,
+#'        or did they have to wait for the time to run out / the test conductor to switch blocks?
+#'        This is relevant for finding lost focus events.
 #'
 #' @return Tibble containing various times and timestamps per unit and page
 #'
@@ -68,7 +72,8 @@
 #'
 #' @export
 #' 
-estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
+estimate_unit_times <- function(logs, use_unit_alias=FALSE, 
+                                full_design, block_self_switch=FALSE) {
   cli_setting()
   
   if (use_unit_alias) {
@@ -91,7 +96,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
     ) %>%
     dplyr::mutate(ts = as.numeric(ts)) %>%
     dplyr::left_join(
-      full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)), "testlet_no"))),
+      full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)), 
+                                                    "testlet_no"))),
       by = intersect(names(.), intersect(names(all_logs), names(full_design)))
     )
     
@@ -223,10 +229,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
       unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
   
-  # Focus events extraction
+  # Extract and combine focus lost and regained events
   print("Berechne Focus-Events")
   
-  # Extract and combine focus lost and regained events
   focus_events_combined <-
     all_ts %>%
     dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts" | 
@@ -235,6 +240,23 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
     dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::ungroup()
   
+  if (!block_self_switch) { # if blocks could not be switched actively by subjects
+  focus_events_combined <-
+    focus_events_combined %>%
+    dplyr::mutate(
+      auto_block_switch = dplyr::case_when(
+        dplyr::lag(testlet_no) != testlet_no ~ TRUE,
+        .default = FALSE
+      ))
+  } else { # dummy variable in case subjects could switch blocks themselves
+  focus_events_combined <-
+    focus_events_combined %>%
+    dplyr::mutate(
+      auto_block_switch = FALSE 
+      )
+  }
+    
+  
   # Process each unit's focus events
   focus_events_nested <-
     focus_events_combined %>%
@@ -242,12 +264,13 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE, full_design) {
       event_type = dplyr::case_when(
         ts_name == "focus_lost_ts" ~ "LOST",
         ts_name == "focus_regained_ts" ~ "REGAINED",
-        ts_name == "unit_load_ts" ~ "REGAINED",
-        ts_name == "page_start_ts" ~ "REGAINED",
+        (ts_name == "unit_load_ts" & !auto_block_switch) ~ "REGAINED",
+        (ts_name == "page_start_ts" & !auto_block_switch) ~ "REGAINED",
         .default = NA_character_
       ),
       focus_event_ts = ts
     ) %>%
+    dplyr::filter(!is.na(event_type)) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("focus_event_ts", by_group=TRUE) %>%
     dplyr::mutate(
