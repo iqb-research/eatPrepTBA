@@ -64,23 +64,7 @@ setMethod("get_responses",
               purrr::compact()
 
             if (!is.null(resp)) {
-              responses_raw <-
-                resp %>%
-                purrr::flatten() %>%
-                # Rectangularize (zu tibble)
-                tibble::enframe(name = NULL) %>%
-                # Schleife zum Spreaden der Einträge (Auslesen in tibble)
-                dplyr::mutate(
-                  # Ladebalken?
-                  # TODO: Was genau fliegt hier raus?
-                  value = purrr::map(value, function(x) {
-                    x %>%
-                      purrr::discard(is.null) %>%
-                      tibble::as_tibble()
-                  })
-                ) %>%
-                # Entpacken
-                tidyr::unnest(value)
+              responses_raw <- response_report_to_tibble(resp)
 
               # For legacy reasons, this has to be added
               # TODO: Can this be removed at a later point in time?
@@ -127,10 +111,10 @@ setMethod("get_responses",
                                                 "unit_key", "unit_alias")))
                 ) %>%
                 dplyr::summarise(
-                  responses_nest = list(responses_nest),
-                  laststate_nest = list(laststate_nest)
+                  responses_nest = list(purrr::list_flatten(responses_nest)),
+                  laststate_nest = list(laststate_nest),
+                  .groups = "drop"
                 ) %>%
-                dplyr::ungroup() %>%
                 dplyr::mutate(
                   responses_nest = purrr::map(responses_nest,
                                               function(x) unnest_responses(x, is_parsed = TRUE),

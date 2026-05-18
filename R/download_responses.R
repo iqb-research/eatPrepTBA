@@ -59,19 +59,7 @@ setMethod("download_responses",
               purrr::map(run_req, .progress = "Downloading responses")
 
             if (!is.null(resp)) {
-              responses_raw <-
-                resp %>%
-                purrr::flatten() %>%
-                # Rectangularize to tibble.
-                tibble::enframe(name = NULL) %>%
-                dplyr::mutate(
-                  value = purrr::map(value, function(x) {
-                    x %>%
-                      purrr::discard(is.null) %>%
-                      tibble::as_tibble()
-                  })
-                ) %>%
-                tidyr::unnest(value)
+              responses_raw <- response_report_to_tibble(resp)
 
               responses_raw
             } else {
