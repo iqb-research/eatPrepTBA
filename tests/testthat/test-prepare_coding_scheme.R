@@ -20,7 +20,7 @@ test_that("prepare_coding_scheme completes missing schemer columns", {
       label = "Variable 1",
       codes = list(
         list(
-          id = "c1",
+          id = 1,
           type = "CORRECT",
           label = "Correct",
           score = 1
@@ -40,7 +40,7 @@ test_that("prepare_coding_scheme completes missing schemer columns", {
     "rule_set_array_position",
     "rule_fragment_position"
   ) %in% names(prepared_scheme)))
-  expect_equal(prepared_scheme$code_id, "c1")
+  expect_equal(prepared_scheme$code_id, 1L)
   expect_true(is.na(prepared_scheme$variable_source_type))
   expect_true(is.na(prepared_scheme$variable_code_model))
 })
@@ -62,7 +62,7 @@ test_that("prepare_coding_scheme normalizes code models and keeps rule details",
       ),
       codes = list(
         list(
-          id = "c1",
+          id = 1,
           type = "CORRECT",
           label = "Correct",
           score = 1,
@@ -82,7 +82,7 @@ test_that("prepare_coding_scheme normalizes code models and keeps rule details",
           )
         ),
         list(
-          id = "c2",
+          id = 0,
           type = "WRONG",
           label = "Wrong",
           score = 0
@@ -116,7 +116,7 @@ test_that("add_coding_scheme tolerates missing coding schemes", {
       ),
       codes = list(
         list(
-          id = "c1",
+          id = 1,
           type = "CORRECT",
           label = "Correct",
           score = 1
@@ -151,4 +151,84 @@ test_that("add_coding_scheme tolerates missing coding schemes", {
   expect_equal(nrow(prepared_units), 2L)
   expect_s3_class(prepared_units$unit_codes[[1]], "tbl_df")
   expect_null(prepared_units$unit_codes[[2]])
+})
+
+test_that("add_coding_scheme keeps code_id compatible with coded responses", {
+  coding_scheme <- coding_scheme_json(list(
+    list(
+      id = "v1",
+      alias = list("v1"),
+      label = "Variable 1",
+      sourceType = "BASE",
+      sourceParameters = list(
+        processing = NULL,
+        solverExpression = NULL
+      ),
+      codes = list(
+        list(
+          id = 1,
+          type = "CORRECT",
+          label = "Correct",
+          score = 1
+        )
+      )
+    )
+  ))
+
+  units <- tibble::tibble(
+    ws_id = "ws",
+    unit_id = "u1",
+    unit_key = "U1",
+    coding_scheme = coding_scheme,
+    unit_variables = list(
+      tibble::tibble(
+        variable_ref = "v1",
+        variable_id = "v1",
+        variable_type = "string",
+        variable_format = ""
+      )
+    )
+  )
+
+  unit_codes <-
+    add_coding_scheme(units)$unit_codes[[1]] %>%
+    dplyr::select(variable_id, variable_codes) %>%
+    tidyr::unnest(variable_codes)
+
+  expect_type(unit_codes$code_id, "integer")
+  expect_no_error(
+    dplyr::left_join(
+      tibble::tibble(variable_id = "v1", code_id = 1L),
+      unit_codes,
+      by = dplyr::join_by("variable_id", "code_id")
+    )
+  )
+})
+
+test_that("add_coding_scheme tolerates only missing coding schemes", {
+  units <- tibble::tibble(
+    ws_id = c("ws", "ws"),
+    unit_id = c("u1", "u2"),
+    unit_key = c("U1", "U2"),
+    coding_scheme = c(NA_character_, NA_character_),
+    unit_variables = list(
+      tibble::tibble(
+        variable_ref = character(),
+        variable_id = character(),
+        variable_type = character(),
+        variable_format = character()
+      ),
+      tibble::tibble(
+        variable_ref = character(),
+        variable_id = character(),
+        variable_type = character(),
+        variable_format = character()
+      )
+    )
+  )
+
+  prepared_units <- add_coding_scheme(units)
+
+  expect_equal(nrow(prepared_units), 2L)
+  expect_true(all(purrr::map_lgl(prepared_units$unit_codes, is.null)))
 })

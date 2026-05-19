@@ -339,7 +339,7 @@ variable_schema <- function() {
 
 code_schema <- function() {
   list(
-    code_id = character(),
+    code_id = integer(),
     code_type = character(),
     code_label = character(),
     code_score = numeric(),
@@ -382,7 +382,7 @@ final_scheme_schema <- function() {
       variable_general_instruction = character(),
       variable_code_model = character(),
       variable_page_ref = integer(),
-      code_id = character(),
+      code_id = integer(),
       code_type = character(),
       code_label = character(),
       code_score = numeric(),
