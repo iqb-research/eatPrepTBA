@@ -47,7 +47,8 @@ Imports:
     xml2
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 Remotes: 
     iqb-research/eatAutoCode,
     iqb-research/eatWidget

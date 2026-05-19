@@ -20,7 +20,8 @@
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
-#' Calculates estimated processing and loading times for units and pages.
+#' Calculates estimated processing and loading times for units and pages. Excludes units that never
+#' actually played.
 #' New columns and nested columns:
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
@@ -46,10 +47,11 @@
 #' - focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
 #'   as well as unit and page switches (which are considered as marking regained focus)
 #'   - focus_event_ts: Timestamp of the focus event
-#'   - focus_event_type: Type of event ("LOST" or "REGAINED")
+#'   - focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
 #'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event 
 #'     before another lost event appears
-#' - unit_page_logs: Tibble containing one row with information for each page of the unit 
+#'   - focus_lost_duration: For focus lost events, time until focus regained
+#' - unit_page_logs: Tibble containing one row with information for each page of the unit. 
 #'   NULL when a unit only has one page.
 #'   - page_id: Digit(s) extracted from the log entry for this page
 #'   - page_start_time: Timestamp at which page is logged in log entry
@@ -73,7 +75,7 @@
 #' @export
 #' 
 estimate_unit_times <- function(logs, use_unit_alias=FALSE, 
-                                full_design, block_self_switch=FALSE) {
+                                full_design=NULL, block_self_switch=FALSE) {
   cli_setting()
   
   if (use_unit_alias) {
@@ -96,12 +98,21 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       !log_entry %>% stringr::str_detect("TESTLETS_TIMELEFT"),
       !is.na(booklet_id)
     ) %>%
-    dplyr::mutate(ts = as.numeric(ts)) %>%
+    dplyr::mutate(ts = as.numeric(ts))
+  
+  if (!is.null(full_design)) {
+    all_logs <- all_logs %>%
     dplyr::left_join(
       full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)), 
                                                     "testlet_no"))),
-      by = intersect(names(.), intersect(names(all_logs), names(full_design)))
+      by = intersect(names(.), intersect(names(all_logs), names(full_design))),
+      multiple = "first"
     )
+  } else {
+    print("Design tibble with block info not provided; ignoring blocks for focus event computation.
+          Any unit loading start will be treated as a focus regained event where focus was lost before.")
+    block_self_switch <- TRUE
+  }
     
   
   all_logs <- all_logs %>%
@@ -231,13 +242,33 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
   
+  # Bring stats together
+  unit_logs <-
+    unit_logs_prep %>%
+    dplyr::summarise(
+      unit_start_time = min(ts),
+      unit_n_play = length(unit_time),
+      unit_time = sum(unit_time, na.rm = TRUE),
+      unit_loadtime =  sum(unit_loadtime, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    dplyr::left_join(
+      unit_logs_starts,
+      by = dplyr::join_by(!!! groups_unit)
+    ) %>%
+    dplyr::left_join(
+      mult_loadings,
+      by = dplyr::join_by(!!! groups_unit)
+    )
+  
   # Extract and combine focus lost and regained events
   print("Berechne Focus-Events")
   
   focus_events_combined <-
     all_ts %>%
     dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts" | 
-                    ts_name == "unit_load_ts" | ts_name == "page_start_ts") %>%
+                    ts_name == "unit_load_ts" | ts_name == "page_start_ts" |
+                    ts_name == "booklet_end_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::ungroup()
@@ -271,7 +302,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       ),
       focus_event_ts = ts
     ) %>%
-    dplyr::filter(!is.na(event_type)) %>%
+    dplyr::filter(!is.na(event_type) | ts_name == "booklet_end_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("focus_event_ts", by_group=TRUE) %>%
     dplyr::mutate(
@@ -280,15 +311,15 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       prev_event_type = dplyr::lag(event_type),
       # Flag for lost focus events not followed by regain before another loss
       focus_event_unfollowed = dplyr::case_when(
-        event_type == "LOST" & (is.na(next_event_type) | next_event_type == "LOST") ~ TRUE,
+        event_type == "LOST" & next_event_type == "LOST" ~ TRUE,
         .default = FALSE
       ),
       # Compute time during which focus was lost
       focus_lost_duration = dplyr::case_when(
-        event_type == "LOST" & next_event_type == "REGAINED" ~ focus_next_ts - focus_event_ts,
+        !focus_event_unfollowed ~ focus_next_ts - focus_event_ts,
         .default = NA
       ),
-      # Flag for regained focus events not preceded by loss (or preceded by another regain)
+      # Flag for regained focus events not preceded by loss (or preceded by another regain) LEGACY
       focus_event_unpreceded = dplyr::case_when(
         event_type == "REGAINED" & (is.na(prev_event_type) | prev_event_type == "REGAINED") ~ TRUE,
         .default = FALSE
@@ -302,25 +333,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     tidyr::nest(focus_events = c("focus_event_ts", "focus_event_type", 
                                  "focus_event_unfollowed", "focus_lost_duration")) %>%
     dplyr::ungroup()
-  
-  # Bring stats together
-  unit_logs <-
-    unit_logs_prep %>%
-    dplyr::summarise(
-      unit_start_time = min(ts),
-      unit_n_play = length(unit_time),
-      unit_time = sum(unit_time, na.rm = TRUE),
-      unit_loadtime =  sum(unit_loadtime, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    dplyr::left_join(
-      unit_logs_starts,
-      by = dplyr::join_by(!!! groups_unit)
-    ) %>%
-    dplyr::left_join(
-      mult_loadings,
-      by = dplyr::join_by(!!! groups_unit)
-    )
   
   # Add combined focus events if available
   if (nrow(focus_events_nested) > 0) {
@@ -340,7 +352,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       all_ts %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet, "unit_ident")))) %>%
       dplyr::mutate(
-        is_max_ts = ts == max(ts)
+        unit_max_ts = ts == max(ts)
       ) %>%
       dplyr::filter(
         ts_name %>% stringr::str_detect("^page_") | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
@@ -402,6 +414,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       )
   } else {
     print("Keine Seiten-IDs; Seiten-Bearbeitungszeiten werden nicht berechnet")
+    unit_logs$unit_page_logs <- NA
   }
   unit_logs <- unit_logs %>%
     dplyr::left_join(
