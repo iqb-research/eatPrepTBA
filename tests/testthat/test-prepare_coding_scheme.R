@@ -103,6 +103,61 @@ test_that("prepare_coding_scheme normalizes code models and keeps rule details",
   expect_equal(prepared_scheme$rule_parameter[[1]], "x")
 })
 
+test_that("prepare_coding_scheme expands multi-parameter rules like main", {
+  coding_scheme <- coding_scheme_json(list(
+    list(
+      id = "v1",
+      alias = list("v1"),
+      label = "Variable 1",
+      sourceType = "BASE",
+      sourceParameters = list(
+        processing = NULL,
+        solverExpression = NULL
+      ),
+      fragmenting = "^(\\d+)-(\\d+)-#",
+      codes = list(
+        list(
+          id = 1,
+          type = "CORRECT",
+          label = "Correct",
+          score = 1,
+          ruleSetOperatorAnd = TRUE,
+          ruleSets = list(
+            list(
+              ruleOperatorAnd = TRUE,
+              valueArrayPos = "ANY",
+              rules = list(
+                list(
+                  method = "NUMERIC_FULL_RANGE",
+                  fragment = 0,
+                  parameters = list("134", "136")
+                ),
+                list(
+                  method = "NUMERIC_MATCH",
+                  fragment = 1,
+                  parameters = list("139")
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  ))
+
+  prepared_scheme <- prepare_coding_scheme(coding_scheme)
+
+  expect_equal(nrow(prepared_scheme), 3L)
+  expect_equal(
+    prepared_scheme$rule_parameter,
+    c("134", "136", "139")
+  )
+  expect_equal(
+    prepared_scheme$rule_method,
+    c("NUMERIC_FULL_RANGE", "NUMERIC_FULL_RANGE", "NUMERIC_MATCH")
+  )
+})
+
 test_that("prepare_coding_scheme accepts mixed valueArrayPos types", {
   coding_scheme <- coding_scheme_json(list(
     list(

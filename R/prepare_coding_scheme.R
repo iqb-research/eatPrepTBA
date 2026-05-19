@@ -150,13 +150,17 @@ prepare_rule_sets <- function(rule_sets) {
 }
 
 prepare_rules <- function(rules) {
+  rule_schema_pre_unnest <- rule_schema()
+  rule_schema_pre_unnest$rule_parameter <- list()
+
   records_to_tibble(rules) %>%
     dplyr::rename(dplyr::any_of(c(
       rule_method = "method",
       rule_fragment_position = "fragment",
       rule_parameter = "parameters"
     ))) %>%
-    complete_schema(rule_schema(), keep_extra = FALSE) %>%
+    complete_schema(rule_schema_pre_unnest, keep_extra = FALSE) %>%
+    tidyr::unnest(rule_parameter, keep_empty = TRUE) %>%
     dplyr::mutate(
       dplyr::across(dplyr::any_of(c("rule_fragment_position", "rule_parameter")),
                     list_to_character)
