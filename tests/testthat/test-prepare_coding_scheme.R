@@ -103,6 +103,59 @@ test_that("prepare_coding_scheme normalizes code models and keeps rule details",
   expect_equal(prepared_scheme$rule_parameter[[1]], "x")
 })
 
+test_that("prepare_coding_scheme accepts mixed valueArrayPos types", {
+  coding_scheme <- coding_scheme_json(list(
+    list(
+      id = "v1",
+      alias = list("v1"),
+      label = "Variable 1",
+      sourceType = "BASE",
+      sourceParameters = list(
+        processing = NULL,
+        solverExpression = NULL
+      ),
+      codes = list(
+        list(
+          id = 1,
+          type = "CORRECT",
+          label = "Correct",
+          score = 1,
+          ruleSets = list(
+            list(
+              ruleOperatorAnd = TRUE,
+              valueArrayPos = 1,
+              rules = list(
+                list(
+                  method = "equals",
+                  fragment = 1,
+                  parameters = "x"
+                )
+              )
+            ),
+            list(
+              ruleOperatorAnd = FALSE,
+              valueArrayPos = "2",
+              rules = list(
+                list(
+                  method = "equals",
+                  fragment = "2",
+                  parameters = "y"
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  ))
+
+  prepared_scheme <- prepare_coding_scheme(coding_scheme)
+
+  expect_equal(nrow(prepared_scheme), 2L)
+  expect_equal(prepared_scheme$rule_set_array_position, c("1", "2"))
+  expect_equal(prepared_scheme$rule_operator, c("AND", "OR"))
+})
+
 test_that("add_coding_scheme tolerates missing coding schemes", {
   coding_scheme <- coding_scheme_json(list(
     list(

@@ -213,13 +213,7 @@ is_record <- function(x) {
 
 record_to_tibble <- function(record) {
   record %>%
-    purrr::map(function(value) {
-      if (is.null(value) || is.list(value) || length(value) != 1) {
-        list(value)
-      } else {
-        value
-      }
-    }) %>%
+    purrr::map(function(value) list(value)) %>%
     tibble::as_tibble(.rows = 1)
 }
 
