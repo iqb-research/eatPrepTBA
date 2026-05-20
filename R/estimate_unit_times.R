@@ -278,8 +278,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                     ts_name == "unit_load_ts" | ts_name == "page_start_ts" |
                     ts_name == "booklet_end_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
-    dplyr::arrange("ts", by_group=TRUE) %>%
-    dplyr::ungroup()
+    dplyr::arrange("ts", by_group=TRUE)
   
   if (!block_self_switch) { # if blocks could not be switched actively by subjects
   focus_events_combined <-
