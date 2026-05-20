@@ -7,7 +7,7 @@
 estimate_unit_times(
   logs,
   use_unit_alias = FALSE,
-  full_design,
+  full_design = NULL,
   block_self_switch = FALSE
 )
 }
@@ -36,11 +36,13 @@ Tibble containing various times and timestamps per unit and page
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-Calculates estimated processing and loading times for units and pages.
+Calculates estimated processing and loading times for units and pages. Excludes units that never
+actually played.
 New columns and nested columns:
 \itemize{
 \item unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 \item unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
+\item n_run_no_load: Number of playbacks without previous loading log
 \item unit_time: Time interval at each playback of the unit between the player's "RUNNING" state and
 the next timestamp (usually the LOADING of the next unit, re-loading of the same unit,
 sometimes the end of the booklet), summed over playbacks
@@ -56,21 +58,22 @@ sometimes the end of the booklet)
 sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
 \item unit_start_time_i: Timestamp of start of current unit playback
 \item unit_loadtime_i: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit,
-including the duration of unsuccessful loading attempts
+including the duration of unsuccessful loading attempts before playback
 \item unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
 \item run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 In this case, load times were not calculated.
 }
-\item n_failed_loadings: Number of unsuccessful loading attempts for the unit
+\item n_failed_loadings: Number of failed loading attempts for the unit
 \item focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
 as well as unit and page switches (which are considered as marking regained focus)
 \itemize{
 \item focus_event_ts: Timestamp of the focus event
-\item focus_event_type: Type of event ("LOST" or "REGAINED")
+\item focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
 \item focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event
 before another lost event appears
+\item focus_lost_duration: For focus lost events, time until focus regained
 }
-\item unit_page_logs: Tibble containing one row with information for each page of the unit
+\item unit_page_logs: Tibble containing one row with information for each page of the unit.
 NULL when a unit only has one page.
 \itemize{
 \item page_id: Digit(s) extracted from the log entry for this page

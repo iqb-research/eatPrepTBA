@@ -25,6 +25,7 @@
 #' New columns and nested columns:
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
+#' - n_run_no_load: Number of playbacks without previous loading log
 #' - unit_time: Time interval at each playback of the unit between the player's "RUNNING" state and 
 #'   the next timestamp (usually the LOADING of the next unit, re-loading of the same unit, 
 #'   sometimes the end of the booklet), summed over playbacks
@@ -39,11 +40,11 @@
 #'   sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
 #'   - unit_start_time_i: Timestamp of start of current unit playback
 #'   - unit_loadtime_i: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit, 
-#'   including the duration of unsuccessful loading attempts
+#'   including the duration of unsuccessful loading attempts before playback
 #'   - unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
 #'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 #'     In this case, load times were not calculated.
-#' - n_failed_loadings: Number of unsuccessful loading attempts for the unit
+#' - n_failed_loadings: Number of failed loading attempts for the unit
 #' - focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
 #'   as well as unit and page switches (which are considered as marking regained focus)
 #'   - focus_event_ts: Timestamp of the focus event
@@ -172,37 +173,39 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     )  %>%
     dplyr::mutate(playercode = dplyr::case_when(log_entry == "PLAYER = LOADING" ~ 0,
                                                 log_entry == "PLAYER = RUNNING" ~ 1,
-                                                TRUE ~ 999),
+                                                .default = 999),
                   lag_unit_equal = dplyr::case_when(unit_ident == dplyr::lag(unit_ident) ~ 1,
                                                     unit_ident != dplyr::lag(unit_ident) ~ 0,
-                                                    TRUE ~ 999)) %>%
+                                                    .default = 999)) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("ts", by_group=TRUE)
   
   # Nach wiederholten Ladeversuchen, und Unit-Starts ohne vorheriges Laden suchen
-  
-  # mutate() is faster
   unit_logs_prep <- unit_logs_prep %>%
     dplyr::mutate(
-      duplicate_loadings = dplyr::case_when(playercode == 0 & dplyr::lag(playercode) == 0 &
-                                              lag_unit_equal == 1 ~ 1,
-                                            TRUE ~ 0),
+      failed_loading = dplyr::case_when(playercode == 0 & (dplyr::lead(playercode) != 1 |
+                                                              unit_ident != dplyr::lead(unit_ident)
+                                                              | is.na(dplyr::lead(playercode))) ~ TRUE,
+                                            .default = FALSE),
       run_no_load = dplyr::case_when(playercode == 1 & (dplyr::lag(playercode) != 0 |
-                                                          lag_unit_equal == 0) ~ 1,
-                                     TRUE ~ 0)
+                                                          lag_unit_equal == 0 | is.na(dplyr::lag(playercode))) ~ TRUE,
+                                     .default = FALSE),
+      duplicate_loading = dplyr::case_when(playercode == 0 & dplyr::lag(playercode) == 0 &
+                                              lag_unit_equal == 1 ~ TRUE,
+                                            .default = FALSE)
     )
   
   mult_loadings <-
     unit_logs_prep %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
     dplyr::summarise( # Adds up all loading attempts from various unit plays
-      n_failed_loadings = sum(duplicate_loadings==1),
+      n_failed_loadings = sum(failed_loading),
       .groups = "drop"
     )
   
   print("Berechne Unit-Bearbeitungs- und Ladezeiten")
   unit_logs_prep <- unit_logs_prep %>%
-    dplyr::filter(duplicate_loadings == 0) %>%
+    dplyr::filter(duplicate_loading == FALSE) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("ts", by_group=TRUE) %>%  
     dplyr::mutate(
@@ -248,6 +251,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::summarise(
       unit_start_time = min(ts),
       unit_n_play = length(unit_time),
+      n_run_no_load = sum(run_no_load, na.rm = TRUE),
       unit_time = sum(unit_time, na.rm = TRUE),
       unit_loadtime =  sum(unit_loadtime, na.rm = TRUE),
       .groups = "drop"
@@ -259,6 +263,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::left_join(
       mult_loadings,
       by = dplyr::join_by(!!! groups_unit)
+    ) %>%
+    dplyr::mutate(
+      unit_loadtime = dplyr::case_when(n_run_no_load==unit_n_play ~ NA,
+                .default = unit_loadtime)
     )
   
   # Extract and combine focus lost and regained events

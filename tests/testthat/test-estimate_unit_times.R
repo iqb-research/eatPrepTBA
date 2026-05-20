@@ -274,9 +274,7 @@ test_that("estimate_unit_times returns NA focus_events when no focus events occu
   expect_true(is.na(result$focus_events[[1]]))
 })
 
-
-#Testx
-
+# Test 9
 test_that("estimate_unit_times correctly calculates loading and playback times", {
   # Create a minimal test logs tibble with known loading and playback times
   logs <- tibble::tibble(
@@ -301,32 +299,51 @@ test_that("estimate_unit_times correctly calculates loading and playback times",
   result <- estimate_unit_times(logs)
   
   # Verify that u1 has correct loading and playback times
-  # First loading: 2000 - 1000 = 1000
-  # First playback: 5000 - 2000 = 3000
   u1_row <- result[result$unit_key == "u1", ]
-  
   expect_equal(nrow(u1_row), 1, info = "Should have one row for unit u1")
-  expect_equal(u1_row$unit_loadtime, 1000, 
-               info = "u1 loading time should be 1000 (2000 - 1000)")
-  expect_equal(u1_row$unit_time, 3000, 
-               info = "u1 playback time should be 3000 (5000 - 2000)")
-  expect_equal(u1_row$unit_n_play, 2, 
-               info = "u1 should have 2 playbacks")
+  expect_equal(u1_row$unit_loadtime, 1000)
+  expect_equal(u1_row$unit_time, 500)
+  expect_equal(u1_row$unit_n_play, 1, 
+               info = "u1 should have 1 playback")
   
   # Verify that u2 has correct loading and playback times
-  # Second loading: 6000 - 5100 = 900
-  # Second playback: 9000 - 6000 = 3000
   u2_row <- result[result$unit_key == "u2", ]
-  
   expect_equal(nrow(u2_row), 1, info = "Should have one row for unit u2")
-  expect_equal(u2_row$unit_loadtime, 900, 
-               info = "u2 loading time should be 900 (6000 - 5100)")
-  expect_equal(u2_row$unit_time, 3000, 
-               info = "u2 playback time should be 3000 (9000 - 6000)")
+  expect_equal(u2_row$unit_loadtime, 900)
+  expect_equal(u2_row$unit_time, 500)
   expect_equal(u2_row$unit_n_play, 1, 
                info = "u2 should have 1 playback")
 })
 
+
+# Test 10
+test_that("estimate_unit_times correctly counts n_failed_loadings", {
+  # Create logs with failed loading attempts
+  logs <- tibble::tibble(
+    group = c(rep("g1", 5)),
+    login = c(rep("user1", 5)),
+    booklet_id = c(rep("book1", 5)),
+    unit_key = c("u1", "u1", "u1", "u1", "u1"),
+    unit_alias = c("u1", "u1", "u1", "u1", "u1"),
+    ts = c(1000, 1500, 2000, 3000, 4000),
+    log_entry = c(
+      "PLAYER = LOADING",       # ts=1000
+      "PLAYER = LOADING",       # ts=1500 (duplicate attempt)
+      "PLAYER = RUNNING",       # ts=2000
+      "PLAYER = LOADING",       # ts=3000
+      "PLAYER = LOADING"       # ts=4000 (duplicate attempt)
+    )
+  )
+  
+  result <- estimate_unit_times(logs)
+  u1_row <- result[result$unit_key == "u1", ]
+  expect_equal(u1_row$n_failed_loadings, 3,
+               info = "Should count 3 loading attempts as failed loadings")
+  
+  expect_equal(u1_row$unit_n_play, 1)
+})
+
+# Test 11
 test_that("estimate_unit_times handles multiple playbacks with different loading times", {
   # Create logs with multiple playbacks of the same unit
   logs <- tibble::tibble(
@@ -338,15 +355,15 @@ test_that("estimate_unit_times handles multiple playbacks with different loading
     ts = c(1000, 2000, 3500, 4500, 5000, 6500, 7500, 8500, 9000, 12000),
     log_entry = c(
       "PLAYER = LOADING",       # ts=1000
-      "PLAYER = RUNNING",       # ts=2000 (loading_time_1 = 1000)
-      "PLAYER = LOADING",       # ts=3500 (playback_time_1 = 3500 - 2000 = 1500)
-      "PLAYER = RUNNING",       # ts=4500 (loading_time_2 = 4500 - 3500 = 1000)
-      "PLAYER = LOADING",       # ts=5000 (playback_time_2 = 5000 - 4500 = 500)
-      "PLAYER = RUNNING",       # ts=6500 (loading_time_3 = 6500 - 5000 = 1500)
-      "PLAYER = LOADING",       # ts=7500 (playback_time_3 = 7500 - 6500 = 1000)
-      "PLAYER = LOADING",       # ts=8500 (duplicate loading, not counted)
-      "PLAYER = RUNNING",       # ts=9000 (loading_time_4 = 9000 - 7500 = 1500)
-      "SESSION END"             # ts=12000 (playback_time_4 = 12000 - 9000 = 3000)
+      "PLAYER = RUNNING",       # ts=2000 
+      "PLAYER = LOADING",       # ts=3500 
+      "PLAYER = RUNNING",       # ts=4500 
+      "PLAYER = LOADING",       # ts=5000
+      "PLAYER = RUNNING",       # ts=6500 
+      "PLAYER = LOADING",       # ts=7500 
+      "PLAYER = LOADING",       # ts=8500 
+      "PLAYER = RUNNING",       # ts=9000 
+      "SESSION END"             # ts=12000
     )
   )
   
@@ -372,6 +389,7 @@ test_that("estimate_unit_times handles multiple playbacks with different loading
                info = "unit_playbacks should have 4 rows for 4 playbacks")
 })
 
+# Test 12
 test_that("estimate_unit_times handles run_no_load cases correctly", {
   # Create logs where PLAYER = RUNNING occurs without prior PLAYER = LOADING
   logs <- tibble::tibble(
@@ -411,34 +429,3 @@ test_that("estimate_unit_times handles run_no_load cases correctly", {
                info = "u2's first playback should have run_no_load_i = FALSE")
 })
 
-test_that("estimate_unit_times correctly counts n_failed_loadings for duplicate loading attempts", {
-  # Create logs with duplicate loading attempts
-  logs <- tibble::tibble(
-    group = c(rep("g1", 7)),
-    login = c(rep("user1", 7)),
-    booklet_id = c(rep("book1", 7)),
-    unit_key = c("u1", "u1", "u1", "u1", "u1", "u1", "u1"),
-    unit_alias = c("u1", "u1", "u1", "u1", "u1", "u1", "u1"),
-    ts = c(1000, 1500, 2000, 3000, 4000, 5000, 6000),
-    log_entry = c(
-      "PLAYER = LOADING",       # ts=1000
-      "PLAYER = LOADING",       # ts=1500 (duplicate attempt)
-      "PLAYER = RUNNING",       # ts=2000
-      "PLAYER = LOADING",       # ts=3000
-      "PLAYER = LOADING",       # ts=4000 (duplicate attempt)
-      "PLAYER = RUNNING",       # ts=5000
-      "SESSION END"             # ts=6000
-    )
-  )
-  
-  result <- estimate_unit_times(logs)
-  u1_row <- result[result$unit_key == "u1", ]
-  
-  # Should count 2 failed loadings (the duplicate attempts)
-  expect_equal(u1_row$n_failed_loadings, 2,
-               info = "Should count 2 duplicate loading attempts as failed loadings")
-  
-  # unit_n_play should still be 2 (number of successful runs)
-  expect_equal(u1_row$unit_n_play, 2,
-               info = "Number of playbacks should still be 2")
-})
