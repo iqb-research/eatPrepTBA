@@ -16,14 +16,11 @@ generate_testtakers <- function(testtakers,
                                 login = NULL) {
   cli_setting()
   # input validation
-  testtakers_cols <- c("profile_id")
   checkmate::assert_tibble(testtakers)
-  if(!(all(testtakers_cols %in% colnames(testtakers)))) stop(paste0("'testtakers' must contain the columns {", paste0(testtakers_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(testtakers_cols, colnames(testtakers)), collapse = ", "), "}."))
   checkmate::assert_list(custom_texts, null.ok = TRUE)
   checkmate::assert_list(profiles, null.ok = TRUE)
   checkmate::assert_character(app_version)
-  checkmate::assert_character(login)
-
+  checkmate::assert_character(login, null.ok = TRUE)
 
   if (!is.null(login)) {
     app_version <- login@app_version

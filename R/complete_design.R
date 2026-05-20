@@ -23,7 +23,7 @@ complete_design <- function(coded,
   checkmate::assert_tibble(coded)
   if(!(all(coded_cols %in% colnames(coded)))) stop(paste0("'coded' must contain the columns {", paste0(coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(coded_cols, colnames(coded)), collapse = ", "), "}."))
 
-  units_cols <- c("unit_key", "unit_codes")#, "variable_id", "variable_source_type", "variable_level", "variable_page", "variable_section", "variable_page_always_visible")
+  units_cols <- c("unit_key") #, "unit_codes", "variable_id", "variable_source_type", "variable_level", "variable_page", "variable_section", "variable_page_always_visible")
   checkmate::assert_tibble(units)
   if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
