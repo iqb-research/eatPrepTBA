@@ -71,11 +71,11 @@ read_booklet <- function(booklet_xml) {
     tidyr::unnest(
       dplyr::any_of("booklet_units")
     ) %>%
-    dplyr::rename(
-      dplyr::any_of(c(
-        "testlet_id" = "id",
-        "testlet_label" = "label"
-      ))
+    dplyr::mutate(
+      testlet_id = ifelse(is.na(testlet_id), id, testlet_id),
+      testlet_label = ifelse(is.na(testlet_label), label, testlet_label),
+      id = NULL,
+      label = NULL
     ) %>%
     tidyr::unnest(
       dplyr::any_of("testlet_units")
