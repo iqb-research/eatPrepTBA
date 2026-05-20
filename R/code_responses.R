@@ -28,12 +28,17 @@ code_responses <- function(responses,
   if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
   checkmate::assert_logical(prepare, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
+
   codes_manual_cols <- c("group_id", "booklet_id", "login_code", "login_name", "variable_id", "unit_key", "code_id")
   checkmate::assert_tibble(codes_manual, null.ok = TRUE)
-  if(!(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
+  if(!is.null(codes_manual)){
+    if(!(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
+  }
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
+  if(!is.null(missings)){
+    if(!(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
+  }
 
   if (is.null(missings)) {
     missings <-

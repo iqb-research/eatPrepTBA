@@ -97,7 +97,7 @@ setMethod("get_settings",
 
 prepare_ws_settings <- function(ws, metadata) {
   # input validation
-  checkmate::assertClass(ws, "WorkspaceStudio-class")
+  checkmate::assert_list(ws)
   checkmate::assert_logical(metadata, len = 1)
 
 
