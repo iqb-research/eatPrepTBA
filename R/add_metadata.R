@@ -28,19 +28,13 @@ add_metadata <- function(units) {
     dplyr::mutate(
       unit_has_items = is.na(item_no)
     ) %>%
-    # TODO: This could possibly be removed in 2026 (all relevant units should have updated metdata profiles)
-    dplyr::rowwise() %>%
-    dplyr::mutate(
-      unit_has_uuids = dplyr::if_any(dplyr::any_of("item_uuid"), ~ !is.na(.), .default = FALSE)
-    ) %>%
     {
       if ("item_uuid" %in% names(.)) {
         dplyr::mutate(., unit_has_uuids = !is.na(item_uuid))
       } else {
         dplyr::mutate(., unit_has_uuids = FALSE)
       }
-    } %>%
-    dplyr::ungroup()
+    }
 
   # Item metadata
   units_return <-

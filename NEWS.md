@@ -1,3 +1,10 @@
+# eatPrepTBA 0.9.8.9009
+
+* Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.
+* Fixed `compute_sizes()` by assigning the intermediate dependency-size table before summarising resource sizes.
+* Made codebook preparation helpers robust to single-variable and single-code JSON structures.
+* Removed a redundant deprecated `dplyr::if_any()` call in `add_metadata()`.
+
 # eatPrepTBA 0.9.8.9008
 
 * Added `compute_staytime_tables()` for preparing stay-time quantile tables and related report output.

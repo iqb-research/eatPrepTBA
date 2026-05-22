@@ -142,6 +142,10 @@ prepare_codebook_units <- function(units,
 #' @keywords internal
 prepare_codebook_variables <- function(variables,
                                        variable_entries = c("id", "label", "codes")) {
+  if (!is.null(names(variables)) && any(variable_entries %in% names(variables))) {
+    variables <- list(variables)
+  }
+
   variables %>%
     purrr::map(function(variable) {
       variable[variable_entries]
@@ -159,10 +163,9 @@ prepare_codebook_codes <- function(codes,
                                    code_entries = c("id", "label", "description"),
                                    missing_codes) {
 
-  codes %>%
-    purrr::map(function(code) {
-      code[code_entries]
-    })
+  if (!is.null(names(codes)) && any(code_entries %in% names(codes))) {
+    codes <- list(codes)
+  }
 
   c(
     codes,
