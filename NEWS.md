@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9009
+
+* Fixed `add_metadata()` so item and unit metadata are matched against the workspace metadata profile when Studio returns stale `isCurrent` flags. This preserves item metadata such as `Variablenbezeichnung` even when the relevant profile is marked as not current in the returned properties JSON.
+* Added regression tests for metadata profiles with stale `isCurrent` values.
+
 # eatPrepTBA 0.9.8.9008
 
 * Added `compute_staytime_tables()` for preparing stay-time quantile tables and related report output.

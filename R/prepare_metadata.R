@@ -1,6 +1,38 @@
 str_replacements <- "[-:/ \\*]+"
 str_removals <- "[\\(\\)]"
 
+read_profile_entries <- function(profile, collapse) {
+  entries <- purrr::pluck(profile, "entries", .default = list())
+
+  if (is.null(entries) || length(entries) == 0) {
+    return(tibble::tibble())
+  }
+
+  profile_id <- purrr::pluck(profile, "profileId", .default = NA_character_)
+  profile_is_current <- purrr::pluck(profile, "isCurrent", .default = NA)
+
+  if (is.null(profile_id) || length(profile_id) == 0) {
+    profile_id <- NA_character_
+  }
+  if (is.null(profile_is_current) || length(profile_is_current) == 0) {
+    profile_is_current <- NA
+  }
+
+  entries %>%
+    purrr::map(function(x) {
+      unlist(x) %>%
+        as.list() %>%
+        tibble::enframe() %>%
+        tidyr::unnest(value) %>%
+        tidyr::pivot_wider(values_fn = function(x) stringr::str_c(x, collapse = collapse))
+    }) %>%
+    purrr::reduce(dplyr::bind_rows, .init = tibble::tibble()) %>%
+    dplyr::mutate(
+      profile_id = as.character(profile_id[[1]]),
+      profile_is_current = as.logical(profile_is_current[[1]])
+    )
+}
+
 prepare_metadata <- function(unit_metadata) {
   # Unit metadata
   unit_profiles <- read_unit_profiles(unit_metadata)
@@ -18,16 +50,7 @@ read_unit_profiles <- function(unit_metadata) {
   if (!is.null(unit_metadata$profiles) && length(unit_metadata$profiles) > 0) {
     unit_profiles_prep <-
       unit_metadata$profiles %>%
-      purrr::keep("isCurrent") %>%
-      purrr::pluck(1, "entries") %>%
-      purrr::map(function(x) {
-        unlist(x) %>%
-          as.list() %>%
-          tibble::enframe() %>%
-          tidyr::unnest(value) %>%
-          # This must be unique
-          tidyr::pivot_wider(values_fn = function(x) stringr::str_c(x, collapse = ";.;.;"))
-      }) %>%
+      purrr::map(read_profile_entries, collapse = ";.;.;") %>%
       purrr::reduce(dplyr::bind_rows, .init = tibble::tibble())
 
     value_id_exists <- tibble::has_name(unit_profiles_prep, "value.id")
@@ -48,6 +71,8 @@ read_unit_profiles <- function(unit_metadata) {
       dplyr::select(
         dplyr::any_of(
           c(
+            profile_id = "profile_id",
+            profile_is_current = "profile_is_current",
             profile_name = "label.value",
             value_id = "value.id",
             value_text = "valueAsText.value"
@@ -70,6 +95,8 @@ read_items_profiles <- function(unit_metadata) {
   items_profiles <-
     tibble::tibble(
       item_no = NA_integer_,
+      profile_id = NA_character_,
+      profile_is_current = NA,
       profile_name = NA_character_,
       # profile_label = label.value,
       value_id = NA_character_,
@@ -85,19 +112,9 @@ read_items_profiles <- function(unit_metadata) {
     purrr::map(function(x) {
       x %>%
         purrr::pluck("profiles") %>%
-        purrr::keep("isCurrent")
+        purrr::map(read_profile_entries, collapse = "_-_-_") %>%
+        purrr::reduce(dplyr::bind_rows, .init = tibble::tibble())
     }) %>%
-    purrr::map(function(x) {
-      entries <- x %>%
-        purrr::pluck(1, "entries") %>%
-        purrr::map(function(x) {
-          unlist(x) %>%
-            as.list() %>%
-            tibble::enframe() %>%
-            tidyr::unnest(value) %>%
-            tidyr::pivot_wider(values_fn = function(x) stringr::str_c(x, collapse = "_-_-_"))
-        }) %>%
-        purrr::reduce(dplyr::bind_rows, .init = tibble::tibble())}) %>%
     tibble::enframe(name = "item") %>%
     tidyr::unnest(value)
 
@@ -108,7 +125,7 @@ read_items_profiles <- function(unit_metadata) {
 
   items_profiles <-
     items_profiles_prep %>%
-    dplyr::select(dplyr::any_of(c("item", "label.value", "value.id", "valueAsText.value"))) %>%
+    dplyr::select(dplyr::any_of(c("item", "profile_id", "profile_is_current", "label.value", "value.id", "valueAsText.value"))) %>%
     dplyr::mutate(
       dplyr::across(dplyr::any_of(c("value.id", "valueAsText.value")),
                     function(x) stringr::str_split(x, "_-_-_"))
@@ -127,6 +144,8 @@ read_items_profiles <- function(unit_metadata) {
       dplyr::any_of(
         c(
           item_no = "item",
+          profile_id = "profile_id",
+          profile_is_current = "profile_is_current",
           profile_name = "profile_name",
           # profile_label = label.value,
           value_id = "value.id",
