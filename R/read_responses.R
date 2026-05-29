@@ -113,5 +113,6 @@ read_responses <- function(files) {
         page_id = "CURRENT_PAGE_ID",
         page_count = "PAGE_COUNT"
       ))
-    )
+    ) %>%
+    preserve_empty_response_payloads()
 }

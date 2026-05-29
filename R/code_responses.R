@@ -43,6 +43,10 @@ code_responses <- function(responses,
 
   cli::cli_text("Time started: {start_time}")
 
+  if (!"responses" %in% names(responses)) {
+    responses$responses <- NA_character_
+  }
+
   responses_codable <-
     responses %>%
     dplyr::filter(!is.na(responses))
@@ -89,6 +93,13 @@ code_responses <- function(responses,
   unit_keys <- coding_schemes$unit_key
   n_units <- length(unique(unit_keys))
   cli::cli_alert_success("Identified {n_units} units that can be coded.")
+
+  if (n_units == 0) {
+    cli::cli_alert_info("No coding schemes available for the provided response payloads.")
+    cli::cli_text("Time finished: {Sys.time()}")
+
+    return(empty_coded_responses(responses, prepare = prepare))
+  }
 
   # Insert manual codes
   if (!is.null(codes_manual) || prepare) {

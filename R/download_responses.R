@@ -61,10 +61,13 @@ setMethod("download_responses",
 
             resp <-
               groups %>%
-              purrr::map(run_req, .progress = "Downloading responses")
+              purrr::map(run_req, .progress = "Downloading responses") %>%
+              purrr::compact()
 
-            if (!is.null(resp)) {
-              responses_raw <- response_report_to_tibble(resp)
+            if (length(resp) > 0) {
+              responses_raw <-
+                response_report_to_tibble(resp) %>%
+                filter_response_units(units_filter_off)
 
               responses_raw
             } else {

@@ -150,3 +150,85 @@ test_that("code_responses returns structured empty output for missing payloads w
     "unit_alias", "variable_id", "code_status", "code_type"
   ) %in% names(coded)))
 })
+
+test_that("parsed laststate objects from response reports are prepared", {
+  laststate <- unnest_laststate(list(list(
+    PLAYER = "RUNNING",
+    RESPONSE_PROGRESS = "complete"
+  )))
+
+  expect_equal(laststate$PLAYER, "RUNNING")
+  expect_equal(laststate$RESPONSE_PROGRESS, "complete")
+})
+
+test_that("coded empty response payloads are retained as responses", {
+  response_file <- tempfile(fileext = ".csv")
+  responses_raw <- tibble::tibble(
+    groupname = "group",
+    loginname = "login",
+    code = "7kfe",
+    bookletname = "booklet",
+    unitname = "SB_2631",
+    responses = as.character(jsonlite::toJSON(
+      list(list(id = "responses", content = "[]", ts = "1")),
+      auto_unbox = TRUE
+    )),
+    laststate = NA_character_
+  )
+
+  readr::write_delim(responses_raw, response_file, delim = ";")
+
+  responses <- read_responses(response_file)
+
+  expect_equal(responses$unit_key, "SB_2631")
+  expect_equal(responses$coded, "[]")
+  expect_equal(responses$responses, "[]")
+  expect_equal(responses$responses_ts, "1")
+})
+
+test_that("code_responses handles payloads when no coding schemes are available", {
+  units <- tibble::tibble(
+    ws_id = 1,
+    ws_label = "workspace",
+    unit_key = "UNIT_1",
+    unit_id = 1,
+    unit_label = "Unit 1",
+    coding_scheme = NA,
+    unit_variables = list(list())
+  )
+
+  responses <- tibble::tibble(
+    group_id = "group",
+    login_name = "login",
+    login_code = "code",
+    booklet_id = "booklet",
+    unit_key = "UNIT_1",
+    responses = "[]"
+  )
+
+  coded <- NULL
+
+  expect_error(
+    coded <- code_responses(responses, units, prepare = TRUE),
+    NA
+  )
+  expect_equal(nrow(coded), 0)
+  expect_true(all(c(
+    "group_id", "login_name", "login_code", "booklet_id", "unit_key",
+    "unit_alias", "variable_id", "code_status", "code_type"
+  ) %in% names(coded)))
+})
+
+test_that("response unit filters are applied to raw report rows", {
+  responses_raw <- tibble::tibble(
+    unitname = c("keep", "drop_alias", "alias"),
+    originalUnitId = c("keep", "original", "drop_original")
+  )
+
+  filtered <- filter_response_units(
+    responses_raw,
+    units_filter_off = c("drop_alias", "drop_original")
+  )
+
+  expect_equal(filtered$unitname, "keep")
+})

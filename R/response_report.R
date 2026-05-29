@@ -45,3 +45,43 @@ response_report_entry_to_tibble <- function(x) {
 
   tibble::as_tibble_row(x)
 }
+
+filter_response_units <- function(responses_raw, units_filter_off = NULL) {
+  if (is.null(units_filter_off) || nrow(responses_raw) == 0) {
+    return(responses_raw)
+  }
+
+  unit_filter_cols <- intersect(c("unitname", "originalUnitId"), names(responses_raw))
+
+  if (length(unit_filter_cols) == 0) {
+    return(responses_raw)
+  }
+
+  responses_raw %>%
+    dplyr::filter(
+      !dplyr::if_any(
+        dplyr::all_of(unit_filter_cols),
+        function(x) x %in% units_filter_off
+      )
+    )
+}
+
+preserve_empty_response_payloads <- function(responses) {
+  if (!"responses" %in% names(responses)) {
+    responses$responses <- NA_character_
+  }
+
+  if ("coded" %in% names(responses)) {
+    empty_coded_payload <- is.na(responses$responses) & responses$coded == "[]"
+    responses$responses[empty_coded_payload] <- "[]"
+
+    if ("coded_ts" %in% names(responses)) {
+      if (!"responses_ts" %in% names(responses)) {
+        responses$responses_ts <- NA_character_
+      }
+      responses$responses_ts[empty_coded_payload] <- responses$coded_ts[empty_coded_payload]
+    }
+  }
+
+  responses
+}

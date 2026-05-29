@@ -68,8 +68,18 @@ setMethod("get_responses",
               purrr::map(run_req, .progress = "Downloading responses") %>%
               purrr::compact()
 
-            if (!is.null(resp)) {
+            if (length(resp) > 0) {
               responses_raw <- response_report_to_tibble(resp)
+
+              if (nrow(responses_raw) == 0) {
+                return(tibble::tibble())
+              }
+
+              responses_raw <- filter_response_units(responses_raw, units_filter_off)
+
+              if (nrow(responses_raw) == 0) {
+                return(tibble::tibble())
+              }
 
               # For legacy reasons, this has to be added
               # TODO: Can this be removed at a later point in time?
@@ -105,10 +115,6 @@ setMethod("get_responses",
                 # Hotfix to remove empty group data (better do that earlier?)
                 dplyr::filter(
                   !is.na(group_id)
-                ) %>%
-                # Hotfix to remove too large units
-                dplyr::filter(
-                  !(unit_key %in% units_filter_off)
                 ) %>%
                 dplyr::group_by(
                   dplyr::across(dplyr::any_of(c("group_id", "login_name",
@@ -156,7 +162,8 @@ setMethod("get_responses",
                     page_id = "CURRENT_PAGE_ID",
                     page_count = "PAGE_COUNT"
                   ))
-                )
+                ) %>%
+                preserve_empty_response_payloads()
             } else {
               tibble::tibble()
             }
