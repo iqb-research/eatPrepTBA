@@ -2,11 +2,11 @@
 #'
 #' @param logs Tibble. Must be a logs tibble retrieved with `get_logs()` or `read_logs()`.
 #' @param use_unit_alias Boolean value. Determines whether to use unit_alias as unit identifier. If
-#'        FALSE, use unit_key instead, which is the default. 
-#'        By default, unit_alias == unit_key (mapping to the Studio unit). In special cases — 
-#'        particularly for unit start pages and units that appear identically in multiple test 
-#'        booklets but are to be evaluated separately (which is rare; this has so far only 
-#'        applied to instruction pages or clarification questions) — a different unit_alias 
+#'        FALSE, use unit_key instead, which is the default.
+#'        By default, unit_alias == unit_key (mapping to the Studio unit). In special cases —
+#'        particularly for unit start pages and units that appear identically in multiple test
+#'        booklets but are to be evaluated separately (which is rare; this has so far only
+#'        applied to instruction pages or clarification questions) — a different unit_alias
 #'        is intentionally assigned to logically identical units. In these cases, setting this
 #'        parameter to TRUE can be advisable.
 #' @param full_design Tibble. Design tibble containing block information,
@@ -26,20 +26,20 @@
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
 #' - n_run_no_load: Number of playbacks without previous loading log
-#' - unit_time: Time interval at each playback of the unit between the player's "RUNNING" state and 
-#'   the next timestamp (usually the LOADING of the next unit, re-loading of the same unit, 
+#' - unit_time: Time interval at each playback of the unit between the player's "RUNNING" state and
+#'   the next timestamp (usually the LOADING of the next unit, re-loading of the same unit,
 #'   sometimes the end of the booklet), summed over playbacks
-#' - unit_loadtime: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit, 
+#' - unit_loadtime: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit,
 #'   including the duration of unsuccessful loading attempts, summed over playbacks
 #' - unit_playbacks: Tibble containing one row with information for each playback of the unit
 #'   - unit_start_i: Running number of unit playbacks
-#'   - unit_time_i: Time interval at each playback of the unit between the player's "RUNNING" state and 
-#'   the next significant entry (usually the LOADING of the next unit, re-loading of the same unit, 
+#'   - unit_time_i: Time interval at each playback of the unit between the player's "RUNNING" state and
+#'   the next significant entry (usually the LOADING of the next unit, re-loading of the same unit,
 #'   sometimes the end of the booklet)
-#'   - unit_end_time_i: Timestamp of the next significant log entry (usually the LOADING of the next unit, re-loading of the same unit, 
+#'   - unit_end_time_i: Timestamp of the next significant log entry (usually the LOADING of the next unit, re-loading of the same unit,
 #'   sometimes the end of the booklet, i. e. the final timestamp within the current booklet playback) after start of current unit playback
 #'   - unit_start_time_i: Timestamp of start of current unit playback
-#'   - unit_loadtime_i: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit, 
+#'   - unit_loadtime_i: Time interval between the player's "LOADING" and "RUNNING" states at each playback of the unit,
 #'   including the duration of unsuccessful loading attempts before playback
 #'   - unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current playback of unit
 #'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
@@ -49,10 +49,10 @@
 #'   as well as unit and page switches (which are considered as marking regained focus)
 #'   - focus_event_ts: Timestamp of the focus event
 #'   - focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
-#'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event 
+#'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event
 #'     before another lost event appears
 #'   - focus_lost_duration: For focus lost events, time until focus regained
-#' - unit_page_logs: Tibble containing one row with information for each page of the unit. 
+#' - unit_page_logs: Tibble containing one row with information for each page of the unit.
 #'   NULL when a unit only has one page.
 #'   - page_id: Digit(s) extracted from the log entry for this page
 #'   - page_start_time: Timestamp at which page is logged in log entry
@@ -64,21 +64,21 @@
 #'     - page_start_i: Running number of playbacks of the page
 #'     - page_time_i: Time interval between CURRENT_PAGE_ID = [...] (page load completion) and
 #'       the next page load completion, the loading of a new unit, or until the end of the booklet
-#'     - page_end_time_i: Timestamp of the next page load completion, the loading of a new unit, 
+#'     - page_end_time_i: Timestamp of the next page load completion, the loading of a new unit,
 #'       or the end of the booklet (i. e. the final timestamp within the current booklet playback)
 #'     - page_start_time_i: Timestamp of CURRENT_PAGE_ID = [...] (page load completion)
 #' - unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
-#' - unit_ident: Either a copy of unit_alias or unit_key, depending on the value of 
+#' - unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 #'   use_unit_alias
-#'                  
+#'
 #' Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 #'
 #' @export
-#' 
-estimate_unit_times <- function(logs, use_unit_alias=FALSE, 
+#'
+estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                 full_design=NULL, block_self_switch=FALSE) {
   cli_setting()
-  
+
   if (use_unit_alias) {
     logs$unit_ident <- logs$unit_alias
   } else {
@@ -87,9 +87,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
 
   groups_booklet <- setdiff(names(logs), c("unit_key", "unit_alias", "unit_ident", "ts", "log_entry"))
   groups_unit <- setdiff(names(logs), c("ts", "log_entry", "unit_key", "unit_alias"))
-  
+
   logs <- logs[!duplicated(logs), ]
-  
+
   all_logs <-
     logs %>%
     dplyr::filter(
@@ -100,11 +100,11 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       !is.na(booklet_id)
     ) %>%
     dplyr::mutate(ts = as.numeric(ts))
-  
+
   if (!is.null(full_design)) {
     all_logs <- all_logs %>%
     dplyr::left_join(
-      full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)), 
+      full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)),
                                                     "testlet_no"))),
       by = intersect(names(.), intersect(names(all_logs), names(full_design))),
       multiple = "first"
@@ -114,8 +114,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
           Any unit loading start will be treated as a focus regained event where focus was lost before.")
     block_self_switch <- TRUE
   }
-    
-  
+
+
   all_logs <- all_logs %>%
     dplyr::arrange(dplyr::across(dplyr::all_of(c(groups_booklet, "ts")))) %>%
     # Unusable timestamps
@@ -133,7 +133,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     tidyr::fill(unit_ident, .direction = "downup") %>%
     dplyr::filter((!is.na(unit_ident) & unit_ident != "") | is_max_ts) %>%
     dplyr::ungroup()
-  
+
   all_ts <-
     all_logs %>%
     dplyr::mutate(
@@ -161,11 +161,11 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         .default = ts_name
       )
     )
-  
+
   all_ts <- all_ts %>%
     dplyr::ungroup() %>%
     dplyr::filter(!is.na(ts_name))
-  
+
   unit_logs_prep <-
     all_ts %>%
     dplyr::filter(
@@ -179,7 +179,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                                     .default = 999)) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("ts", by_group=TRUE)
-  
+
   # Nach wiederholten Ladeversuchen, und Unit-Starts ohne vorheriges Laden suchen
   unit_logs_prep <- unit_logs_prep %>%
     dplyr::mutate(
@@ -194,7 +194,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                               lag_unit_equal == 1 ~ TRUE,
                                             .default = FALSE)
     )
-  
+
   mult_loadings <-
     unit_logs_prep %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
@@ -202,18 +202,18 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       n_failed_loadings = sum(failed_loading),
       .groups = "drop"
     )
-  
+
   print("Berechne Unit-Bearbeitungs- und Ladezeiten")
   unit_logs_prep <- unit_logs_prep %>%
     dplyr::filter(duplicate_loading == FALSE) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
-    dplyr::arrange("ts", by_group=TRUE) %>%  
+    dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::mutate(
       ts_next = dplyr::lead(ts),
-      unit_time = ts_next - ts, # Unit time hier definiert als Zeitspanne von Unit RUNNING 
+      unit_time = ts_next - ts, # Unit time hier definiert als Zeitspanne von Unit RUNNING
       # bis zur nächsten Aktion innerhalb des Booklets
       ts_prev = dplyr::lag(ts),
-      unit_loadtime = ts - ts_prev # Unit Loadtime hier definiert als Zeitspanne von 
+      unit_loadtime = ts - ts_prev # Unit Loadtime hier definiert als Zeitspanne von
       # PLAYER=LOADING bis zu PLAYER=RUNNING (erfolglose Ladeversuche inklusive)
     ) %>%
     dplyr::mutate(
@@ -225,11 +225,11 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       )) %>%
     dplyr::filter(ts_name =="unit_start_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-    dplyr::arrange("ts", by_group=TRUE) %>% 
+    dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::mutate(
       unit_start_i = seq_along(unit_time)
     )
-  
+
   # Multiple Unit plays
   unit_logs_starts <-
     unit_logs_prep %>%
@@ -242,9 +242,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                   "unit_loadstart_i" = "ts_prev",
                                   "run_no_load_i" = "run_no_load"))) %>%
     tidyr::nest(
-      unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i", 
+      unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i",
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
-  
+
   # Bring stats together
   unit_logs <-
     unit_logs_prep %>%
@@ -268,18 +268,18 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       unit_loadtime = dplyr::case_when(n_run_no_load==unit_n_play ~ NA,
                 .default = unit_loadtime)
     )
-  
+
   # Extract and combine focus lost and regained events
   print("Berechne Focus-Events")
-  
+
   focus_events_combined <-
     all_ts %>%
-    dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts" | 
+    dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts" |
                     ts_name == "unit_load_ts" | ts_name == "page_start_ts" |
                     ts_name == "booklet_end_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::arrange("ts", by_group=TRUE)
-  
+
   if (!block_self_switch) { # if blocks could not be switched actively by subjects
   focus_events_combined <-
     focus_events_combined %>%
@@ -292,10 +292,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   focus_events_combined <-
     focus_events_combined %>%
     dplyr::mutate(
-      auto_block_switch = FALSE 
+      auto_block_switch = FALSE
       )
   }
-  
+
   # Process each unit's focus events
   focus_events_nested <-
     focus_events_combined %>%
@@ -337,10 +337,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                   "event_type", "focus_event_unfollowed"))) %>%
     dplyr::rename(focus_event_type = "event_type") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-    tidyr::nest(focus_events = c("focus_event_ts", "focus_event_type", 
+    tidyr::nest(focus_events = c("focus_event_ts", "focus_event_type",
                                  "focus_event_unfollowed", "focus_lost_duration")) %>%
     dplyr::ungroup()
-  
+
   # Add combined focus events if available
   if (nrow(focus_events_nested) > 0) {
     unit_logs <- unit_logs %>%
@@ -351,7 +351,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   } else {
     unit_logs$focus_events <- NA
   }
-  
+
   # Page times
   if (any(!is.na(all_ts$page_id))) {
     print("Berechne Seiten-Bearbeitungszeiten")
@@ -365,7 +365,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         ts_name %>% stringr::str_detect("^page_") | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
-      dplyr::arrange("ts", by_group=TRUE) %>%  
+      dplyr::arrange("ts", by_group=TRUE) %>%
       dplyr::mutate(
         ts_next = dplyr::lead(ts),
         page_time = ts_next - ts
@@ -382,11 +382,11 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       dplyr::mutate(
         page_start_i = seq_along(page_time)
       )
-    
+
     # Separate Unit start and stay times
     unit_page_logs_start <-
       unit_page_logs_prep %>%
-      dplyr::select(dplyr::all_of(c(groups_unit, 
+      dplyr::select(dplyr::all_of(c(groups_unit,
                                     "page_id",
                                     "page_start_i",
                                     "page_time_i" = "page_time",
@@ -395,7 +395,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       tidyr::nest(
         page_logs_i = c("page_start_i", "page_time_i", "page_end_time_i", "page_start_time_i")
       )
-    
+
     unit_page_logs <-
       unit_page_logs_prep %>%
       dplyr::summarise(
@@ -408,9 +408,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         unit_page_logs_start,
         by = dplyr::join_by(!!! c(groups_unit, "page_id"))
       ) %>%
-      tidyr::nest(unit_page_logs = dplyr::any_of(c("page_id", "page_start_time", 
+      tidyr::nest(unit_page_logs = dplyr::any_of(c("page_id", "page_start_time",
                                                    "page_n_play", "page_time", "page_logs_i")))
-    
+
     unit_logs <- unit_logs %>%
       dplyr::left_join(
         unit_page_logs,

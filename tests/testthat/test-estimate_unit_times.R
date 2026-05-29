@@ -16,16 +16,16 @@ test_that("estimate_unit_times returns tibble with expected columns", {
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
   )
-  
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
-  
+
   expect_s3_class(result, "tbl_df")
   expect_true("unit_start_time" %in% names(result))
   expect_true("unit_loadtime" %in% names(result))
@@ -53,9 +53,9 @@ test_that("estimate_unit_times returns tibble with expected columns,
       "PLAYER = LOADING"
     )
   )
-  
+
   result <- estimate_unit_times(logs)
-  
+
   expect_s3_class(result, "tbl_df")
   expect_true("unit_start_time" %in% names(result))
   expect_true("unit_loadtime" %in% names(result))
@@ -70,8 +70,8 @@ test_that("estimate_unit_times calculates focus lost events correctly", {
     group = "test_group",
     login = "user1",
     booklet_id = "BOOKLET_1",
-    unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1", 
-                 "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2", 
+    unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1",
+                 "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2",
                  "UNIT_3", "UNIT_3", "UNIT_3", "UNIT_3",
                  "UNIT_4"),
     unit_alias = NA,
@@ -92,19 +92,19 @@ test_that("estimate_unit_times calculates focus lost events correctly", {
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
-    unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1", 
+    unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1",
                  "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2",
                  "UNIT_3", "UNIT_3", "UNIT_3", "UNIT_3",
                  "UNIT_4"),
     testlet_no = c(1,1,1,1,1,1,1,1,2,2,2,2,2)
   )
-  
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
-  
+
   # Check that focus_events tibble is populated
   focus_events1 <- result$focus_events[[1]]
   expect_s3_class(focus_events1, "tbl_df")
@@ -135,16 +135,16 @@ test_that("estimate_unit_times respects booklet endings when flagging unfollowed
       "PLAYER = RUNNING"
       )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
   )
-  
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
-  
+
   focus_events <- result$focus_events[[1]]
   expect_true(!focus_events$focus_event_unfollowed[1])
 })
@@ -167,16 +167,16 @@ test_that("estimate_unit_times handles multiple unit plays", {
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
   )
-  
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
-  
+
   expect_true("unit_playbacks" %in% names(result))
   playbacks <- result$unit_playbacks[[1]]
   expect_equal(nrow(playbacks), 2)
@@ -197,21 +197,21 @@ test_that("estimate_unit_times creates unit_ident column correctly", {
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_ALIAS_1",
     testlet_no = 1
   )
-  
+
   # Test with use_unit_alias = FALSE
-  result_key <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+  result_key <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                     full_design = design, block_self_switch = FALSE)
   expect_true(result_key$unit_key == result_key$unit_ident)
-  
+
   # Test with use_unit_alias = TRUE
-  result_alias <- estimate_unit_times(logs, use_unit_alias = TRUE, 
+  result_alias <- estimate_unit_times(logs, use_unit_alias = TRUE,
                                       full_design = design, block_self_switch = FALSE)
   expect_true(result_alias$unit_alias == result_alias$unit_ident)
 })
@@ -232,15 +232,15 @@ test_that("estimate_unit_times handles missing booklet_id entries", {
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
   )
-  
+
   # Should not error and should exclude NA booklet_id entries
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
   expect_true(sum(is.na(result$booklet_id)) == 0)
 })
@@ -260,16 +260,16 @@ test_that("estimate_unit_times returns NA focus_events when no focus events occu
       "PLAYER = LOADING"
     )
   )
-  
+
   design <- tibble::tibble(
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
   )
-  
-  result <- estimate_unit_times(logs, use_unit_alias = FALSE, 
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
                                 full_design = design, block_self_switch = FALSE)
-  
+
   # focus_events should be NA when no focus events are recorded
   expect_true(is.na(result$focus_events[[1]]))
 })
@@ -295,23 +295,23 @@ test_that("estimate_unit_times correctly calculates loading and playback times",
       "SESSION END"             # ts=9000, session end (playback_time_u2 = 9000-6000 = 3000)
     )
   )
-  
+
   result <- estimate_unit_times(logs)
-  
+
   # Verify that u1 has correct loading and playback times
   u1_row <- result[result$unit_key == "u1", ]
   expect_equal(nrow(u1_row), 1, info = "Should have one row for unit u1")
   expect_equal(u1_row$unit_loadtime, 1000)
   expect_equal(u1_row$unit_time, 500)
-  expect_equal(u1_row$unit_n_play, 1, 
+  expect_equal(u1_row$unit_n_play, 1,
                info = "u1 should have 1 playback")
-  
+
   # Verify that u2 has correct loading and playback times
   u2_row <- result[result$unit_key == "u2", ]
   expect_equal(nrow(u2_row), 1, info = "Should have one row for unit u2")
   expect_equal(u2_row$unit_loadtime, 900)
   expect_equal(u2_row$unit_time, 500)
-  expect_equal(u2_row$unit_n_play, 1, 
+  expect_equal(u2_row$unit_n_play, 1,
                info = "u2 should have 1 playback")
 })
 
@@ -334,12 +334,12 @@ test_that("estimate_unit_times correctly counts n_failed_loadings", {
       "PLAYER = LOADING"       # ts=4000 (duplicate attempt)
     )
   )
-  
+
   result <- estimate_unit_times(logs)
   u1_row <- result[result$unit_key == "u1", ]
   expect_equal(u1_row$n_failed_loadings, 3,
                info = "Should count 3 loading attempts as failed loadings")
-  
+
   expect_equal(u1_row$unit_n_play, 1)
 })
 
@@ -355,33 +355,33 @@ test_that("estimate_unit_times handles multiple playbacks with different loading
     ts = c(1000, 2000, 3500, 4500, 5000, 6500, 7500, 8500, 9000, 12000),
     log_entry = c(
       "PLAYER = LOADING",       # ts=1000
-      "PLAYER = RUNNING",       # ts=2000 
-      "PLAYER = LOADING",       # ts=3500 
-      "PLAYER = RUNNING",       # ts=4500 
+      "PLAYER = RUNNING",       # ts=2000
+      "PLAYER = LOADING",       # ts=3500
+      "PLAYER = RUNNING",       # ts=4500
       "PLAYER = LOADING",       # ts=5000
-      "PLAYER = RUNNING",       # ts=6500 
-      "PLAYER = LOADING",       # ts=7500 
-      "PLAYER = LOADING",       # ts=8500 
-      "PLAYER = RUNNING",       # ts=9000 
+      "PLAYER = RUNNING",       # ts=6500
+      "PLAYER = LOADING",       # ts=7500
+      "PLAYER = LOADING",       # ts=8500
+      "PLAYER = RUNNING",       # ts=9000
       "SESSION END"             # ts=12000
     )
   )
-  
+
   result <- estimate_unit_times(logs)
   u1_row <- result[result$unit_key == "u1", ]
-  
+
   # Expected total loading time = 1000 + 1000 + 1500 + 1500 = 5000
   expect_equal(u1_row$unit_loadtime, 5000,
                info = "Total loading time should be sum of all valid loading periods")
-  
+
   # Expected total playback time = 1500 + 500 + 1000 + 3000 = 6000
   expect_equal(u1_row$unit_time, 6000,
                info = "Total playback time should be sum of all playback periods")
-  
+
   # Should have 4 playbacks (duplicate loading should not create extra playback)
   expect_equal(u1_row$unit_n_play, 4,
                info = "Should count 4 playbacks (PLAYER = RUNNING occurrences)")
-  
+
   # Check that unit_playbacks nested tibble has correct structure
   expect_true(!is.null(u1_row$unit_playbacks),
               info = "unit_playbacks should be populated")
@@ -408,24 +408,23 @@ test_that("estimate_unit_times handles run_no_load cases correctly", {
       "SESSION END"             # ts=6000 (loading_time = NA, playback_time = 1000)
     )
   )
-  
+
   result <- estimate_unit_times(logs)
-  
+
   u1_row <- result[result$unit_key == "u1", ]
   u2_row <- result[result$unit_key == "u2", ]
-  
+
   # u1 should have run_no_load = TRUE, so loading time is NA
   expect_equal(u1_row$unit_loadtime, NA_real_,
                info = "u1 loading time should be NA when RUNNING occurs without prior LOADING")
-  
+
   # u2 should have normal loading time
   expect_equal(u2_row$unit_loadtime, 1000,
                info = "u2 loading time should be 1000 (4000 - 3000)")
-  
+
   # Check run_no_load_i in unit_playbacks
   expect_true(u1_row$unit_playbacks[[1]]$run_no_load_i[[1]],
               info = "u1's first playback should have run_no_load_i = TRUE")
   expect_false(u2_row$unit_playbacks[[1]]$run_no_load_i[[1]],
                info = "u2's first playback should have run_no_load_i = FALSE")
 })
-
