@@ -1,5 +1,37 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9009
+
+- Added
+  [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md)
+  for retrieving raw response reports from the Testcenter response
+  endpoint.
+- Updated
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md),
+  and response documentation for the current response report format.
+- Preserved response rows with empty nested response data so units
+  without stored responses remain visible in
+  [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
+  and
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
+- Preserved units whose response report payload only contains empty
+  coded responses (`responses = []`) so they remain available for
+  design-based missing completion.
+- Fixed response report edge cases for empty API results, parsed
+  `laststate` objects, and `units_filter_off` handling.
+- Kept rows with `responses = NA` out of
+  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+  before coding-scheme preparation so design-based missing completion in
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+  remains responsible for those cases.
+- Added aggregate info and warning messages for empty response payloads,
+  skipped automatic coding rows, filtered response units, and empty
+  response report results.
+- Added regression tests for response reports with empty nested response
+  data.
+
 ## eatPrepTBA 0.9.8.9008
 
 - Added

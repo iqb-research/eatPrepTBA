@@ -1,6 +1,15 @@
 # Code unit responses with coding schemes
 
-Code unit responses with coding schemes
+This function automatically codes responses by using the `eatAutoCode`
+package. It is prepared for the response format returned by
+[`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
+and
+[`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
+Rows with `responses = NA` are removed before coding schemes are
+prepared and are not sent to the auto-coder; they represent units with
+no stored response payload and are left for
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+to classify against the full test design.
 
 ## Usage
 
@@ -51,15 +60,6 @@ code_responses(
   Tibble (optional). Provide missing meta data with `code_id`,
   `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and
   uses default scheme.
-
-  This function automatically codes responses by using the `eatAutoCode`
-  package. It is already prepared for the new data format of the
-  responses received from the
-  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
-  and
-  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
-  routines. This function will soon be deleted and be part of
-  `code_responses()`.
 
 ## Value
 

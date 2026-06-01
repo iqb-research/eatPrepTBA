@@ -61,6 +61,8 @@ Functions to prepare unit data from IQB Studio or Testcenter
 
 ### Retrieve responses from IQB Testcenter
 
+- [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md)
+  : Downloads responses directly from Testcenter
 - [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   : Get responses directly from Testcenter
 - [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
