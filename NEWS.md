@@ -1,3 +1,10 @@
+# eatPrepTBA 0.9.8.9011
+
+* Added focus lost/regained event extraction to `estimate_unit_times()`, including optional block-aware handling of automatic block switches.
+* Improved unit loading summaries with failed loading counts and explicit `run_no_load` handling.
+* Added warnings when block information from `full_design` cannot be joined for automatic block-switch detection.
+* Added regression tests for focus-event durations, automatic block-switch handling, failed loading counts, and missing load starts.
+
 # eatPrepTBA 0.9.8.9010
 
 * Fixed `add_metadata()` so item and unit metadata are matched against the workspace metadata profile when Studio returns stale `isCurrent` flags. This preserves item metadata such as `Variablenbezeichnung` even when the relevant profile is marked as not current in the returned properties JSON.

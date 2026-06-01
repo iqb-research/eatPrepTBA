@@ -119,6 +119,72 @@ test_that("estimate_unit_times calculates focus lost events correctly", {
   expect_true(focus_events3$focus_lost_duration[1] == 50)
 })
 
+test_that("estimate_unit_times ignores auto block loading and first page as focus regain", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_2",
+                 "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2"),
+    unit_alias = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_2",
+                   "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2"),
+    ts = c(100, 200, 300, 400, 450, 500, 550, 600),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "FOCUS : \"HAS_NOT\"",
+      "PLAYER = LOADING",
+      "CURRENT_PAGE_ID = 1",
+      "PLAYER = RUNNING",
+      "FOCUS : \"HAS\"",
+      "SESSION END"
+    )
+  )
+
+  design <- tibble::tibble(
+    booklet_id = "BOOKLET_1",
+    unit_key = c("UNIT_1", "UNIT_2"),
+    testlet_no = c(1, 2)
+  )
+
+  result <- estimate_unit_times(logs, use_unit_alias = FALSE,
+                                full_design = design, block_self_switch = FALSE)
+
+  unit_1_focus_events <- result$focus_events[[which(result$unit_key == "UNIT_1")]]
+
+  expect_equal(unit_1_focus_events$focus_lost_duration, 250)
+  expect_false(unit_1_focus_events$focus_event_unfollowed)
+})
+
+test_that("estimate_unit_times warns when block mapping cannot be joined", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  design <- tibble::tibble(
+    booklet_id = "BOOKLET_1",
+    unit_key = "OTHER_UNIT",
+    testlet_no = 1
+  )
+
+  expect_warning(
+    result <- estimate_unit_times(logs, use_unit_alias = FALSE,
+                                  full_design = design, block_self_switch = FALSE),
+    "testlet_no"
+  )
+  expect_s3_class(result, "tbl_df")
+})
+
 # Test 4
 test_that("estimate_unit_times respects booklet endings when flagging unfollowed focus events", {
   logs <- tibble::tibble(

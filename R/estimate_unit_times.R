@@ -102,6 +102,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(ts = as.numeric(ts))
 
   if (!is.null(full_design)) {
+    if (!"testlet_no" %in% names(full_design)) {
+      full_design$testlet_no <- NA_integer_
+    }
+
     all_logs <- all_logs %>%
     dplyr::left_join(
       full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)),
@@ -109,6 +113,14 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       by = intersect(names(.), intersect(names(all_logs), names(full_design))),
       multiple = "first"
     )
+
+    if (!block_self_switch && all(is.na(all_logs$testlet_no))) {
+      warning("No testlet_no values could be joined from full_design; automatic block switches cannot be identified.",
+              call. = FALSE)
+    } else if (!block_self_switch && any(is.na(all_logs$testlet_no))) {
+      warning("Some log rows have no joined testlet_no; automatic block switch detection may be incomplete.",
+              call. = FALSE)
+    }
   } else {
     print("Design tibble with block info not provided; ignoring blocks for focus event computation.
           Any unit loading start will be treated as a focus regained event where focus was lost before.")
@@ -290,7 +302,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       )) %>%
     dplyr::mutate(
       auto_block_switch = dplyr::case_when(
-        (ts_name == "page_start_ts" & 
+        (ts_name == "page_start_ts" &
            stringr::str_detect(dplyr::lag(log_entry), "PLAYER = LOADING") &
            dplyr::lag(auto_block_switch)) ~ TRUE,
         .default = auto_block_switch
