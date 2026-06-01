@@ -3,7 +3,8 @@
 **\[experimental\]**
 
 Calculates estimated processing and loading times for units and pages.
-New columns and nested columns:
+Excludes units that never actually played. New columns and nested
+columns:
 
 - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this
   unit & booklet
@@ -11,13 +12,15 @@ New columns and nested columns:
 - unit_n_play: Number of playbacks of the unit in this session,
   incomplete playbacks included
 
+- n_run_no_load: Number of playbacks without previous loading log
+
 - unit_time: Time interval at each playback of the unit between the
-  player's “RUNNING” state and the next timestamp (usually the LOADING
+  player's "RUNNING" state and the next timestamp (usually the LOADING
   of the next unit, re-loading of the same unit, sometimes the end of
   the booklet), summed over playbacks
 
-- unit_loadtime: Time interval between the player's “LOADING” and
-  “RUNNING” states at each playback of the unit, including the duration
+- unit_loadtime: Time interval between the player's "LOADING" and
+  "RUNNING" states at each playback of the unit, including the duration
   of unsuccessful loading attempts, summed over playbacks
 
 - unit_playbacks: Tibble containing one row with information for each
@@ -26,7 +29,7 @@ New columns and nested columns:
   - unit_start_i: Running number of unit playbacks
 
   - unit_time_i: Time interval at each playback of the unit between the
-    player's “RUNNING” state and the next significant entry (usually the
+    player's "RUNNING" state and the next significant entry (usually the
     LOADING of the next unit, re-loading of the same unit, sometimes the
     end of the booklet)
 
@@ -37,9 +40,9 @@ New columns and nested columns:
 
   - unit_start_time_i: Timestamp of start of current unit playback
 
-  - unit_loadtime_i: Time interval between the player's “LOADING” and
-    “RUNNING” states at each playback of the unit, including the
-    duration of unsuccessful loading attempts
+  - unit_loadtime_i: Time interval between the player's "LOADING" and
+    "RUNNING" states at each playback of the unit, including the
+    duration of unsuccessful loading attempts before playback
 
   - unit_loadstart_i: Timestamp of first "PLAYER = LOADING" for current
     playback of unit
@@ -47,11 +50,27 @@ New columns and nested columns:
   - run_no_load_i: Player was logged as RUNNING, but not previously as
     LOADING. In this case, load times were not calculated.
 
-- n_failed_loadings: Number of unsuccessful loading attempts for the
-  unit
+- n_failed_loadings: Number of failed loading attempts for the unit
+
+- focus_events: Tibble containing all focus lost and regained events
+  within each unit, based on log entries (FOCUS HAS or HAS NOT), as well
+  as unit and page switches (which are considered as marking regained
+  focus)
+
+  - focus_event_ts: Timestamp of the focus event
+
+  - focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED
+    events are not returned)
+
+  - focus_event_unfollowed: Boolean flag for lost focus events = TRUE
+    when NOT followed by a regained event before another lost event
+    appears
+
+  - focus_lost_duration: For focus lost events, time until focus
+    regained
 
 - unit_page_logs: Tibble containing one row with information for each
-  page of the unit NULL when a unit only has one page.
+  page of the unit. NULL when a unit only has one page.
 
   - page_id: Digit(s) extracted from the log entry for this page
 
@@ -93,7 +112,12 @@ depends on use_unit_alias.
 ## Usage
 
 ``` r
-estimate_unit_times(logs, use_unit_alias = FALSE)
+estimate_unit_times(
+  logs,
+  use_unit_alias = FALSE,
+  full_design = NULL,
+  block_self_switch = FALSE
+)
 ```
 
 ## Arguments
@@ -116,6 +140,18 @@ estimate_unit_times(logs, use_unit_alias = FALSE)
   pages or clarification questions) — a different unit_alias is
   intentionally assigned to logically identical units. In these cases,
   setting this parameter to TRUE can be advisable.
+
+- full_design:
+
+  Tibble. Design tibble containing block information, and all columns to
+  be joined with logs. Relevant for finding lost focus events.
+
+- block_self_switch:
+
+  Boolean value. Were subjects able to switch to the next block
+  themselves, or did they have to wait for the time to run out / the
+  test conductor to switch blocks? This is relevant for finding lost
+  focus events.
 
 ## Value
 

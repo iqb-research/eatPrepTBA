@@ -1,5 +1,17 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9011
+
+- Added focus lost/regained event extraction to
+  [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md),
+  including optional block-aware handling of automatic block switches.
+- Improved unit loading summaries with failed loading counts and
+  explicit `run_no_load` handling.
+- Added warnings when block information from `full_design` cannot be
+  joined for automatic block-switch detection.
+- Added regression tests for focus-event durations, automatic
+  block-switch handling, failed loading counts, and missing load starts.
+
 ## eatPrepTBA 0.9.8.9010
 
 - Fixed
