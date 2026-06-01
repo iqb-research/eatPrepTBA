@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9009</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9010</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,12 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9010" id="eatpreptba-0989010">eatPrepTBA 0.9.8.9010<a class="anchor" aria-label="anchor" href="#eatpreptba-0989010"></a></h2>
+<ul><li>Fixed <code><a href="../reference/add_metadata.html">add_metadata()</a></code> so item and unit metadata are matched against the workspace metadata profile when Studio returns stale <code>isCurrent</code> flags. This preserves item metadata such as <code>Variablenbezeichnung</code> even when the relevant profile is marked as not current in the returned properties JSON.</li>
+<li>Added regression tests for metadata profiles with stale <code>isCurrent</code> values.</li>
+<li>Removed a deprecated dplyr usage in <code><a href="../reference/add_metadata.html">add_metadata()</a></code> that produced a lifecycle warning when deriving <code>unit_has_uuids</code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9009" id="eatpreptba-0989009">eatPrepTBA 0.9.8.9009<a class="anchor" aria-label="anchor" href="#eatpreptba-0989009"></a></h2>
 <ul><li>Added <code><a href="../reference/download_responses.html">download_responses()</a></code> for retrieving raw response reports from the Testcenter response endpoint.</li>
