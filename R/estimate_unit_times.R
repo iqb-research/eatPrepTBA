@@ -287,6 +287,13 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       auto_block_switch = dplyr::case_when(
         dplyr::lag(testlet_no) != testlet_no ~ TRUE,
         .default = FALSE
+      )) %>%
+    dplyr::mutate(
+      auto_block_switch = dplyr::case_when(
+        (ts_name == "page_start_ts" & 
+           stringr::str_detect(dplyr::lag(log_entry), "PLAYER = LOADING") &
+           dplyr::lag(auto_block_switch)) ~ TRUE,
+        .default = auto_block_switch
       ))
   } else { # dummy variable in case subjects could switch blocks themselves
   focus_events_combined <-
