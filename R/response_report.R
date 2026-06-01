@@ -1,4 +1,5 @@
-response_report_to_tibble <- function(resp) {
+response_report_to_tibble <- function(resp,
+                                      progress = "Preparing response report") {
   entries <-
     resp %>%
     purrr::compact() %>%
@@ -11,7 +12,8 @@ response_report_to_tibble <- function(resp) {
   entries %>%
     tibble::enframe(name = NULL) %>%
     dplyr::mutate(
-      value = purrr::map(value, response_report_entry_to_tibble)
+      value = purrr::map(value, response_report_entry_to_tibble,
+                         .progress = progress)
     ) %>%
     tidyr::unnest(value)
 }
