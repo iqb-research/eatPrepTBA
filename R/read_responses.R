@@ -114,5 +114,6 @@ read_responses <- function(files) {
         page_count = "PAGE_COUNT"
       ))
     ) %>%
-    preserve_empty_response_payloads()
+    preserve_empty_response_payloads() %>%
+    announce_missing_response_payloads("Read responses")
 }

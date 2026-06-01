@@ -54,7 +54,15 @@ code_responses <- function(responses,
   n_missing_response_payloads <- nrow(responses) - nrow(responses_codable)
 
   if (n_missing_response_payloads > 0) {
-    cli::cli_alert_info("Ignoring {n_missing_response_payloads} row{?s} with missing response payloads for automatic coding.")
+    if (nrow(responses_codable) == 0) {
+      cli::cli_alert_warning(
+        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be assigned later with {.fn complete_design}."
+      )
+    } else {
+      cli::cli_alert_info(
+        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be assigned later with {.fn complete_design}."
+      )
+    }
   }
 
   if (nrow(responses_codable) == 0) {
@@ -95,7 +103,7 @@ code_responses <- function(responses,
   cli::cli_alert_success("Identified {n_units} units that can be coded.")
 
   if (n_units == 0) {
-    cli::cli_alert_info("No coding schemes available for the provided response payloads.")
+    cli::cli_alert_warning("No coding schemes available for the provided response payloads.")
     cli::cli_text("Time finished: {Sys.time()}")
 
     return(empty_coded_responses(responses, prepare = prepare))

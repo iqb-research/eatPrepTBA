@@ -6,6 +6,7 @@
 * Preserved units whose response report payload only contains empty coded responses (`responses = []`) so they remain available for design-based missing completion.
 * Fixed response report edge cases for empty API results, parsed `laststate` objects, and `units_filter_off` handling.
 * Kept rows with `responses = NA` out of `code_responses()` before coding-scheme preparation so design-based missing completion in `complete_design()` remains responsible for those cases.
+* Added aggregate info and warning messages for empty response payloads, skipped automatic coding rows, filtered response units, and empty response report results.
 * Added regression tests for response reports with empty nested response data.
 
 # eatPrepTBA 0.9.8.9008

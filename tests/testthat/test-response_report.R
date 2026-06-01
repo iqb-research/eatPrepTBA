@@ -111,10 +111,7 @@ test_that("code_responses ignores rows with missing response payloads", {
 
   coded <- NULL
 
-  expect_error(
-    coded <- suppressWarnings(code_responses(responses, units, prepare = FALSE)),
-    NA
-  )
+  coded <- code_responses(responses, units, prepare = FALSE)
   expect_equal(nrow(coded), 0)
 })
 
@@ -140,10 +137,7 @@ test_that("code_responses returns structured empty output for missing payloads w
 
   coded <- NULL
 
-  expect_error(
-    coded <- code_responses(responses, units, prepare = TRUE),
-    NA
-  )
+  coded <- code_responses(responses, units, prepare = TRUE)
   expect_equal(nrow(coded), 0)
   expect_true(all(c(
     "group_id", "login_name", "login_code", "booklet_id", "unit_key",
@@ -208,10 +202,7 @@ test_that("code_responses handles payloads when no coding schemes are available"
 
   coded <- NULL
 
-  expect_error(
-    coded <- code_responses(responses, units, prepare = TRUE),
-    NA
-  )
+  coded <- code_responses(responses, units, prepare = TRUE)
   expect_equal(nrow(coded), 0)
   expect_true(all(c(
     "group_id", "login_name", "login_code", "booklet_id", "unit_key",
@@ -231,4 +222,27 @@ test_that("response unit filters are applied to raw report rows", {
   )
 
   expect_equal(filtered$unitname, "keep")
+})
+
+test_that("empty nested payloads are announced for raw reports", {
+  responses_raw <- tibble::tibble(
+    unitname = c("SB_2631", "SB_2632"),
+    responses = list(
+      list(list(id = "elementCodes", content = "[]")),
+      list()
+    )
+  )
+
+  announced <- announce_empty_nested_response_payloads(responses_raw)
+  expect_equal(announced, responses_raw)
+})
+
+test_that("unit filters announce when all response rows are removed", {
+  expect_null(
+    announce_response_unit_filter(
+      n_before = 2,
+      n_after = 0,
+      units_filter_off = "drop"
+    )
+  )
 })

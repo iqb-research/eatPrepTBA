@@ -49,28 +49,47 @@ setMethod("download_responses",
 
               # Makes it a bit safer in case of an empty body.
               tryCatch(
+                body %>% httr2::resp_body_json(),
                 error = function(cnd) {
-                  cli::cli_alert_warning("Group {group} is empty")
                   return(NULL)
-                },
-                body %>% httr2::resp_body_json()
+                }
               )
             }
 
-            n_groups <- length(groups)
-
             resp <-
               groups %>%
-              purrr::map(run_req, .progress = "Downloading responses") %>%
-              purrr::compact()
+              stats::setNames(groups) %>%
+              purrr::map(run_req, .progress = "Downloading responses")
+
+            failed_groups <- names(resp)[purrr::map_lgl(resp, is.null)]
+            announce_failed_response_groups(failed_groups)
+
+            resp <- purrr::compact(resp)
 
             if (length(resp) > 0) {
-              responses_raw <-
-                response_report_to_tibble(resp) %>%
-                filter_response_units(units_filter_off)
+              responses_raw <- response_report_to_tibble(resp)
+
+              if (nrow(responses_raw) == 0) {
+                cli::cli_alert_warning("Response reports contained no rows; returning an empty tibble.")
+                return(tibble::tibble())
+              }
+
+              responses_raw <- announce_empty_nested_response_payloads(
+                responses_raw,
+                "Downloaded response report"
+              )
+
+              n_before_filter <- nrow(responses_raw)
+              responses_raw <- filter_response_units(responses_raw, units_filter_off)
+              announce_response_unit_filter(
+                n_before_filter,
+                nrow(responses_raw),
+                units_filter_off
+              )
 
               responses_raw
             } else {
+              cli::cli_alert_warning("No response reports were returned for the selected groups; returning an empty tibble.")
               tibble::tibble()
             }
           })
