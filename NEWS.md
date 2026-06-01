@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9009
+
+* Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
+* Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
+* Preserved response rows with empty nested response data so units without stored responses remain visible in `download_responses()`, `get_responses()`, and `read_responses()`.
+* Preserved units whose response report payload only contains empty coded responses (`responses = []`) so they remain available for design-based missing completion.
+* Fixed response report edge cases for empty API results, parsed `laststate` objects, and `units_filter_off` handling.
+* Kept rows with `responses = NA` out of `code_responses()` before coding-scheme preparation so design-based missing completion in `complete_design()` remains responsible for those cases.
+* Added aggregate info and warning messages for empty response payloads, skipped automatic coding rows, filtered response units, and empty response report results.
+* Added regression tests for response reports with empty nested response data.
+
 # eatPrepTBA 0.9.8.9008
 
 * Added `compute_staytime_tables()` for preparing stay-time quantile tables and related report output.

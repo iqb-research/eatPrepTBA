@@ -152,7 +152,7 @@ prepare_wsg_settings <- function(wsg) {
   } else {
     tibble::tibble(
       wsg_id = wsg$id,
-      states = tibble::tibble(state_id = NA)
+      states = list(tibble::tibble(state_id = NA))
     )
   }
 }
