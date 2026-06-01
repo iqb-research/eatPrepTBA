@@ -1,3 +1,9 @@
+# eatPrepTBA 0.9.8.9010
+
+* Fixed `add_metadata()` so item and unit metadata are matched against the workspace metadata profile when Studio returns stale `isCurrent` flags. This preserves item metadata such as `Variablenbezeichnung` even when the relevant profile is marked as not current in the returned properties JSON.
+* Added regression tests for metadata profiles with stale `isCurrent` values.
+* Removed a deprecated dplyr usage in `add_metadata()` that produced a lifecycle warning when deriving `unit_has_uuids`.
+
 # eatPrepTBA 0.9.8.9009
 
 * Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
