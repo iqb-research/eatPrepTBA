@@ -20,7 +20,7 @@ evaluate_psychometrics(
 
 \item{domains}{Tibble. Contains columns \code{domain} and \code{unit_key}. Currently, the routine only works for one-dimensional \code{domain}, i.e., there is only one \code{domain} for each \code{unit_key}. If not specified, the \code{workspace_label} is regarded as the unit domain.}
 
-\item{max_n_categories}{Tibble. Maximum number of categories to check for category frequencies for list values, e.g., \verb{[[01_1,01_2]]}. Defaults to \code{10}.}
+\item{max_n_categories}{Integer. Maximum number of categories to check for category frequencies for list values, e.g., \verb{[[01_1,01_2]]}. Defaults to \code{10}.}
 
 \item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
 

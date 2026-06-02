@@ -12,10 +12,7 @@
 add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE) {
   cli_setting()
   # input validation
-  units_cols <- c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
   checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
-
   checkmate::assert_logical(filter_has_codes, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
 
@@ -28,6 +25,9 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
 
     return(units)
   }
+
+  units_cols <- c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
   unit_keys <- units$unit_key
 

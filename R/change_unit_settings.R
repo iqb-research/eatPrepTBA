@@ -95,16 +95,16 @@ settings <- function(workspace,
                      group_name,
                      state) {
   # input validation
-  checkmate::assert_class(workspace, "WorkspaceStudio-class", null.ok = TRUE)
+  checkmate::assert_class(workspace, "WorkspaceStudio", null.ok = TRUE)
   checkmate::assert_numeric(unit_id, len = 1)
-  checkmate::assert_character(unit_key, len = 1, min.chars = 3, max.chars = 20)
-  checkmate::assert_character(unit_name, len = 1)
-  checkmate::assert_character(description)
-  checkmate::assert_character(player)
-  checkmate::assert_character(editor)
-  checkmate::assert_character(schemer)
-  checkmate::assert_character(group_name)
-  if(!(is.numeric(state) | is.character(state))) stop(paste0("'state' must be either of type 'character' or 'numeric', not ", typeof(state)))
+  checkmate::assert_character(unit_key, len = 1, min.chars = 3, max.chars = 20, null.ok = TRUE)
+  checkmate::assert_character(unit_name, len = 1, null.ok = TRUE)
+  checkmate::assert_character(description, len = 1, null.ok = TRUE)
+  checkmate::assert_character(player, len = 1, null.ok = TRUE)
+  checkmate::assert_character(editor, len = 1, null.ok = TRUE)
+  checkmate::assert_character(schemer, len = 1, null.ok = TRUE)
+  checkmate::assert_character(group_name, len = 1, null.ok = TRUE)
+  if(!is.null(state) && !(is.numeric(state) | is.character(state))) stop(paste0("'state' must be either of type 'character' or 'numeric', not ", typeof(state)))
 
   set <-
     list(

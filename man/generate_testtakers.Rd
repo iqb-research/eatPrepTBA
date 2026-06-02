@@ -13,11 +13,11 @@ generate_testtakers(
 )
 }
 \arguments{
-\item{testtakers}{Must be a data frame with the columns ...}
+\item{testtakers}{Must be a data frame with the columns \code{group_id} and \code{login_name}.}
 
 \item{custom_texts}{Optional. List of custom texts to be modified.}
 
-\item{profiles}{Optional. List of profiles for the group monitor.}
+\item{profiles}{Optional. Data frame of profiles for the group monitor.}
 
 \item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
 

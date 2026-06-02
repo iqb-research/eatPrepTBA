@@ -7,6 +7,7 @@
 
 # eatPrepTBA 0.9.8.9010
 
+* Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.
 * Fixed `add_metadata()` so item and unit metadata are matched against the workspace metadata profile when Studio returns stale `isCurrent` flags. This preserves item metadata such as `Variablenbezeichnung` even when the relevant profile is marked as not current in the returned properties JSON.
 * Added regression tests for metadata profiles with stale `isCurrent` values.
 * Removed a deprecated dplyr usage in `add_metadata()` that produced a lifecycle warning when deriving `unit_has_uuids`.

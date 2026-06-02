@@ -10,7 +10,7 @@ get_reviews(workspace, groups = NULL, use_new_version = TRUE)
 \S4method{get_reviews}{WorkspaceTestcenter}(workspace, groups = NULL, use_new_version = TRUE)
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceTestcenter-class]{WorkspaceTestcenter}. IQB Testcenter workspace information necessary to retrieve reviews from the API.}
+\item{workspace}{\linkS4class{WorkspaceTestcenter}. IQB Testcenter workspace information necessary to retrieve reviews from the API.}
 
 \item{groups}{Character. Name of the groups to be retrieved or all groups if not specified.}
 

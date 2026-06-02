@@ -18,7 +18,7 @@ generate_base_req <- function(type,
                               app_version = NULL,
                               insecure = FALSE) {
   # input validation
-  checkmate::assert_character(type, len = 1)
+  checkmate::assert_choice(type, c("studio", "testcenter"))
   checkmate::assert_character(base_url, len = 1)
   checkmate::assert_character(auth_token, len = 1)
   checkmate::assert_character(app_version, null.ok = TRUE)

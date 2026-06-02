@@ -11,6 +11,7 @@ Authors@R:
     person(given = "Edna", family ="Grewers", email = "edna.grewers@iqb.hu-berlin.de", role = c("ctb")),
     person(given = "Lea", family = "Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807"))
     )
+Author: Philipp Franikowski, Karoline Sachse, Jakob Schaefer, Kristoph Schumann, Edna Grewers, Lea Musiolek
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
@@ -56,4 +57,4 @@ Remotes:
 Config/testthat/edition: 3
 URL: https://iqb-research.github.io/eatPrepTBA/
 VignetteBuilder: knitr
-Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3

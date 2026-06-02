@@ -10,7 +10,7 @@ get_coding_report(workspace)
 \S4method{get_coding_report}{WorkspaceStudio}(workspace)
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to retrieve the coding report.}
+\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to retrieve the coding report.}
 }
 \value{
 A tibble.

@@ -10,7 +10,7 @@ get_logs(workspace, groups = NULL)
 \S4method{get_logs}{WorkspaceTestcenter}(workspace, groups = NULL)
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceTestcenter-class]{WorkspaceTestcenter}. Workspace information necessary to retrieve unit information and resources from the API.}
+\item{workspace}{\linkS4class{WorkspaceTestcenter}. Workspace information necessary to retrieve unit information and resources from the API.}
 
 \item{groups}{Character. Name of the groups to be retrieved  or all groups if not specified. Please note, that this has to be specified in all-capital letters.}
 }

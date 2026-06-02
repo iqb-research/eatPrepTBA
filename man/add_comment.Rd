@@ -10,7 +10,7 @@ add_comment(login, ws_id, unit_id, parent_id = NULL, comment = NULL)
 \S4method{add_comment}{LoginStudio}(login, ws_id, unit_id, parent_id = NULL, comment = NULL)
 }
 \arguments{
-\item{login}{\link[=LoginStudio-class]{LoginStudio}. Login information necessary to add comments.}
+\item{login}{\linkS4class{LoginStudio}. Login information necessary to add comments.}
 
 \item{ws_id}{Workspace id of the unit.}
 

@@ -5,8 +5,9 @@
 #' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-# @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
 #'
+#' @description
 #' This function automatically completes missings for coded responses.
 #'
 #' @return A tibble.
@@ -15,27 +16,32 @@ complete_design <- function(coded,
                             units,
                             design,
                             identifiers = c("group_id", "login_name", "login_code"),
-                            overwrite = FALSE
-                            #missings = NULL
+                            overwrite = FALSE,
+                            missings = NULL
 ) {
   # input validation
-  coded_cols <- c("unit_key", "unit_alias", "variable_id", "booklet_id", "variable_source_type")
+  checkmate::assert_character(identifiers)
+  checkmate::assert_logical(overwrite, len = 1)
+
+  coded_cols <- c(identifiers, "unit_key", "unit_alias", "variable_id", "booklet_id", "code_status", "value", "code_id", "code_type", "code_score")
   checkmate::assert_tibble(coded)
   if(!(all(coded_cols %in% colnames(coded)))) stop(paste0("'coded' must contain the columns {", paste0(coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(coded_cols, colnames(coded)), collapse = ", "), "}."))
 
-  units_cols <- c("unit_key", "unit_codes")#, "variable_id", "variable_source_type", "variable_level", "variable_page", "variable_section", "variable_page_always_visible")
   checkmate::assert_tibble(units)
+  units_cols <- if (!overwrite && tibble::has_name(units, "unit_codes")) {
+    c("unit_key", "unit_codes")
+  } else {
+    c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
+  }
   if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
-  design_cols <- c("booklet_id", "unit_key", "variable_id")
+  design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
   checkmate::assert_tibble(design)
   if(!(all(design_cols %in% colnames(design)))) stop(paste0("'design' must contain the columns {", paste0(design_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_cols, colnames(design)), collapse = ", "), "}."))
 
-  checkmate::assert_character(identifiers)
-  checkmate::assert_logical(overwrite, len = 1)
-  #checkmate::assert_tibble(missings, null.ok = TRUE)
-  #if(!is.null(missings)) if(!(all(c("code_id", "code_status", "code_score", "code_type") %in% colnames(missings))))
-  #  stop(paste0("'missings' must contain the columns 'code_id', 'code_status', 'code_score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  if(!is.null(missings) && !(all(c("code_id", "code_status", "code_score", "code_type") %in% colnames(missings))))
+    stop(paste0("'missings' must contain the columns 'code_id', 'code_status', 'code_score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
 
   # if (is.null(missings)) {
   #   missings <-
