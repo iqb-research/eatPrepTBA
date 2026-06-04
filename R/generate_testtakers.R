@@ -20,7 +20,7 @@ generate_testtakers <- function(testtakers,
   checkmate::assert_list(custom_texts, null.ok = TRUE)
   checkmate::assert_list(profiles, null.ok = TRUE)
   checkmate::assert_character(app_version)
-  checkmate::assert_character(login, null.ok = TRUE)
+  checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
 
   if (!is.null(login)) {
     app_version <- login@app_version
