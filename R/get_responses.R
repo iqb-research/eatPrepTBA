@@ -2,9 +2,15 @@
 #'
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve unit information and resources from the API.
 #' @param groups Character. Name of the groups to be retrieved or all groups if not specified.
+#' @param units_filter_off Character. Names of the units to be removed from the dataset.
 #'
 #' @description
-#' This function returns responses for the selected groups.
+#' This function returns responses for the selected groups and prepares the
+#' nested response report from the Testcenter for further processing with
+#' [code_responses()]. Units with empty response payloads are kept as rows with
+#' `responses = NA` so that the observed unit structure remains available; final
+#' missing codes are assigned later by [complete_design()] when the coded data
+#' are checked against the full test design.
 #'
 #' @return A tibble.
 #' @export
@@ -12,7 +18,8 @@
 #' @aliases
 #' get_responses,WorkspaceTestcenter-method
 setGeneric("get_responses", function(workspace,
-                                     groups = NULL) {
+                                     groups = NULL,
+                                     units_filter_off = NULL) {
   cli_setting()
 
   standardGeneric("get_responses")
@@ -22,7 +29,8 @@ setGeneric("get_responses", function(workspace,
 setMethod("get_responses",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,
-                   groups = NULL) {
+                   groups = NULL,
+                   units_filter_off = NULL) {
             if (is.null(groups)) {
               groups <- get_results(workspace)$groupName
             }
@@ -43,7 +51,6 @@ setMethod("get_responses",
               tryCatch(
                 httr2::resp_body_json(resp),
                 error = function(e) {
-                  warning("Failed to parse response for group: ", paste(group, collapse = ", "))
                   NULL
                 }
               )
@@ -53,31 +60,35 @@ setMethod("get_responses",
             #   run_safe(run_req,
             #            error_message = "Responses could not be retrieved.")
 
-            n_groups <- length(groups)
-
             resp <-
               groups %>%
-              purrr::map(run_req, .progress = "Downloading responses") %>%
-              purrr::compact()
+              stats::setNames(groups) %>%
+              purrr::map(run_req, .progress = "Downloading responses")
 
-            if (!is.null(resp)) {
-              responses_raw <-
-                resp %>%
-                purrr::flatten() %>%
-                # Rectangularize (zu tibble)
-                tibble::enframe(name = NULL) %>%
-                # Schleife zum Spreaden der Einträge (Auslesen in tibble)
-                dplyr::mutate(
-                  # Ladebalken?
-                  # TODO: Was genau fliegt hier raus?
-                  value = purrr::map(value, function(x) {
-                    x %>%
-                      purrr::discard(is.null) %>%
-                      tibble::as_tibble()
-                  })
-                ) %>%
-                # Entpacken
-                tidyr::unnest(value)
+            failed_groups <- names(resp)[purrr::map_lgl(resp, is.null)]
+            announce_failed_response_groups(failed_groups)
+
+            resp <- purrr::compact(resp)
+
+            if (length(resp) > 0) {
+              responses_raw <- response_report_to_tibble(resp)
+
+              if (nrow(responses_raw) == 0) {
+                cli::cli_alert_warning("Response reports contained no rows; returning an empty tibble.")
+                return(tibble::tibble())
+              }
+
+              n_before_filter <- nrow(responses_raw)
+              responses_raw <- filter_response_units(responses_raw, units_filter_off)
+              announce_response_unit_filter(
+                n_before_filter,
+                nrow(responses_raw),
+                units_filter_off
+              )
+
+              if (nrow(responses_raw) == 0) {
+                return(tibble::tibble())
+              }
 
               # For legacy reasons, this has to be added
               # TODO: Can this be removed at a later point in time?
@@ -110,16 +121,20 @@ setMethod("get_responses",
                     laststate_nest = "laststate"
                   ))
                 ) %>%
+                # Hotfix to remove empty group data (better do that earlier?)
+                dplyr::filter(
+                  !is.na(group_id)
+                ) %>%
                 dplyr::group_by(
                   dplyr::across(dplyr::any_of(c("group_id", "login_name",
                                                 "login_code", "booklet_id",
                                                 "unit_key", "unit_alias")))
                 ) %>%
                 dplyr::summarise(
-                  responses_nest = list(responses_nest),
-                  laststate_nest = list(laststate_nest)
+                  responses_nest = list(purrr::list_flatten(responses_nest)),
+                  laststate_nest = list(laststate_nest),
+                  .groups = "drop"
                 ) %>%
-                dplyr::ungroup() %>%
                 dplyr::mutate(
                   responses_nest = purrr::map(responses_nest,
                                               function(x) unnest_responses(x, is_parsed = TRUE),
@@ -143,9 +158,11 @@ setMethod("get_responses",
                   dplyr::any_of(c(
                     coded = "responses_content",
                     responses = "elementCodes_content",
+                    geometry_variables = "geometryVariableCodes_content",
                     state_variables = "stateVariableCodes_content",
                     coded_ts = "responses_ts",
                     responses_ts = "elementCodes_ts",
+                    geometry_variables_ts = "geometryVariableCodes_ts",
                     state_variables_ts = "stateVariableCodes_ts",
                     player = "PLAYER",
                     presentation_progress = "PRESENTATION_PROGRESS",
@@ -154,8 +171,11 @@ setMethod("get_responses",
                     page_id = "CURRENT_PAGE_ID",
                     page_count = "PAGE_COUNT"
                   ))
-                )
+                ) %>%
+                preserve_empty_response_payloads() %>%
+                announce_missing_response_payloads("Downloaded responses")
             } else {
+              cli::cli_alert_warning("No response reports were returned for the selected groups; returning an empty tibble.")
               tibble::tibble()
             }
           })

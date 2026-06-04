@@ -19,6 +19,8 @@ setGeneric("get_settings", function(workspace, metadata = TRUE) {
 setMethod("get_settings",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace, metadata = TRUE) {
+            checkmate::assert_logical(metadata, len = 1)
+
             # TODO: This function should only run once (for access_workspace or for access_workspace_group)
             base_req <- workspace@login@base_req
             ws_id <- workspace@ws_id
@@ -157,7 +159,7 @@ prepare_wsg_settings <- function(wsg) {
   } else {
     tibble::tibble(
       wsg_id = wsg$id,
-      states = tibble::tibble(state_id = NA)
+      states = list(tibble::tibble(state_id = NA))
     )
   }
 }

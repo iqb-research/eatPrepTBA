@@ -38,7 +38,6 @@ code_responses_legacy <- function(responses,
                          "unitId", "code", "status", "status_miss", "code_score", "code_score_miss")
   checkmate::assert_tibble(codes_manual, null.ok = TRUE)
   if(!(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
-
   missings_cols <- c("code_id", "status", "code_score_miss", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
   if(!(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
@@ -377,7 +376,8 @@ code_responses_legacy <- function(responses,
 #' @keywords internal
 code_unit_legacy <- function(unit_responses, coding_scheme) {
   # input validation
-  checkmate::assert_character(unit_responses)
+  checkmate::assert_tibble(unit_responses)
+  if(!("responses" %in% colnames(unit_responses))) stop("'unit_responses' must contain the column {responses}.")
   checkmate::assert_character(coding_scheme)
 
   unit_responses %>%
@@ -405,7 +405,7 @@ code_unit_legacy <- function(unit_responses, coding_scheme) {
 #' Add manual codes to unit responses
 #'
 #' @param unit_responses Character. Response data of one unit retrieved from the IQB Testcenter in JSON format.
-#' @param coding_scheme Character. Coding scheme of the unit retrieved from the IQB Studio after setting the argument `coding_scheme = TRUE` for [get_units()].
+#' @param unit_codes_manual List of manual codes to insert into the unit responses.
 #'
 #' @description
 #' This function automatically codes responses of one unit by using the `eatAutoCode` package.
@@ -416,7 +416,7 @@ code_unit_legacy <- function(unit_responses, coding_scheme) {
 insert_manual_legacy <- function(unit_responses, unit_codes_manual) {
   # input validation
   checkmate::assert_character(unit_responses)
-  checkmate::assert_character(unit_codes_manual, null.ok = TRUE)
+  checkmate::assert_list(unit_codes_manual, null.ok = TRUE)
 
   # Check if unit_codes_manual is NULL or empty, return original unit_responses if so
   if (is.null(unit_codes_manual) || length(unit_codes_manual) == 0) {

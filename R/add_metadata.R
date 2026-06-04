@@ -32,19 +32,14 @@ add_metadata <- function(units) {
     dplyr::mutate(
       unit_has_items = is.na(item_no)
     ) %>%
-    # TODO: This could possibly be removed in 2026 (all relevant units should have updated metadata profiles)
-    dplyr::rowwise() %>%
-    dplyr::mutate(
-      unit_has_uuids = dplyr::if_any(dplyr::any_of("item_uuid"), ~ !is.na(.), .default = FALSE)
-    ) %>%
+    # TODO: This could possibly be removed in 2026 (all relevant units should have updated metdata profiles)
     {
       if ("item_uuid" %in% names(.)) {
         dplyr::mutate(., unit_has_uuids = !is.na(item_uuid))
       } else {
         dplyr::mutate(., unit_has_uuids = FALSE)
       }
-    } %>%
-    dplyr::ungroup()
+    }
 
   # Item metadata
   units_return <-
@@ -133,6 +128,8 @@ add_profile <- function(unit_items, units, md_profile, profiles, extra_columns =
     dplyr::select(ws_id, unit_id, dplyr::all_of(profiles)) %>%
     tidyr::unnest(dplyr::all_of(profiles), keep_empty = TRUE) %>%
     dplyr::left_join(ws_settings %>% dplyr::select(ws_id, dplyr::all_of(md_profile)), by = dplyr::join_by("ws_id")) %>%
+    filter_current_metadata_profiles(md_profile = md_profile,
+                                     group_cols = c("ws_id", "unit_id", extra_columns)) %>%
     dplyr::left_join(metadata, by = dplyr::join_by(!!! c("profile_name", "value_id", md_profile))) %>%
     dplyr::mutate(
       value = dplyr::coalesce(value_label, value_text)
@@ -168,4 +165,56 @@ add_profile <- function(unit_items, units, md_profile, profiles, extra_columns =
   attributes(units_return) <- c(attributes(units_return), unit_attributes[add_attributes])
 
   return(units_return)
+}
+
+# Uses the workspace profile as source of truth. `isCurrent` is only a fallback
+# because Studio can return stale stored flags for units with separately saved metadata.
+#' @keywords internal
+filter_current_metadata_profiles <- function(units_meta, md_profile, group_cols) {
+  has_profile_id <- tibble::has_name(units_meta, "profile_id")
+  has_profile_is_current <- tibble::has_name(units_meta, "profile_is_current")
+
+  if (!has_profile_id && !has_profile_is_current) {
+    return(units_meta)
+  }
+
+  units_meta %>%
+    dplyr::group_by(dplyr::across(dplyr::any_of(group_cols))) %>%
+    dplyr::mutate(
+      profile_matches_workspace = if (has_profile_id) {
+        !is.na(.data[[md_profile]]) &
+          !is.na(.data[["profile_id"]]) &
+          .data[["profile_id"]] == .data[[md_profile]]
+      } else {
+        FALSE
+      },
+      profile_marked_current = if (has_profile_is_current) {
+        !is.na(.data[["profile_is_current"]]) & .data[["profile_is_current"]]
+      } else {
+        FALSE
+      },
+      has_expected_profile = !is.na(.data[[md_profile]]),
+      has_profile_id = if (has_profile_id) any(!is.na(.data[["profile_id"]])) else FALSE,
+      has_workspace_profile = any(.data[["profile_matches_workspace"]]),
+      has_current_profile = any(.data[["profile_marked_current"]])
+    ) %>%
+    dplyr::filter(
+      dplyr::case_when(
+        .data[["has_workspace_profile"]] ~ .data[["profile_matches_workspace"]],
+        .data[["has_expected_profile"]] & .data[["has_profile_id"]] ~ FALSE,
+        .data[["has_current_profile"]] ~ .data[["profile_marked_current"]],
+        .default = TRUE
+      )
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(
+      -dplyr::any_of(c(
+        "profile_matches_workspace",
+        "profile_marked_current",
+        "has_expected_profile",
+        "has_profile_id",
+        "has_workspace_profile",
+        "has_current_profile"
+      ))
+    )
 }

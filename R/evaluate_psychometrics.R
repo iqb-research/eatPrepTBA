@@ -3,7 +3,7 @@
 #' @param design_coded Tibble. Response data within the design merged by [complete_design()].
 #' @param units Tibble. Unit data retrieved from the IQB Studio after setting the argument `metadata = TRUE` for [get_units()] -- otherwise the item values could only be inferred from the variable source tree, i.e., item scores are taken from variable scores that are no source variables for other derived variables. Could optionally also contain `unit_codes` prepared by `add_coding_scheme()` (saves some time).
 #' @param domains Tibble. Contains columns `domain` and `unit_key`. Currently, the routine only works for one-dimensional `domain`, i.e., there is only one `domain` for each `unit_key`. If not specified, the `workspace_label` is regarded as the unit domain.
-#' @param max_n_categories Tibble. Maximum number of categories to check for category frequencies for list values, e.g., `[[01_1,01_2]]`. Defaults to `10`.
+#' @param max_n_categories Integer. Maximum number of categories to check for category frequencies for list values, e.g., `[[01_1,01_2]]`. Defaults to `10`.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #'
@@ -26,22 +26,19 @@ evaluate_psychometrics <- function(
 
   cli_setting()
   # input validation
-  design_coded_cols <- c("id_used", "code_id", "unit_key", "variable_id", "variable_source_type", "code_score", "code_type", "value", "variable_labels", "variable_empty_valid", "empty_valid", "variable_multiple")
-  checkmate::assert_tibble(design_coded)
-  if(!(all(design_coded_cols %in% colnames(design_coded)))) stop(paste0("'design_coded' must contain the columns {", paste0(design_coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_coded_cols, colnames(design_coded)), collapse = ", "), "}."))
-
-  units_cols <- c("unit_key", "unit_codes", "variable_sources", "variable_codes", "code_id", "variable_id", "variable_source_type", "variable_source_id", "coding_scheme", "unit_variables", "variable_multiple")
-  checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
-
-  domains_cols <- c("domain", "unit_key")
-  checkmate::assert_tibble(domains, null.ok = TRUE)
-  if(!is.null(domains)){
-    if(!(all(domains_cols %in% colnames(domains)))) stop(paste0("'domains' must contain the columns {", paste0(domains_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(domains_cols, colnames(domains)), collapse = ", "), "}."))
-  }
-  checkmate::assert_tibble(max_n_categories)
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_character(identifiers)
+  checkmate::assert_integerish(max_n_categories, len = 1, lower = 1)
+
+  design_coded_cols <- c(identifiers, "id_used", "code_id", "unit_key", "variable_id", "variable_source_type", "code_score", "code_type", "value")
+  checkmate::assert_tibble(design_coded)
+  if(!(all(design_coded_cols %in% colnames(design_coded)))) stop(paste0("'design_coded' must contain the columns {", paste0(design_coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_coded_cols, colnames(design_coded)), collapse = ", "), "}."))
+  units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "coding_scheme", "unit_variables")
+  checkmate::assert_tibble(units)
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  domains_cols <- c("domain", "unit_key")
+  checkmate::assert_tibble(domains, null.ok = TRUE)
+  if(!is.null(domains) && !(all(domains_cols %in% colnames(domains)))) stop(paste0("'domains' must contain the columns {", paste0(domains_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(domains_cols, colnames(domains)), collapse = ", "), "}."))
 
   # responses <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/data/responses.RData")
   # units <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/db/units.RData")

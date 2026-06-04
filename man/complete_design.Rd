@@ -21,13 +21,14 @@ complete_design(
 
 \item{identifiers}{Character. Contains person identifiers of the dataset \code{coded}. Defaults to \code{c("group_id", "login_name", "login_code")} which corresponds to the identifiers of the IQB Testcenter.}
 
-\item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.
+\item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
 
-This function automatically completes missings for coded responses.}
+\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
+
 }
 \value{
 A tibble.
 }
 \description{
-Complete design with coded responses
+This function automatically completes missings for coded responses.
 }

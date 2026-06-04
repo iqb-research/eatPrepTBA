@@ -15,8 +15,12 @@ read_booklet <- function(booklet_xml) {
   booklet_metadata <-
     booklet_xml %>%
     rvest::html_elements("Metadata") %>%
-    xml2::as_list() %>%
-    purrr::map(purrr::list_simplify) %>%
+    purrr::map(function(metadata) {
+      metadata_children <- metadata %>% rvest::html_children()
+      metadata_values <- metadata_children %>% rvest::html_text2()
+      names(metadata_values) <- metadata_children %>% rvest::html_name()
+      metadata_values %>% as.list() %>% tibble::as_tibble()
+    }) %>%
     dplyr::bind_rows() %>%
     dplyr::rename(
       booklet_id = Id,
