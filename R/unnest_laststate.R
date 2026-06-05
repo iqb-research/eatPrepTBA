@@ -1,28 +1,38 @@
 unnest_laststate <- function(json) {
-  if (all(is.na(json))) {
+  is_missing_laststate <- function(x) {
+    is.null(x) || (length(x) == 1 && is.atomic(x) && is.na(x))
+  }
+
+  parse_laststate <- function(x) {
+    if (is_missing_laststate(x)) {
+      return(NULL)
+    }
+
+    if (is.character(x) && length(x) == 1) {
+      jsonlite::parse_json(x, simplifyVector = TRUE)
+    } else {
+      x
+    }
+  }
+
+  if (length(json) == 0 || all(purrr::map_lgl(json, is_missing_laststate))) {
     return(tibble::tibble(PLAYER = NA_character_))
   }
 
-  if (length(json) == 1) {
-    laststate_tbl <-
-      json %>%
-      jsonlite::parse_json(simplifyVector = TRUE) %>%
-      tibble::as_tibble()
-  } else {
-    json_filter <- json[!is.na(json)]
+  json_parsed <-
+    json %>%
+    purrr::map(parse_laststate) %>%
+    purrr::compact()
 
-    laststate_tbl <-
-      json_filter %>%
-      purrr::map(
-        function(x) {
-          x %>%
-            jsonlite::parse_json(simplifyVector = TRUE) %>%
-            tibble::as_tibble()
-        }
-      ) %>%
-      purrr::reduce(dplyr::bind_rows) %>%
-      dplyr::distinct()
+  if (length(json_parsed) == 0) {
+    return(tibble::tibble(PLAYER = NA_character_))
   }
+
+  laststate_tbl <-
+    json_parsed %>%
+    purrr::map(tibble::as_tibble) %>%
+    purrr::reduce(dplyr::bind_rows) %>%
+    dplyr::distinct()
 
   # TODO: This is only necessary due to bugs in older TC versions (2024)
   if (nrow(laststate_tbl) == 1) {

@@ -71,11 +71,20 @@ read_booklet <- function(booklet_xml) {
     tidyr::unnest(
       dplyr::any_of("booklet_units")
     ) %>%
+    {
+      for (col in c("id", "label", "testlet_id", "testlet_label")) {
+        if (!tibble::has_name(., col)) {
+          .[[col]] <- NA_character_
+        }
+      }
+      .
+    } %>%
     dplyr::mutate(
-      testlet_id = ifelse(is.na(testlet_id), id, testlet_id),
-      testlet_label = ifelse(is.na(testlet_label), label, testlet_label),
-      id = NULL,
-      label = NULL
+      testlet_id = dplyr::coalesce(testlet_id, id),
+      testlet_label = dplyr::coalesce(testlet_label, label)
+    ) %>%
+    dplyr::select(
+      -dplyr::any_of(c("id", "label"))
     ) %>%
     tidyr::unnest(
       dplyr::any_of("testlet_units")
