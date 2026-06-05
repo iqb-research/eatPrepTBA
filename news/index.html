@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9011</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9012</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,14 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9012" id="eatpreptba-0989012">eatPrepTBA 0.9.8.9012<a class="anchor" aria-label="anchor" href="#eatpreptba-0989012"></a></h2>
+<ul><li>Made <code><a href="../reference/prepare_coding_scheme.html">prepare_coding_scheme()</a></code> more robust for missing, partial, and mixed-type schemer payloads.</li>
+<li>Preserved multi-parameter rule expansion and normalized rule operators, rule positions, code models, and code identifiers to stable output types.</li>
+<li>Made <code><a href="../reference/add_coding_scheme.html">add_coding_scheme()</a></code> tolerate units with missing coding schemes while preserving the original unit rows.</li>
+<li>Kept <code><a href="../reference/read_booklet.html">read_booklet()</a></code> working for both flat <code>Units &gt; Unit</code> and nested <code>Units &gt; Testlet &gt; Unit</code> booklet structures.</li>
+<li>Added regression tests for missing coding schemes, incomplete schemer columns, multi-parameter rules, mixed rule-position types, and coded-response joins.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9011" id="eatpreptba-0989011">eatPrepTBA 0.9.8.9011<a class="anchor" aria-label="anchor" href="#eatpreptba-0989011"></a></h2>
 <ul><li>Added focus lost/regained event extraction to <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code>, including optional block-aware handling of automatic block switches.</li>

@@ -1,5 +1,25 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9012
+
+- Made
+  [`prepare_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coding_scheme.md)
+  more robust for missing, partial, and mixed-type schemer payloads.
+- Preserved multi-parameter rule expansion and normalized rule
+  operators, rule positions, code models, and code identifiers to stable
+  output types.
+- Made
+  [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+  tolerate units with missing coding schemes while preserving the
+  original unit rows.
+- Kept
+  [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
+  working for both flat `Units > Unit` and nested
+  `Units > Testlet > Unit` booklet structures.
+- Added regression tests for missing coding schemes, incomplete schemer
+  columns, multi-parameter rules, mixed rule-position types, and
+  coded-response joins.
+
 ## eatPrepTBA 0.9.8.9011
 
 - Added focus lost/regained event extraction to
