@@ -379,7 +379,7 @@ code_unit_legacy <- function(unit_responses, coding_scheme) {
 #' Add manual codes to unit responses
 #'
 #' @param unit_responses Character. Response data of one unit retrieved from the IQB Testcenter in JSON format.
-#' @param coding_scheme Character. Coding scheme of the unit retrieved from the IQB Studio after setting the argument `coding_scheme = TRUE` for [get_units()].
+#' @param unit_codes_manual List. Manual codes to insert into the response data.
 #'
 #' @description
 #' This function automatically codes responses of one unit by using the `eatAutoCode` package.

@@ -48,7 +48,7 @@ booklet is treated as containing a special needs school study design.}
 \item{output_path}{String. Directory to store prepared tables in.}
 }
 \value{
-A tibble. Also saves large tibble with name "tab_{domain}.RData" under output_path, including quantile dot plots.
+A tibble. Also saves large tibble with name \code{tab_\{domain\}.RData} under output_path, including quantile dot plots.
 This can then be incorporated into a quarto document as described in the example below.
 }
 \description{
