@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9014
+
+* Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
+* Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
+
 # eatPrepTBA 0.9.8.9013
 
 * Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.
