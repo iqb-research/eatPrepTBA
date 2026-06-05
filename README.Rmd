@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/iqb-research/eatPrepTBA/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iqb-research/eatPrepTBA?branch=main)
 <!-- badges: end -->
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some routines for preparing and blending data from these different resources to manage TBA studies.
