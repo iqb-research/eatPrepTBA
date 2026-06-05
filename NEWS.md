@@ -1,10 +1,18 @@
-# eatPrepTBA 0.9.8.9012
+# eatPrepTBA 0.9.8.9013
 
 * Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.
 * Fixed `compute_sizes()` by assigning the intermediate dependency-size table before summarising resource sizes.
 * Made codebook preparation helpers robust to single-variable and single-code JSON structures.
 * Declared the `methods` dependency used by S4 class exports and constructors.
 * Corrected `WorkspaceTestcenter` slot documentation.
+
+# eatPrepTBA 0.9.8.9012
+
+* Made `prepare_coding_scheme()` more robust for missing, partial, and mixed-type schemer payloads.
+* Preserved multi-parameter rule expansion and normalized rule operators, rule positions, code models, and code identifiers to stable output types.
+* Made `add_coding_scheme()` tolerate units with missing coding schemes while preserving the original unit rows.
+* Kept `read_booklet()` working for both flat `Units > Unit` and nested `Units > Testlet > Unit` booklet structures.
+* Added regression tests for missing coding schemes, incomplete schemer columns, multi-parameter rules, mixed rule-position types, and coded-response joins.
 
 # eatPrepTBA 0.9.8.9011
 
