@@ -84,7 +84,7 @@ compute_staytime_tables(
 
 ## Value
 
-A tibble. Also saves large tibble with name "tab_domain.RData" under
+A tibble. Also saves large tibble with name `tab_{domain}.RData` under
 output_path, including quantile dot plots. This can then be incorporated
 into a quarto document as described in the example below.
 

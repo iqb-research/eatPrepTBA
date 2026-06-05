@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9013</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,16 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9013" id="eatpreptba-0989013">eatPrepTBA 0.9.8.9013<a class="anchor" aria-label="anchor" href="#eatpreptba-0989013"></a></h2>
+<ul><li>Added broad <code>testthat</code> coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.</li>
+<li>Fixed <code><a href="../reference/compute_sizes.html">compute_sizes()</a></code> by assigning the intermediate dependency-size table before summarising resource sizes.</li>
+<li>Made codebook preparation helpers robust to single-variable and single-code JSON structures.</li>
+<li>Declared the <code>methods</code> dependency used by S4 class exports and constructors.</li>
+<li>Corrected <code>WorkspaceTestcenter</code> slot documentation.</li>
+<li>Reduced <code>R CMD check</code> diagnostics for startup messages, Rd files, imports, and data-masked column names.</li>
+<li>Added a GitHub Actions workflow for Codecov coverage uploads.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9012" id="eatpreptba-0989012">eatPrepTBA 0.9.8.9012<a class="anchor" aria-label="anchor" href="#eatpreptba-0989012"></a></h2>
 <ul><li>Made <code><a href="../reference/prepare_coding_scheme.html">prepare_coding_scheme()</a></code> more robust for missing, partial, and mixed-type schemer payloads.</li>

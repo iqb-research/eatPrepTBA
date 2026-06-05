@@ -16,11 +16,9 @@ insert_manual_legacy(unit_responses, unit_codes_manual)
   Character. Response data of one unit retrieved from the IQB Testcenter
   in JSON format.
 
-- coding_scheme:
+- unit_codes_manual:
 
-  Character. Coding scheme of the unit retrieved from the IQB Studio
-  after setting the argument `coding_scheme = TRUE` for
-  [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
+  List. Manual codes to insert into the response data.
 
 ## Value
 

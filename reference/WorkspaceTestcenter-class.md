@@ -1,8 +1,10 @@
 # Workspace access for IQB Testcenter
 
-A class extending the Login class with additional information for the
-IQB Studio. It can be created by the function
-[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md).
+A class extending the Workspace class with additional information for
+the IQB Testcenter. It can be created by the function
+[`access_workspace()`](https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.md)
+after
+[`login_testcenter()`](https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.md).
 
 ## Slots
 
@@ -11,11 +13,11 @@ IQB Studio. It can be created by the function
   [LoginTestcenter](https://iqb-research.github.io/eatPrepTBA/reference/LoginTestcenter-class.md).
   Login information for the IQB Testcenter.
 
-- `wsg_id`:
+- `ws_id`:
 
-  ID of the workspace group the current workspace belongs to. See URL to
-  identify the workspace group id.
+  ID of the workspace. The workspace ID can also be found in the
+  workspace URL.
 
-- `wsg_label`:
+- `ws_label`:
 
-  Label of the workspace group the current workspace belongs to.
+  Label of the workspace.
