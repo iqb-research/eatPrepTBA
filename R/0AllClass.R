@@ -108,11 +108,11 @@ setClass("WorkspaceStudio",
 #' Workspace access for IQB Testcenter
 #'
 #' @description
-#' A class extending the Login class with additional information for the IQB Studio. It can be created by the function [login_studio()].
+#' A class extending the Workspace class with additional information for the IQB Testcenter. It can be created by the function [access_workspace()] after [login_testcenter()].
 #'
 #' @slot login [LoginTestcenter-class]. Login information for the IQB Testcenter.
-#' @slot wsg_id ID of the workspace group the current workspace belongs to. See URL to identify the workspace group id.
-#' @slot wsg_label Label of the workspace group the current workspace belongs to.
+#' @slot ws_id ID of the workspace. The workspace ID can also be found in the workspace URL.
+#' @slot ws_label Label of the workspace.
 #'
 #' @name WorkspaceTestcenter-class
 #' @rdname WorkspaceTestcenter-class

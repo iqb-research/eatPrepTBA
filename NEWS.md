@@ -3,7 +3,8 @@
 * Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.
 * Fixed `compute_sizes()` by assigning the intermediate dependency-size table before summarising resource sizes.
 * Made codebook preparation helpers robust to single-variable and single-code JSON structures.
-* Removed a redundant deprecated `dplyr::if_any()` call in `add_metadata()`.
+* Declared the `methods` dependency used by S4 class exports and constructors.
+* Corrected `WorkspaceTestcenter` slot documentation.
 
 # eatPrepTBA 0.9.8.9011
 

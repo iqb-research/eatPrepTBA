@@ -33,6 +33,7 @@ Imports:
     keyring,
     lubridate,
     magrittr,
+    methods,
     purrr (>= 1.0.4),
     reactable,
     readr,
