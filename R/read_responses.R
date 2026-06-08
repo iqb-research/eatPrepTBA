@@ -8,7 +8,9 @@
 #' response payloads are kept as rows with `responses = NA` so that the observed
 #' unit structure remains available; final missing codes are assigned later by
 #' [complete_design()] when the coded data are checked against the full test
-#' design.
+#' design. The raw nested response slot ids are checked for missing required
+#' slots and unexpected new slots, but the returned data are not changed by these
+#' diagnostics.
 #'
 #' @return A tibble.
 #'
@@ -52,6 +54,12 @@ read_responses <- function(files) {
       unit_key = "unitname"
     )
   }
+
+  responses_raw <- announce_response_slot_diagnostics(
+    responses_raw,
+    "Read responses",
+    is_parsed = FALSE
+  )
 
   responses_raw %>%
     dplyr::select(

@@ -90,6 +90,181 @@ preserve_empty_response_payloads <- function(responses) {
   responses
 }
 
+expected_response_slot_ids <- function() {
+  list(
+    required = c("elementCodes", "stateVariableCodes"),
+    optional = c("geometryVariableCodes")
+  )
+}
+
+response_payload_slot_ids <- function(payload, is_parsed = TRUE) {
+  if (is.null(payload) || length(payload) == 0) {
+    return(character())
+  }
+
+  if (!is_parsed) {
+    payload <- payload[!is.na(payload) & payload != ""]
+
+    if (length(payload) == 0) {
+      return(character())
+    }
+
+    payload <- purrr::map(
+      payload,
+      function(x) {
+        tryCatch(
+          jsonlite::parse_json(x),
+          error = function(cnd) list()
+        )
+      }
+    ) %>%
+      purrr::flatten()
+  }
+
+  ids <- purrr::map_chr(
+    payload,
+    function(x) {
+      id <- tryCatch(x$id, error = function(cnd) NULL)
+
+      if (is.null(id) || length(id) == 0 || is.na(id[[1]])) {
+        NA_character_
+      } else {
+        as.character(id[[1]])
+      }
+    }
+  )
+
+  ids[!is.na(ids) & ids != ""]
+}
+
+response_slot_diagnostics <- function(responses,
+                                      is_parsed = TRUE,
+                                      response_col = "responses") {
+  expected <- expected_response_slot_ids()
+
+  empty_diagnostics <- list(
+    n_payloads = 0L,
+    observed = character(),
+    missing_required = character(),
+    missing_optional = character(),
+    unknown = character(),
+    missing_required_counts = integer(),
+    missing_optional_counts = integer()
+  )
+
+  if (!response_col %in% names(responses) || nrow(responses) == 0) {
+    return(empty_diagnostics)
+  }
+
+  payload_ids <- purrr::map(
+    responses[[response_col]],
+    response_payload_slot_ids,
+    is_parsed = is_parsed
+  )
+
+  non_empty_payload_ids <- payload_ids[lengths(payload_ids) > 0]
+
+  if (length(non_empty_payload_ids) == 0) {
+    return(empty_diagnostics)
+  }
+
+  observed <- unique(unlist(non_empty_payload_ids, use.names = FALSE))
+  known <- c(expected$required, expected$optional)
+
+  missing_required_counts <- purrr::map_int(
+    stats::setNames(expected$required, expected$required),
+    function(id) sum(!purrr::map_lgl(non_empty_payload_ids, function(x) id %in% x))
+  )
+
+  missing_optional_counts <- purrr::map_int(
+    stats::setNames(expected$optional, expected$optional),
+    function(id) sum(!purrr::map_lgl(non_empty_payload_ids, function(x) id %in% x))
+  )
+
+  list(
+    n_payloads = length(non_empty_payload_ids),
+    observed = observed,
+    missing_required = names(missing_required_counts)[missing_required_counts > 0],
+    missing_optional = names(missing_optional_counts)[missing_optional_counts > 0],
+    unknown = setdiff(observed, known),
+    missing_required_counts = missing_required_counts,
+    missing_optional_counts = missing_optional_counts
+  )
+}
+
+announce_response_slot_diagnostics <- function(responses,
+                                               source = "Response data",
+                                               is_parsed = TRUE,
+                                               response_col = "responses") {
+  diagnostics <- response_slot_diagnostics(
+    responses,
+    is_parsed = is_parsed,
+    response_col = response_col
+  )
+
+  if (diagnostics$n_payloads == 0) {
+    return(responses)
+  }
+
+  if (length(diagnostics$missing_required) > 0) {
+    missing_required <- format_response_slot_counts(
+      diagnostics$missing_required_counts[diagnostics$missing_required],
+      diagnostics$n_payloads
+    )
+
+    cli::cli_alert_warning(
+      "{source}: missing required response slot ids: {missing_required}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (length(diagnostics$missing_optional) > 0) {
+    missing_optional <- format_response_slot_counts(
+      diagnostics$missing_optional_counts[diagnostics$missing_optional],
+      diagnostics$n_payloads
+    )
+
+    cli::cli_alert_info(
+      "{source}: optional response slot ids absent: {missing_optional}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (length(diagnostics$unknown) > 0) {
+    unknown <- format_response_slot_examples(diagnostics$unknown)
+
+    if ("responses" %in% diagnostics$unknown) {
+      cli::cli_alert_warning(
+        "{source}: found unexpected inner response slot ids: {unknown}. The inner slot id {.field responses} is not part of the expected current Testcenter response-slot structure. Output behavior is unchanged.",
+        wrap = TRUE
+      )
+    } else {
+      cli::cli_alert_warning(
+        "{source}: found unexpected inner response slot ids: {unknown}. Output behavior is unchanged.",
+        wrap = TRUE
+      )
+    }
+  }
+
+  responses
+}
+
+format_response_slot_counts <- function(counts, total) {
+  paste0(names(counts), " (", as.integer(counts), "/", total, " payloads)", collapse = ", ")
+}
+
+format_response_slot_examples <- function(ids, n = 5) {
+  ids <- unique(as.character(ids))
+  shown <- head(ids, n)
+  label <- paste(shown, collapse = ", ")
+
+  if (length(ids) > n) {
+    label <- paste0(label, ", and ", length(ids) - n, " more")
+  }
+
+  label
+}
+
 announce_empty_nested_response_payloads <- function(responses_raw,
                                                     source = "Response report") {
   if (!"responses" %in% names(responses_raw) || nrow(responses_raw) == 0) {

@@ -1,3 +1,10 @@
+response_slots <- function(ids) {
+  lapply(
+    ids,
+    function(id) list(id = id, content = "[]", ts = "1")
+  )
+}
+
 test_that("response reports keep units with empty nested response data", {
   resp <- list(
     list(
@@ -29,6 +36,93 @@ test_that("response reports keep units with empty nested response data", {
   expect_equal(responses_raw$unitname, c("SB_2631", "SB_2632"))
   expect_equal(length(responses_raw$responses[[1]]), 1)
   expect_equal(length(responses_raw$responses[[2]]), 0)
+})
+
+test_that("response slot diagnostics accept the current Testcenter slot ids", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c(
+      "elementCodes",
+      "stateVariableCodes",
+      "geometryVariableCodes"
+    )))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$n_payloads, 1L)
+  expect_equal(diagnostics$missing_required, character())
+  expect_equal(diagnostics$missing_optional, character())
+  expect_equal(diagnostics$unknown, character())
+})
+
+test_that("response slot diagnostics detect missing required slots", {
+  responses_raw <- tibble::tibble(
+    responses = list(
+      response_slots(c("stateVariableCodes", "geometryVariableCodes")),
+      response_slots(c("elementCodes", "geometryVariableCodes"))
+    )
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$missing_required, c("elementCodes", "stateVariableCodes"))
+  expect_equal(unname(diagnostics$missing_required_counts[diagnostics$missing_required]), c(1L, 1L))
+})
+
+test_that("response slot diagnostics treat geometry variables as optional", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c("elementCodes", "stateVariableCodes")))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$missing_required, character())
+  expect_equal(diagnostics$missing_optional, "geometryVariableCodes")
+})
+
+test_that("response slot diagnostics detect unknown and suspicious inner ids", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c(
+      "elementCodes",
+      "stateVariableCodes",
+      "newVariableCodes",
+      "responses"
+    )))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$missing_required, character())
+  expect_equal(diagnostics$unknown, c("newVariableCodes", "responses"))
+})
+
+test_that("response slot diagnostics inspect unparsed response payloads", {
+  responses_raw <- tibble::tibble(
+    responses = as.character(jsonlite::toJSON(
+      response_slots(c("elementCodes", "stateVariableCodes")),
+      auto_unbox = TRUE
+    ))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw, is_parsed = FALSE)
+
+  expect_equal(diagnostics$missing_required, character())
+  expect_equal(diagnostics$missing_optional, "geometryVariableCodes")
+  expect_equal(diagnostics$unknown, character())
+})
+
+test_that("response slot announcements do not modify response data", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c(
+      "elementCodes",
+      "stateVariableCodes",
+      "geometryVariableCodes"
+    )))
+  )
+
+  announced <- announce_response_slot_diagnostics(responses_raw)
+
+  expect_identical(announced, responses_raw)
 })
 
 test_that("empty parsed responses are retained as empty element codes", {

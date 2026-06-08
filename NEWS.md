@@ -1,3 +1,7 @@
+# eatPrepTBA 0.9.8.9014
+
+* Added diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. Missing required slots (`elementCodes`, `stateVariableCodes`) and unexpected new inner slot ids are reported without changing output behavior; `geometryVariableCodes` is treated as optional.
+
 # eatPrepTBA 0.9.8.9013
 
 * Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.

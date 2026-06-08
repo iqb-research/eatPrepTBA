@@ -25,7 +25,9 @@ keeps one row per reported unit, including units whose nested response
 payload is empty. These empty payloads are represented as empty list entries
 in the raw output; after \code{\link[=get_responses]{get_responses()}} prepares the data, they appear as
 \code{responses = NA} and are left to \code{\link[=complete_design]{complete_design()}} for design-based missing
-completion.
+completion. The raw nested response slot ids are checked for missing required
+slots and unexpected new slots, but the returned data are not changed by these
+diagnostics.
 }
 \section{Functions}{
 \itemize{

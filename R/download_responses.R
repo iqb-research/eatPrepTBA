@@ -10,7 +10,9 @@
 #' payload is empty. These empty payloads are represented as empty list entries
 #' in the raw output; after [get_responses()] prepares the data, they appear as
 #' `responses = NA` and are left to [complete_design()] for design-based missing
-#' completion.
+#' completion. The raw nested response slot ids are checked for missing required
+#' slots and unexpected new slots, but the returned data are not changed by these
+#' diagnostics.
 #'
 #' @return A tibble.
 #' @export
@@ -85,6 +87,12 @@ setMethod("download_responses",
                 n_before_filter,
                 nrow(responses_raw),
                 units_filter_off
+              )
+
+              responses_raw <- announce_response_slot_diagnostics(
+                responses_raw,
+                "Downloaded response report",
+                is_parsed = TRUE
               )
 
               responses_raw

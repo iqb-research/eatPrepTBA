@@ -10,7 +10,9 @@
 #' [code_responses()]. Units with empty response payloads are kept as rows with
 #' `responses = NA` so that the observed unit structure remains available; final
 #' missing codes are assigned later by [complete_design()] when the coded data
-#' are checked against the full test design.
+#' are checked against the full test design. The raw nested response slot ids are
+#' checked for missing required slots and unexpected new slots, but the returned
+#' data are not changed by these diagnostics.
 #'
 #' @return A tibble.
 #' @export
@@ -89,6 +91,12 @@ setMethod("get_responses",
               if (nrow(responses_raw) == 0) {
                 return(tibble::tibble())
               }
+
+              responses_raw <- announce_response_slot_diagnostics(
+                responses_raw,
+                "Downloaded responses",
+                is_parsed = TRUE
+              )
 
               # For legacy reasons, this has to be added
               # TODO: Can this be removed at a later point in time?

@@ -18,5 +18,7 @@ prepares them for further processing with \code{\link[=code_responses]{code_resp
 response payloads are kept as rows with \code{responses = NA} so that the observed
 unit structure remains available; final missing codes are assigned later by
 \code{\link[=complete_design]{complete_design()}} when the coded data are checked against the full test
-design.
+design. The raw nested response slot ids are checked for missing required
+slots and unexpected new slots, but the returned data are not changed by these
+diagnostics.
 }
