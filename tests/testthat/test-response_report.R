@@ -5,6 +5,20 @@ response_slots <- function(ids) {
   )
 }
 
+direct_responses <- function(ids) {
+  lapply(
+    ids,
+    function(id) list(id = id, status = "VALUE_CHANGED", value = 1)
+  )
+}
+
+unknown_response_entries <- function(ids) {
+  lapply(
+    ids,
+    function(id) list(id = id, something = TRUE)
+  )
+}
+
 test_that("response reports keep units with empty nested response data", {
   resp <- list(
     list(
@@ -50,21 +64,27 @@ test_that("response slot diagnostics accept the current Testcenter slot ids", {
   diagnostics <- response_slot_diagnostics(responses_raw)
 
   expect_equal(diagnostics$n_payloads, 1L)
+  expect_equal(diagnostics$n_wrapper_payloads, 1L)
+  expect_equal(diagnostics$n_direct_payloads, 0L)
   expect_equal(diagnostics$missing_required, character())
   expect_equal(diagnostics$missing_optional, character())
-  expect_equal(diagnostics$unknown, character())
+  expect_equal(diagnostics$unknown_wrapper, character())
 })
 
 test_that("response slot diagnostics detect missing required slots", {
   responses_raw <- tibble::tibble(
     responses = list(
       response_slots(c("stateVariableCodes", "geometryVariableCodes")),
-      response_slots(c("elementCodes", "geometryVariableCodes"))
+      response_slots(c("elementCodes", "geometryVariableCodes")),
+      direct_responses(c("question_0", "sums"))
     )
   )
 
   diagnostics <- response_slot_diagnostics(responses_raw)
 
+  expect_equal(diagnostics$n_payloads, 3L)
+  expect_equal(diagnostics$n_wrapper_payloads, 2L)
+  expect_equal(diagnostics$n_direct_payloads, 1L)
   expect_equal(diagnostics$missing_required, c("elementCodes", "stateVariableCodes"))
   expect_equal(unname(diagnostics$missing_required_counts[diagnostics$missing_required]), c(1L, 1L))
 })
@@ -80,7 +100,17 @@ test_that("response slot diagnostics treat geometry variables as optional", {
   expect_equal(diagnostics$missing_optional, "geometryVariableCodes")
 })
 
-test_that("response slot diagnostics detect unknown and suspicious inner ids", {
+test_that("compact response slot announcements do not report missing optional geometry", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c("elementCodes", "stateVariableCodes")))
+  )
+
+  expect_silent(
+    announce_response_slot_diagnostics(responses_raw, diagnostics = "compact")
+  )
+})
+
+test_that("response slot diagnostics detect unknown and suspicious wrapper ids", {
   responses_raw <- tibble::tibble(
     responses = list(response_slots(c(
       "elementCodes",
@@ -93,7 +123,43 @@ test_that("response slot diagnostics detect unknown and suspicious inner ids", {
   diagnostics <- response_slot_diagnostics(responses_raw)
 
   expect_equal(diagnostics$missing_required, character())
-  expect_equal(diagnostics$unknown, c("newVariableCodes", "responses"))
+  expect_equal(diagnostics$unknown_wrapper, c("newVariableCodes", "responses"))
+})
+
+test_that("response slot diagnostics classify direct response ids separately", {
+  responses_raw <- tibble::tibble(
+    responses = list(direct_responses(c(
+      "question_0",
+      "sums",
+      "activeQuestionIndex"
+    )))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$n_wrapper_payloads, 0L)
+  expect_equal(diagnostics$n_direct_payloads, 1L)
+  expect_equal(diagnostics$direct_observed, c("question_0", "sums", "activeQuestionIndex"))
+  expect_equal(diagnostics$missing_required, character())
+  expect_equal(diagnostics$unknown_wrapper, character())
+})
+
+test_that("response slot diagnostics detect mixed and unrecognized payloads", {
+  responses_raw <- tibble::tibble(
+    responses = list(
+      c(
+        response_slots("elementCodes"),
+        direct_responses("question_0")
+      ),
+      unknown_response_entries("strange")
+    )
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$n_mixed_payloads, 1L)
+  expect_equal(diagnostics$n_unknown_payloads, 1L)
+  expect_equal(diagnostics$unknown_entry_ids, "strange")
 })
 
 test_that("response slot diagnostics inspect unparsed response payloads", {
@@ -108,7 +174,7 @@ test_that("response slot diagnostics inspect unparsed response payloads", {
 
   expect_equal(diagnostics$missing_required, character())
   expect_equal(diagnostics$missing_optional, "geometryVariableCodes")
-  expect_equal(diagnostics$unknown, character())
+  expect_equal(diagnostics$unknown_wrapper, character())
 })
 
 test_that("response slot announcements do not modify response data", {
@@ -121,6 +187,18 @@ test_that("response slot announcements do not modify response data", {
   )
 
   announced <- announce_response_slot_diagnostics(responses_raw)
+
+  expect_identical(announced, responses_raw)
+})
+
+test_that("response slot diagnostics can be suppressed", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots("newVariableCodes"))
+  )
+
+  announced <- expect_silent(
+    announce_response_slot_diagnostics(responses_raw, diagnostics = "none")
+  )
 
   expect_identical(announced, responses_raw)
 })

@@ -3,6 +3,9 @@
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve unit information and resources from the API.
 #' @param groups Character. Name of the groups to be retrieved or all groups if not specified.
 #' @param units_filter_off Character. Names of the units to be removed from the dataset.
+#' @param diagnostics Character. Controls response slot diagnostics. Use `"compact"`
+#'   for concise feedback, `"verbose"` for additional detail, or `"none"` to
+#'   suppress these diagnostics.
 #'
 #' @description
 #' This function returns responses for the selected groups and prepares the
@@ -21,7 +24,8 @@
 #' get_responses,WorkspaceTestcenter-method
 setGeneric("get_responses", function(workspace,
                                      groups = NULL,
-                                     units_filter_off = NULL) {
+                                     units_filter_off = NULL,
+                                     diagnostics = c("compact", "verbose", "none")) {
   cli_setting()
 
   standardGeneric("get_responses")
@@ -32,7 +36,10 @@ setMethod("get_responses",
           signature = signature(workspace = "WorkspaceTestcenter"),
           function(workspace,
                    groups = NULL,
-                   units_filter_off = NULL) {
+                   units_filter_off = NULL,
+                   diagnostics = c("compact", "verbose", "none")) {
+            diagnostics <- match.arg(diagnostics)
+
             if (is.null(groups)) {
               groups <- get_results(workspace)$groupName
             }
@@ -95,7 +102,8 @@ setMethod("get_responses",
               responses_raw <- announce_response_slot_diagnostics(
                 responses_raw,
                 "Downloaded responses",
-                is_parsed = TRUE
+                is_parsed = TRUE,
+                diagnostics = diagnostics
               )
 
               # For legacy reasons, this has to be added

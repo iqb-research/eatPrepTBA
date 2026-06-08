@@ -97,16 +97,16 @@ expected_response_slot_ids <- function() {
   )
 }
 
-response_payload_slot_ids <- function(payload, is_parsed = TRUE) {
+response_payload_entries <- function(payload, is_parsed = TRUE) {
   if (is.null(payload) || length(payload) == 0) {
-    return(character())
+    return(list())
   }
 
   if (!is_parsed) {
     payload <- payload[!is.na(payload) & payload != ""]
 
     if (length(payload) == 0) {
-      return(character())
+      return(list())
     }
 
     payload <- purrr::map(
@@ -121,20 +121,69 @@ response_payload_slot_ids <- function(payload, is_parsed = TRUE) {
       purrr::flatten()
   }
 
+  payload
+}
+
+response_payload_entry_id <- function(x) {
+  id <- tryCatch(x$id, error = function(cnd) NULL)
+
+  if (is.null(id) || length(id) == 0 || is.na(id[[1]])) {
+    NA_character_
+  } else {
+    as.character(id[[1]])
+  }
+}
+
+response_entry_has_name <- function(x, name) {
+  is.list(x) && name %in% names(x)
+}
+
+is_wrapper_response_entry <- function(x) {
+  response_entry_has_name(x, "id") && response_entry_has_name(x, "content")
+}
+
+is_direct_response_entry <- function(x) {
+  response_entry_has_name(x, "id") &&
+    !response_entry_has_name(x, "content") &&
+    (response_entry_has_name(x, "status") || response_entry_has_name(x, "value"))
+}
+
+classify_response_payload <- function(payload, is_parsed = TRUE) {
+  payload <- response_payload_entries(payload, is_parsed = is_parsed)
+
+  if (length(payload) == 0) {
+    return(list(
+      shape = "empty",
+      ids = character(),
+      wrapper_ids = character(),
+      direct_ids = character(),
+      unknown_ids = character()
+    ))
+  }
+
   ids <- purrr::map_chr(
     payload,
-    function(x) {
-      id <- tryCatch(x$id, error = function(cnd) NULL)
-
-      if (is.null(id) || length(id) == 0 || is.na(id[[1]])) {
-        NA_character_
-      } else {
-        as.character(id[[1]])
-      }
-    }
+    response_payload_entry_id
   )
 
-  ids[!is.na(ids) & ids != ""]
+  wrapper <- purrr::map_lgl(payload, is_wrapper_response_entry)
+  direct <- purrr::map_lgl(payload, is_direct_response_entry)
+  unknown <- !(wrapper | direct)
+
+  shape <- dplyr::case_when(
+    all(wrapper) ~ "wrapper",
+    all(direct) ~ "direct",
+    any(wrapper) || any(direct) ~ "mixed",
+    .default = "unknown"
+  )
+
+  list(
+    shape = shape,
+    ids = ids[!is.na(ids) & ids != ""],
+    wrapper_ids = ids[wrapper & !is.na(ids) & ids != ""],
+    direct_ids = ids[direct & !is.na(ids) & ids != ""],
+    unknown_ids = ids[unknown & !is.na(ids) & ids != ""]
+  )
 }
 
 response_slot_diagnostics <- function(responses,
@@ -144,10 +193,16 @@ response_slot_diagnostics <- function(responses,
 
   empty_diagnostics <- list(
     n_payloads = 0L,
-    observed = character(),
+    n_wrapper_payloads = 0L,
+    n_direct_payloads = 0L,
+    n_mixed_payloads = 0L,
+    n_unknown_payloads = 0L,
+    wrapper_observed = character(),
+    direct_observed = character(),
+    unknown_entry_ids = character(),
     missing_required = character(),
     missing_optional = character(),
-    unknown = character(),
+    unknown_wrapper = character(),
     missing_required_counts = integer(),
     missing_optional_counts = integer()
   )
@@ -156,37 +211,66 @@ response_slot_diagnostics <- function(responses,
     return(empty_diagnostics)
   }
 
-  payload_ids <- purrr::map(
+  payload_diagnostics <- purrr::map(
     responses[[response_col]],
-    response_payload_slot_ids,
+    classify_response_payload,
     is_parsed = is_parsed
   )
 
-  non_empty_payload_ids <- payload_ids[lengths(payload_ids) > 0]
+  non_empty_payloads <- purrr::keep(
+    payload_diagnostics,
+    function(x) x$shape != "empty"
+  )
 
-  if (length(non_empty_payload_ids) == 0) {
+  if (length(non_empty_payloads) == 0) {
     return(empty_diagnostics)
   }
 
-  observed <- unique(unlist(non_empty_payload_ids, use.names = FALSE))
+  wrapper_payloads <- purrr::keep(
+    non_empty_payloads,
+    function(x) x$shape == "wrapper"
+  )
+
+  wrapper_ids <- purrr::map(wrapper_payloads, "wrapper_ids")
+  wrapper_observed <- unique_response_ids(wrapper_ids)
+  direct_observed <- unique_response_ids(purrr::map(non_empty_payloads, "direct_ids"))
+  unknown_entry_ids <- unique_response_ids(purrr::map(non_empty_payloads, "unknown_ids"))
   known <- c(expected$required, expected$optional)
 
-  missing_required_counts <- purrr::map_int(
-    stats::setNames(expected$required, expected$required),
-    function(id) sum(!purrr::map_lgl(non_empty_payload_ids, function(x) id %in% x))
-  )
+  if (length(wrapper_payloads) > 0) {
+    missing_required_counts <- purrr::map_int(
+      stats::setNames(expected$required, expected$required),
+      function(id) sum(!purrr::map_lgl(wrapper_ids, function(x) id %in% x))
+    )
 
-  missing_optional_counts <- purrr::map_int(
-    stats::setNames(expected$optional, expected$optional),
-    function(id) sum(!purrr::map_lgl(non_empty_payload_ids, function(x) id %in% x))
-  )
+    missing_optional_counts <- purrr::map_int(
+      stats::setNames(expected$optional, expected$optional),
+      function(id) sum(!purrr::map_lgl(wrapper_ids, function(x) id %in% x))
+    )
+  } else {
+    missing_required_counts <- stats::setNames(
+      rep(0L, length(expected$required)),
+      expected$required
+    )
+
+    missing_optional_counts <- stats::setNames(
+      rep(0L, length(expected$optional)),
+      expected$optional
+    )
+  }
 
   list(
-    n_payloads = length(non_empty_payload_ids),
-    observed = observed,
+    n_payloads = length(non_empty_payloads),
+    n_wrapper_payloads = length(wrapper_payloads),
+    n_direct_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "direct"),
+    n_mixed_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "mixed"),
+    n_unknown_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "unknown"),
+    wrapper_observed = wrapper_observed,
+    direct_observed = direct_observed,
+    unknown_entry_ids = unknown_entry_ids,
     missing_required = names(missing_required_counts)[missing_required_counts > 0],
     missing_optional = names(missing_optional_counts)[missing_optional_counts > 0],
-    unknown = setdiff(observed, known),
+    unknown_wrapper = setdiff(wrapper_observed, known),
     missing_required_counts = missing_required_counts,
     missing_optional_counts = missing_optional_counts
   )
@@ -195,7 +279,14 @@ response_slot_diagnostics <- function(responses,
 announce_response_slot_diagnostics <- function(responses,
                                                source = "Response data",
                                                is_parsed = TRUE,
-                                               response_col = "responses") {
+                                               response_col = "responses",
+                                               diagnostics = c("compact", "verbose", "none")) {
+  verbosity <- match.arg(diagnostics)
+
+  if (verbosity == "none") {
+    return(responses)
+  }
+
   diagnostics <- response_slot_diagnostics(
     responses,
     is_parsed = is_parsed,
@@ -206,41 +297,81 @@ announce_response_slot_diagnostics <- function(responses,
     return(responses)
   }
 
-  if (length(diagnostics$missing_required) > 0) {
-    missing_required <- format_response_slot_counts(
-      diagnostics$missing_required_counts[diagnostics$missing_required],
-      diagnostics$n_payloads
-    )
-
-    cli::cli_alert_warning(
-      "{source}: missing required response slot ids: {missing_required}. Output behavior is unchanged.",
-      wrap = TRUE
-    )
-  }
-
-  if (length(diagnostics$missing_optional) > 0) {
-    missing_optional <- format_response_slot_counts(
-      diagnostics$missing_optional_counts[diagnostics$missing_optional],
-      diagnostics$n_payloads
+  if (diagnostics$n_direct_payloads > 0) {
+    direct_examples <- format_response_slot_examples(
+      diagnostics$direct_observed,
+      n = if (identical(verbosity, "verbose")) 10 else 3
     )
 
     cli::cli_alert_info(
-      "{source}: optional response slot ids absent: {missing_optional}. Output behavior is unchanged.",
+      "{source}: detected {format_response_count(diagnostics$n_direct_payloads)} direct response-shaped payload{?s}; ids such as {direct_examples} are response ids, not response slots, and were excluded from slot diagnostics.",
       wrap = TRUE
     )
   }
 
-  if (length(diagnostics$unknown) > 0) {
-    unknown <- format_response_slot_examples(diagnostics$unknown)
+  if (diagnostics$n_mixed_payloads > 0 || diagnostics$n_unknown_payloads > 0) {
+    shape_summary <- format_response_shape_counts(
+      mixed = diagnostics$n_mixed_payloads,
+      unknown = diagnostics$n_unknown_payloads
+    )
 
-    if ("responses" %in% diagnostics$unknown) {
+    cli::cli_alert_info(
+      "{source}: detected {shape_summary}; slot checks use {format_response_count(diagnostics$n_wrapper_payloads)} wrapper-shaped payload{?s} only.",
+      wrap = TRUE
+    )
+  }
+
+  if (length(diagnostics$missing_required) > 0) {
+    missing_required <- format_response_slot_counts(
+      diagnostics$missing_required_counts[diagnostics$missing_required],
+      diagnostics$n_wrapper_payloads,
+      label = "wrapper payloads"
+    )
+
+    cli::cli_alert_warning(
+      "{source}: missing required wrapper slot ids: {missing_required}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (identical(verbosity, "verbose") && diagnostics$n_wrapper_payloads > 0) {
+    optional_coverage <- format_optional_response_slot_counts(
+      diagnostics$missing_optional_counts,
+      diagnostics$n_wrapper_payloads
+    )
+
+    cli::cli_alert_info(
+      "{source}: optional wrapper slot coverage: {optional_coverage}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (identical(verbosity, "verbose") && length(diagnostics$unknown_entry_ids) > 0) {
+    unknown_entry_ids <- format_response_slot_examples(
+      diagnostics$unknown_entry_ids,
+      n = 10
+    )
+
+    cli::cli_alert_info(
+      "{source}: unrecognized top-level response ids include: {unknown_entry_ids}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (length(diagnostics$unknown_wrapper) > 0) {
+    unknown <- format_response_slot_examples(
+      diagnostics$unknown_wrapper,
+      n = if (identical(verbosity, "verbose")) 10 else 5
+    )
+
+    if ("responses" %in% diagnostics$unknown_wrapper) {
       cli::cli_alert_warning(
-        "{source}: found unexpected inner response slot ids: {unknown}. The inner slot id {.field responses} is not part of the expected current Testcenter response-slot structure. Output behavior is unchanged.",
+        "{source}: found unexpected wrapper slot ids: {unknown}. The inner slot id {.field responses} is not part of the expected current Testcenter response-slot structure. Output behavior is unchanged.",
         wrap = TRUE
       )
     } else {
       cli::cli_alert_warning(
-        "{source}: found unexpected inner response slot ids: {unknown}. Output behavior is unchanged.",
+        "{source}: found unexpected wrapper slot ids: {unknown}. Output behavior is unchanged.",
         wrap = TRUE
       )
     }
@@ -249,8 +380,60 @@ announce_response_slot_diagnostics <- function(responses,
   responses
 }
 
-format_response_slot_counts <- function(counts, total) {
-  paste0(names(counts), " (", as.integer(counts), "/", total, " payloads)", collapse = ", ")
+format_response_count <- function(x) {
+  format(as.integer(x), big.mark = ",", scientific = FALSE, trim = TRUE)
+}
+
+unique_response_ids <- function(ids) {
+  ids <- unlist(ids, use.names = FALSE)
+
+  if (is.null(ids)) {
+    return(character())
+  }
+
+  unique(as.character(ids))
+}
+
+format_response_slot_counts <- function(counts, total, label = "payloads") {
+  paste0(
+    names(counts),
+    " (",
+    format_response_count(counts),
+    "/",
+    format_response_count(total),
+    " ",
+    label,
+    ")",
+    collapse = ", "
+  )
+}
+
+format_optional_response_slot_counts <- function(absent_counts, total) {
+  present_counts <- total - absent_counts
+
+  paste0(
+    names(absent_counts),
+    " present in ",
+    format_response_count(present_counts),
+    "/",
+    format_response_count(total),
+    " wrapper payloads, absent in ",
+    format_response_count(absent_counts),
+    "/",
+    format_response_count(total),
+    collapse = "; "
+  )
+}
+
+format_response_shape_counts <- function(mixed = 0L, unknown = 0L) {
+  counts <- c(
+    "mixed response-shaped payloads" = mixed,
+    "unrecognized response-shaped payloads" = unknown
+  )
+
+  counts <- counts[counts > 0]
+
+  paste0(format_response_count(counts), " ", names(counts), collapse = ", ")
 }
 
 format_response_slot_examples <- function(ids, n = 5) {

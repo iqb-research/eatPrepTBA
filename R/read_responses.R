@@ -1,6 +1,9 @@
 #' Reads responses files
 #'
 #' @param files Character. Vector of paths to the csv files from the IQB Testcenter to be read.
+#' @param diagnostics Character. Controls response slot diagnostics. Use `"compact"`
+#'   for concise feedback, `"verbose"` for additional detail, or `"none"` to
+#'   suppress these diagnostics.
 #'
 #' @description
 #' This function reads response files downloaded from the IQB Testcenter and
@@ -15,7 +18,10 @@
 #' @return A tibble.
 #'
 #' @export
-read_responses <- function(files) {
+read_responses <- function(files,
+                           diagnostics = c("compact", "verbose", "none")) {
+  diagnostics <- match.arg(diagnostics)
+
   if (length(files) == 1) {
     responses_raw <-
       readr::read_delim(files, delim = ";",
@@ -58,7 +64,8 @@ read_responses <- function(files) {
   responses_raw <- announce_response_slot_diagnostics(
     responses_raw,
     "Read responses",
-    is_parsed = FALSE
+    is_parsed = FALSE,
+    diagnostics = diagnostics
   )
 
   responses_raw %>%

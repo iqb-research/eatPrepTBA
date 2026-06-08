@@ -1,6 +1,6 @@
 # eatPrepTBA 0.9.8.9014
 
-* Added diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. Missing required slots (`elementCodes`, `stateVariableCodes`) and unexpected new inner slot ids are reported without changing output behavior; `geometryVariableCodes` is treated as optional.
+* Added shape-aware diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. The new `diagnostics` argument controls compact, verbose, or suppressed feedback without changing output behavior.
 
 # eatPrepTBA 0.9.8.9013
 

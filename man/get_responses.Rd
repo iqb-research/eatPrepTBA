@@ -5,9 +5,19 @@
 \alias{get_responses,WorkspaceTestcenter-method}
 \title{Get responses directly from Testcenter}
 \usage{
-get_responses(workspace, groups = NULL, units_filter_off = NULL)
+get_responses(
+  workspace,
+  groups = NULL,
+  units_filter_off = NULL,
+  diagnostics = c("compact", "verbose", "none")
+)
 
-\S4method{get_responses}{WorkspaceTestcenter}(workspace, groups = NULL, units_filter_off = NULL)
+\S4method{get_responses}{WorkspaceTestcenter}(
+  workspace,
+  groups = NULL,
+  units_filter_off = NULL,
+  diagnostics = c("compact", "verbose", "none")
+)
 }
 \arguments{
 \item{workspace}{\linkS4class{WorkspaceTestcenter}. Workspace information necessary to retrieve unit information and resources from the API.}
@@ -15,6 +25,10 @@ get_responses(workspace, groups = NULL, units_filter_off = NULL)
 \item{groups}{Character. Name of the groups to be retrieved or all groups if not specified.}
 
 \item{units_filter_off}{Character. Names of the units to be removed from the dataset.}
+
+\item{diagnostics}{Character. Controls response slot diagnostics. Use \code{"compact"}
+for concise feedback, \code{"verbose"} for additional detail, or \code{"none"} to
+suppress these diagnostics.}
 }
 \value{
 A tibble.
