@@ -1,6 +1,7 @@
 # eatPrepTBA 0.9.8.9014
 
 * Added shape-aware diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. The new `diagnostics` argument controls compact, verbose, or suppressed feedback without changing output behavior.
+* Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.
 
 # eatPrepTBA 0.9.8.9013
 

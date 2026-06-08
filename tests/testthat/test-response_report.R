@@ -12,6 +12,21 @@ direct_responses <- function(ids) {
   )
 }
 
+subform_responses <- function(ids) {
+  lapply(
+    ids,
+    function(id) {
+      list(
+        id = id,
+        subForm = id,
+        responseType = "state",
+        ts = 0,
+        content = "[{\"id\":\"value\",\"value\":\"1\",\"status\":\"CODING_COMPLETE\"}]"
+      )
+    }
+  )
+}
+
 unknown_response_entries <- function(ids) {
   lapply(
     ids,
@@ -142,6 +157,41 @@ test_that("response slot diagnostics classify direct response ids separately", {
   expect_equal(diagnostics$direct_observed, c("question_0", "sums", "activeQuestionIndex"))
   expect_equal(diagnostics$missing_required, character())
   expect_equal(diagnostics$unknown_wrapper, character())
+})
+
+test_that("subform response containers are not treated as standard wrapper slots", {
+  responses_raw <- tibble::tibble(
+    responses = list(subform_responses(c(
+      "question_0",
+      "sums",
+      "activeQuestionIndex"
+    )))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$n_wrapper_payloads, 0L)
+  expect_equal(diagnostics$n_subform_payloads, 1L)
+  expect_equal(diagnostics$n_direct_payloads, 0L)
+  expect_equal(diagnostics$subform_observed, c("question_0", "sums", "activeQuestionIndex"))
+  expect_equal(diagnostics$unknown_wrapper, character())
+  expect_equal(diagnostics$missing_required, character())
+})
+
+test_that("content entries with slot-like ids are treated as wrapper slots", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c(
+      "elementCodes",
+      "stateVariableCodes",
+      "newVariableCodes"
+    )))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw)
+
+  expect_equal(diagnostics$n_wrapper_payloads, 1L)
+  expect_equal(diagnostics$n_direct_payloads, 0L)
+  expect_equal(diagnostics$unknown_wrapper, "newVariableCodes")
 })
 
 test_that("response slot diagnostics detect mixed and unrecognized payloads", {

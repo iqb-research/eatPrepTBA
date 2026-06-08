@@ -138,14 +138,42 @@ response_entry_has_name <- function(x, name) {
   is.list(x) && name %in% names(x)
 }
 
+is_response_slot_like_id <- function(id) {
+  expected <- expected_response_slot_ids()
+  id %in% c(expected$required, expected$optional, "responses") ||
+    grepl("Codes$", id)
+}
+
 is_wrapper_response_entry <- function(x) {
-  response_entry_has_name(x, "id") && response_entry_has_name(x, "content")
+  id <- response_payload_entry_id(x)
+
+  !is.na(id) &&
+    response_entry_has_name(x, "content") &&
+    is_response_slot_like_id(id)
+}
+
+is_subform_response_entry <- function(x) {
+  id <- response_payload_entry_id(x)
+
+  !is.na(id) &&
+    response_entry_has_name(x, "content") &&
+    !is_response_slot_like_id(id) &&
+    (
+      response_entry_has_name(x, "subForm") ||
+        response_entry_has_name(x, "subform") ||
+        response_entry_has_name(x, "responseType")
+    )
 }
 
 is_direct_response_entry <- function(x) {
+  id <- response_payload_entry_id(x)
+
   response_entry_has_name(x, "id") &&
-    !response_entry_has_name(x, "content") &&
-    (response_entry_has_name(x, "status") || response_entry_has_name(x, "value"))
+    !is.na(id) &&
+    (
+      response_entry_has_name(x, "status") ||
+        response_entry_has_name(x, "value")
+    )
 }
 
 classify_response_payload <- function(payload, is_parsed = TRUE) {
@@ -156,6 +184,7 @@ classify_response_payload <- function(payload, is_parsed = TRUE) {
       shape = "empty",
       ids = character(),
       wrapper_ids = character(),
+      subform_ids = character(),
       direct_ids = character(),
       unknown_ids = character()
     ))
@@ -167,13 +196,15 @@ classify_response_payload <- function(payload, is_parsed = TRUE) {
   )
 
   wrapper <- purrr::map_lgl(payload, is_wrapper_response_entry)
+  subform <- purrr::map_lgl(payload, is_subform_response_entry)
   direct <- purrr::map_lgl(payload, is_direct_response_entry)
-  unknown <- !(wrapper | direct)
+  unknown <- !(wrapper | subform | direct)
 
   shape <- dplyr::case_when(
     all(wrapper) ~ "wrapper",
+    all(subform) ~ "subform",
     all(direct) ~ "direct",
-    any(wrapper) || any(direct) ~ "mixed",
+    any(wrapper) || any(subform) || any(direct) ~ "mixed",
     .default = "unknown"
   )
 
@@ -181,6 +212,7 @@ classify_response_payload <- function(payload, is_parsed = TRUE) {
     shape = shape,
     ids = ids[!is.na(ids) & ids != ""],
     wrapper_ids = ids[wrapper & !is.na(ids) & ids != ""],
+    subform_ids = ids[subform & !is.na(ids) & ids != ""],
     direct_ids = ids[direct & !is.na(ids) & ids != ""],
     unknown_ids = ids[unknown & !is.na(ids) & ids != ""]
   )
@@ -194,10 +226,12 @@ response_slot_diagnostics <- function(responses,
   empty_diagnostics <- list(
     n_payloads = 0L,
     n_wrapper_payloads = 0L,
+    n_subform_payloads = 0L,
     n_direct_payloads = 0L,
     n_mixed_payloads = 0L,
     n_unknown_payloads = 0L,
     wrapper_observed = character(),
+    subform_observed = character(),
     direct_observed = character(),
     unknown_entry_ids = character(),
     missing_required = character(),
@@ -233,6 +267,7 @@ response_slot_diagnostics <- function(responses,
 
   wrapper_ids <- purrr::map(wrapper_payloads, "wrapper_ids")
   wrapper_observed <- unique_response_ids(wrapper_ids)
+  subform_observed <- unique_response_ids(purrr::map(non_empty_payloads, "subform_ids"))
   direct_observed <- unique_response_ids(purrr::map(non_empty_payloads, "direct_ids"))
   unknown_entry_ids <- unique_response_ids(purrr::map(non_empty_payloads, "unknown_ids"))
   known <- c(expected$required, expected$optional)
@@ -262,10 +297,12 @@ response_slot_diagnostics <- function(responses,
   list(
     n_payloads = length(non_empty_payloads),
     n_wrapper_payloads = length(wrapper_payloads),
+    n_subform_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "subform"),
     n_direct_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "direct"),
     n_mixed_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "mixed"),
     n_unknown_payloads = sum(purrr::map_chr(non_empty_payloads, "shape") == "unknown"),
     wrapper_observed = wrapper_observed,
+    subform_observed = subform_observed,
     direct_observed = direct_observed,
     unknown_entry_ids = unknown_entry_ids,
     missing_required = names(missing_required_counts)[missing_required_counts > 0],
@@ -309,6 +346,18 @@ announce_response_slot_diagnostics <- function(responses,
     )
   }
 
+  if (diagnostics$n_subform_payloads > 0) {
+    subform_examples <- format_response_slot_examples(
+      diagnostics$subform_observed,
+      n = if (identical(verbosity, "verbose")) 10 else 3
+    )
+
+    cli::cli_alert_info(
+      "{source}: detected {format_response_count(diagnostics$n_subform_payloads)} subform response payload{?s}; ids such as {subform_examples} are subform response containers, not standard response slots, and were excluded from standard slot diagnostics.",
+      wrap = TRUE
+    )
+  }
+
   if (diagnostics$n_mixed_payloads > 0 || diagnostics$n_unknown_payloads > 0) {
     shape_summary <- format_response_shape_counts(
       mixed = diagnostics$n_mixed_payloads,
@@ -316,7 +365,7 @@ announce_response_slot_diagnostics <- function(responses,
     )
 
     cli::cli_alert_info(
-      "{source}: detected {shape_summary}; slot checks use {format_response_count(diagnostics$n_wrapper_payloads)} wrapper-shaped payload{?s} only.",
+      "{source}: detected {shape_summary}; slot checks use {format_response_count(diagnostics$n_wrapper_payloads)} standard wrapper-shaped payload{?s} only.",
       wrap = TRUE
     )
   }
@@ -325,11 +374,11 @@ announce_response_slot_diagnostics <- function(responses,
     missing_required <- format_response_slot_counts(
       diagnostics$missing_required_counts[diagnostics$missing_required],
       diagnostics$n_wrapper_payloads,
-      label = "wrapper payloads"
+      label = "standard wrapper payloads"
     )
 
     cli::cli_alert_warning(
-      "{source}: missing required wrapper slot ids: {missing_required}. Output behavior is unchanged.",
+      "{source}: missing required standard wrapper slot ids: {missing_required}. Output behavior is unchanged.",
       wrap = TRUE
     )
   }
