@@ -74,6 +74,11 @@
   [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
   [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md),
   and response documentation for the current response report format.
+- Added `geometry_variables` and `geometry_variables_ts` columns to
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
+  and
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
+  for Testcenter `geometryVariableCodes` payloads.
 - Preserved response rows with empty nested response data so units
   without stored responses remain visible in
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
