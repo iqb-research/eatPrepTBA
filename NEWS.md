@@ -33,6 +33,7 @@
 
 * Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
 * Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
+* Added `geometry_variables` and `geometry_variables_ts` columns to `get_responses()` and `read_responses()` for Testcenter `geometryVariableCodes` payloads.
 * Preserved response rows with empty nested response data so units without stored responses remain visible in `download_responses()`, `get_responses()`, and `read_responses()`.
 * Preserved units whose response report payload only contains empty coded responses (`responses = []`) so they remain available for design-based missing completion.
 * Fixed response report edge cases for empty API results, parsed `laststate` objects, and `units_filter_off` handling.
