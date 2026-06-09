@@ -125,6 +125,38 @@ test_that("compact response slot announcements do not report missing optional ge
   )
 })
 
+test_that("full response slot examples are not shortened", {
+  ids <- paste0("question_", 0:12)
+  examples <- format_response_slot_examples(ids, n = Inf)
+
+  expect_true(all(ids %in% strsplit(examples, ", ")[[1]]))
+  expect_false(grepl("more", examples, fixed = TRUE))
+})
+
+test_that("standard response slot coverage includes required and optional slots", {
+  coverage <- format_standard_response_slot_counts(
+    c(elementCodes = 0L, stateVariableCodes = 2L),
+    c(geometryVariableCodes = 1L),
+    total = 3L
+  )
+
+  expect_match(
+    coverage,
+    "elementCodes present in 3/3 standard wrapper payloads, absent in 0/3",
+    fixed = TRUE
+  )
+  expect_match(
+    coverage,
+    "stateVariableCodes present in 1/3 standard wrapper payloads, absent in 2/3",
+    fixed = TRUE
+  )
+  expect_match(
+    coverage,
+    "geometryVariableCodes present in 2/3 standard wrapper payloads, absent in 1/3",
+    fixed = TRUE
+  )
+})
+
 test_that("response slot diagnostics detect unknown and suspicious wrapper ids", {
   responses_raw <- tibble::tibble(
     responses = list(response_slots(c(

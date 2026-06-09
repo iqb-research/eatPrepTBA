@@ -4,7 +4,7 @@
 #' @param groups Character. Name of the groups to be retrieved or all groups if not specified.
 #' @param units_filter_off Character. Names of the units to be removed from the dataset.
 #' @param diagnostics Character. Controls response slot diagnostics. Use `"compact"`
-#'   for concise feedback, `"verbose"` for additional detail, or `"none"` to
+#'   for concise feedback, `"full"` for all details, or `"none"` to
 #'   suppress these diagnostics.
 #'
 #' @description
@@ -25,7 +25,7 @@
 setGeneric("download_responses", function(workspace,
                                           groups = NULL,
                                           units_filter_off = NULL,
-                                          diagnostics = c("compact", "verbose", "none")) {
+                                          diagnostics = c("compact", "full", "none")) {
   cli_setting()
 
   standardGeneric("download_responses")
@@ -37,7 +37,7 @@ setMethod("download_responses",
           function(workspace,
                    groups = NULL,
                    units_filter_off = NULL,
-                   diagnostics = c("compact", "verbose", "none")) {
+                   diagnostics = c("compact", "full", "none")) {
             diagnostics <- match.arg(diagnostics)
 
             if (is.null(groups)) {

@@ -4,13 +4,13 @@
 \alias{read_responses}
 \title{Reads responses files}
 \usage{
-read_responses(files, diagnostics = c("compact", "verbose", "none"))
+read_responses(files, diagnostics = c("compact", "full", "none"))
 }
 \arguments{
 \item{files}{Character. Vector of paths to the csv files from the IQB Testcenter to be read.}
 
 \item{diagnostics}{Character. Controls response slot diagnostics. Use \code{"compact"}
-for concise feedback, \code{"verbose"} for additional detail, or \code{"none"} to
+for concise feedback, \code{"full"} for all details, or \code{"none"} to
 suppress these diagnostics.}
 }
 \value{

@@ -2,7 +2,7 @@
 #'
 #' @param files Character. Vector of paths to the csv files from the IQB Testcenter to be read.
 #' @param diagnostics Character. Controls response slot diagnostics. Use `"compact"`
-#'   for concise feedback, `"verbose"` for additional detail, or `"none"` to
+#'   for concise feedback, `"full"` for all details, or `"none"` to
 #'   suppress these diagnostics.
 #'
 #' @description
@@ -19,7 +19,9 @@
 #'
 #' @export
 read_responses <- function(files,
-                           diagnostics = c("compact", "verbose", "none")) {
+                           diagnostics = c("compact", "full", "none")) {
+  cli_setting()
+
   diagnostics <- match.arg(diagnostics)
 
   if (length(files) == 1) {

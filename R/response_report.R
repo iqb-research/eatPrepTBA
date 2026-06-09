@@ -317,7 +317,7 @@ announce_response_slot_diagnostics <- function(responses,
                                                source = "Response data",
                                                is_parsed = TRUE,
                                                response_col = "responses",
-                                               diagnostics = c("compact", "verbose", "none")) {
+                                               diagnostics = c("compact", "full", "none")) {
   verbosity <- match.arg(diagnostics)
 
   if (verbosity == "none") {
@@ -337,7 +337,7 @@ announce_response_slot_diagnostics <- function(responses,
   if (diagnostics$n_direct_payloads > 0) {
     direct_examples <- format_response_slot_examples(
       diagnostics$direct_observed,
-      n = if (identical(verbosity, "verbose")) 10 else 3
+      n = if (identical(verbosity, "full")) Inf else 3
     )
 
     cli::cli_alert_info(
@@ -349,7 +349,7 @@ announce_response_slot_diagnostics <- function(responses,
   if (diagnostics$n_subform_payloads > 0) {
     subform_examples <- format_response_slot_examples(
       diagnostics$subform_observed,
-      n = if (identical(verbosity, "verbose")) 10 else 3
+      n = if (identical(verbosity, "full")) Inf else 3
     )
 
     cli::cli_alert_info(
@@ -383,22 +383,23 @@ announce_response_slot_diagnostics <- function(responses,
     )
   }
 
-  if (identical(verbosity, "verbose") && diagnostics$n_wrapper_payloads > 0) {
-    optional_coverage <- format_optional_response_slot_counts(
+  if (identical(verbosity, "full") && diagnostics$n_wrapper_payloads > 0) {
+    standard_coverage <- format_standard_response_slot_counts(
+      diagnostics$missing_required_counts,
       diagnostics$missing_optional_counts,
       diagnostics$n_wrapper_payloads
     )
 
     cli::cli_alert_info(
-      "{source}: optional wrapper slot coverage: {optional_coverage}. Output behavior is unchanged.",
+      "{source}: standard wrapper slot coverage: {standard_coverage}. Output behavior is unchanged.",
       wrap = TRUE
     )
   }
 
-  if (identical(verbosity, "verbose") && length(diagnostics$unknown_entry_ids) > 0) {
+  if (identical(verbosity, "full") && length(diagnostics$unknown_entry_ids) > 0) {
     unknown_entry_ids <- format_response_slot_examples(
       diagnostics$unknown_entry_ids,
-      n = 10
+      n = Inf
     )
 
     cli::cli_alert_info(
@@ -410,7 +411,7 @@ announce_response_slot_diagnostics <- function(responses,
   if (length(diagnostics$unknown_wrapper) > 0) {
     unknown <- format_response_slot_examples(
       diagnostics$unknown_wrapper,
-      n = if (identical(verbosity, "verbose")) 10 else 5
+      n = if (identical(verbosity, "full")) Inf else 5
     )
 
     if ("responses" %in% diagnostics$unknown_wrapper) {
@@ -457,7 +458,10 @@ format_response_slot_counts <- function(counts, total, label = "payloads") {
   )
 }
 
-format_optional_response_slot_counts <- function(absent_counts, total) {
+format_standard_response_slot_counts <- function(required_absent_counts,
+                                                 optional_absent_counts,
+                                                 total) {
+  absent_counts <- c(required_absent_counts, optional_absent_counts)
   present_counts <- total - absent_counts
 
   paste0(
@@ -466,7 +470,7 @@ format_optional_response_slot_counts <- function(absent_counts, total) {
     format_response_count(present_counts),
     "/",
     format_response_count(total),
-    " wrapper payloads, absent in ",
+    " standard wrapper payloads, absent in ",
     format_response_count(absent_counts),
     "/",
     format_response_count(total),
@@ -487,10 +491,10 @@ format_response_shape_counts <- function(mixed = 0L, unknown = 0L) {
 
 format_response_slot_examples <- function(ids, n = 5) {
   ids <- unique(as.character(ids))
-  shown <- head(ids, n)
+  shown <- if (is.infinite(n)) ids else head(ids, n)
   label <- paste(shown, collapse = ", ")
 
-  if (length(ids) > n) {
+  if (!is.infinite(n) && length(ids) > n) {
     label <- paste0(label, ", and ", length(ids) - n, " more")
   }
 
@@ -540,11 +544,11 @@ announce_missing_response_payloads <- function(responses,
 
   if (n_missing == nrow(responses)) {
     cli::cli_alert_warning(
-      "{source}: every response row ({n_missing}) has a missing payload; rows are kept with {.code responses = NA} and should be completed with {.fn complete_design}."
+      "{source}: every response row ({n_missing}) has a missing payload; rows are kept with {.code responses = NA}, omitted by {.fn code_responses}, and should be completed afterwards with {.fn complete_design}."
     )
   } else {
     cli::cli_alert_info(
-      "{source}: kept {n_missing} response row{?s} with missing payloads as {.code responses = NA}; complete them later with {.fn complete_design}."
+      "{source}: kept {n_missing} response row{?s} with missing payloads as {.code responses = NA}; {.fn code_responses} will omit them, and they should be completed afterwards with {.fn complete_design}."
     )
   }
 

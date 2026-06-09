@@ -9,14 +9,14 @@ download_responses(
   workspace,
   groups = NULL,
   units_filter_off = NULL,
-  diagnostics = c("compact", "verbose", "none")
+  diagnostics = c("compact", "full", "none")
 )
 
 \S4method{download_responses}{WorkspaceTestcenter}(
   workspace,
   groups = NULL,
   units_filter_off = NULL,
-  diagnostics = c("compact", "verbose", "none")
+  diagnostics = c("compact", "full", "none")
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ download_responses(
 \item{units_filter_off}{Character. Names of the units to be removed from the dataset.}
 
 \item{diagnostics}{Character. Controls response slot diagnostics. Use \code{"compact"}
-for concise feedback, \code{"verbose"} for additional detail, or \code{"none"} to
+for concise feedback, \code{"full"} for all details, or \code{"none"} to
 suppress these diagnostics.}
 }
 \value{
