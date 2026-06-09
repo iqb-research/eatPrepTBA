@@ -156,13 +156,15 @@ setMethod("get_responses",
                                               function(x) unnest_responses(x, is_parsed = TRUE),
                                               .progress = response_preparation_progress(
                                                 "Preparing responses",
-                                                "Prepared responses"
+                                                "Prepared responses",
+                                                diagnostics = diagnostics
                                               )),
                   laststate_nest = purrr::map(laststate_nest,
                                               function(x) unnest_laststate(x),
                                               .progress = response_preparation_progress(
                                                 "Preparing last state",
-                                                "Prepared last state"
+                                                "Prepared last state",
+                                                diagnostics = diagnostics
                                               )),
                 ) %>%
                 tidyr::unnest(c("responses_nest", "laststate_nest"), keep_empty = TRUE) %>%

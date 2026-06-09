@@ -166,11 +166,30 @@ test_that("standard response slot coverage includes required and optional slots"
   expect_false(grepl("absent", coverage, fixed = TRUE))
 })
 
-test_that("response preparation progress is shown immediately", {
-  progress <- response_preparation_progress("Preparing responses", "Prepared responses")
+test_that("response preparation progress keeps elapsed time in diagnostic modes", {
+  progress <- response_preparation_progress(
+    "Preparing responses",
+    "Prepared responses",
+    diagnostics = "compact"
+  )
+
+  expect_equal(progress$show_after, 0)
+  expect_false(progress$clear)
+  expect_match(progress$format_done, "Prepared responses in", fixed = TRUE)
+  expect_match(progress$format_done, "pb_elapsed", fixed = TRUE)
+})
+
+test_that("response preparation progress is quieter when diagnostics are suppressed", {
+  progress <- response_preparation_progress(
+    "Preparing responses",
+    "Prepared responses",
+    diagnostics = "none"
+  )
 
   expect_equal(progress$show_after, 0)
   expect_true(progress$clear)
+  expect_null(progress$format_done)
+  expect_false(grepl("pb_bar", progress$format, fixed = TRUE))
 })
 
 test_that("missing response payload announcements can be suppressed", {

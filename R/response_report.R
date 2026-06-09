@@ -530,13 +530,26 @@ format_response_slot_examples <- function(ids, n = 5, full_hint = FALSE) {
   label
 }
 
-response_preparation_progress <- function(label, done_label) {
+response_preparation_progress <- function(label,
+                                          done_label,
+                                          diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+
+  if (diagnostics == "none") {
+    return(list(
+      type = "custom",
+      show_after = 0,
+      format = paste0(label, " {cli::pb_percent} | ETA: {cli::pb_eta}"),
+      clear = TRUE
+    ))
+  }
+
   list(
     type = "custom",
     show_after = 0,
     format = paste0(label, " {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}"),
     format_done = paste0(done_label, " in {cli::pb_elapsed}."),
-    clear = TRUE
+    clear = FALSE
   )
 }
 
