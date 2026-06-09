@@ -152,20 +152,20 @@ setMethod("get_responses",
                   .groups = "drop"
                 ) %>%
                 dplyr::mutate(
-                  responses_nest = purrr::map(responses_nest,
-                                              function(x) unnest_responses(x, is_parsed = TRUE),
-                                              .progress = response_preparation_progress(
-                                                "Preparing responses",
-                                                "Prepared responses",
-                                                diagnostics = diagnostics
-                                              )),
-                  laststate_nest = purrr::map(laststate_nest,
-                                              function(x) unnest_laststate(x),
-                                              .progress = response_preparation_progress(
-                                                "Preparing last state",
-                                                "Prepared last state",
-                                                diagnostics = diagnostics
-                                              )),
+                  responses_nest = map_response_preparation(
+                    responses_nest,
+                    function(x) unnest_responses(x, is_parsed = TRUE),
+                    "Preparing responses",
+                    "Prepared responses",
+                    diagnostics = diagnostics
+                  ),
+                  laststate_nest = map_response_preparation(
+                    laststate_nest,
+                    function(x) unnest_laststate(x),
+                    "Preparing last state",
+                    "Prepared last state",
+                    diagnostics = diagnostics
+                  ),
                 ) %>%
                 tidyr::unnest(c("responses_nest", "laststate_nest"), keep_empty = TRUE) %>%
                 dplyr::group_by(

@@ -220,8 +220,7 @@ classify_response_payload <- function(payload, is_parsed = TRUE) {
 
 response_slot_diagnostics <- function(responses,
                                       is_parsed = TRUE,
-                                      response_col = "responses",
-                                      progress = FALSE) {
+                                      response_col = "responses") {
   expected <- expected_response_slot_ids()
 
   empty_diagnostics <- list(
@@ -249,8 +248,7 @@ response_slot_diagnostics <- function(responses,
   payload_diagnostics <- purrr::map(
     responses[[response_col]],
     classify_response_payload,
-    is_parsed = is_parsed,
-    .progress = progress
+    is_parsed = is_parsed
   )
 
   non_empty_payloads <- purrr::keep(
@@ -329,12 +327,7 @@ announce_response_slot_diagnostics <- function(responses,
   diagnostics <- response_slot_diagnostics(
     responses,
     is_parsed = is_parsed,
-    response_col = response_col,
-    progress = response_preparation_progress(
-      "Checking response slots",
-      "Checked response slots",
-      diagnostics = verbosity
-    )
+    response_col = response_col
   )
 
   if (diagnostics$n_payloads == 0) {
@@ -538,26 +531,52 @@ format_response_slot_examples <- function(ids, n = 5, full_hint = FALSE) {
 }
 
 response_preparation_progress <- function(label,
-                                          done_label,
                                           diagnostics = c("compact", "full", "none")) {
   diagnostics <- match.arg(diagnostics)
 
   if (diagnostics == "none") {
-    return(list(
-      type = "custom",
-      show_after = 0,
-      format = paste0(label, " {cli::pb_percent} | ETA: {cli::pb_eta}"),
-      clear = TRUE
-    ))
+    return(FALSE)
   }
 
-  list(
-    type = "custom",
-    show_after = 0,
-    format = paste0(label, " {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}"),
-    format_done = paste0(done_label, " in {cli::pb_elapsed}."),
-    clear = FALSE
+  label
+}
+
+map_response_preparation <- function(x,
+                                     .f,
+                                     label,
+                                     done_label,
+                                     diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+  start <- Sys.time()
+
+  out <- purrr::map(
+    x,
+    .f,
+    .progress = response_preparation_progress(label, diagnostics)
   )
+
+  if (diagnostics != "none") {
+    cli::cli_text("{done_label} in {format_response_elapsed(Sys.time() - start)}.")
+  }
+
+  out
+}
+
+format_response_elapsed <- function(x) {
+  seconds <- as.numeric(x, units = "secs")
+
+  if (seconds < 1) {
+    return(paste0(round(seconds * 1000), "ms"))
+  }
+
+  if (seconds < 60) {
+    return(paste0(round(seconds, 1), "s"))
+  }
+
+  minutes <- floor(seconds / 60)
+  seconds <- round(seconds %% 60, 1)
+
+  paste0(minutes, "m ", seconds, "s")
 }
 
 announce_empty_nested_response_payloads <- function(responses_raw,

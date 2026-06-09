@@ -169,38 +169,25 @@ test_that("standard response slot coverage includes required and optional slots"
 test_that("response preparation progress keeps elapsed time in diagnostic modes", {
   progress <- response_preparation_progress(
     "Preparing responses",
-    "Prepared responses",
     diagnostics = "compact"
   )
 
-  expect_equal(progress$show_after, 0)
-  expect_false(progress$clear)
-  expect_match(progress$format_done, "Prepared responses in", fixed = TRUE)
-  expect_match(progress$format_done, "pb_elapsed", fixed = TRUE)
-})
-
-test_that("response slot diagnostics accept progress settings", {
-  responses_raw <- tibble::tibble(
-    responses = list(response_slots(c("elementCodes", "stateVariableCodes")))
-  )
-
-  diagnostics <- response_slot_diagnostics(responses_raw, progress = FALSE)
-
-  expect_equal(diagnostics$n_wrapper_payloads, 1L)
-  expect_equal(diagnostics$missing_required, character())
+  expect_equal(progress, "Preparing responses")
 })
 
 test_that("response preparation progress is quieter when diagnostics are suppressed", {
   progress <- response_preparation_progress(
     "Preparing responses",
-    "Prepared responses",
     diagnostics = "none"
   )
 
-  expect_equal(progress$show_after, 0)
-  expect_true(progress$clear)
-  expect_null(progress$format_done)
-  expect_false(grepl("pb_bar", progress$format, fixed = TRUE))
+  expect_false(progress)
+})
+
+test_that("response elapsed times are formatted compactly", {
+  expect_equal(format_response_elapsed(as.difftime(0.021, units = "secs")), "21ms")
+  expect_equal(format_response_elapsed(as.difftime(4.84, units = "secs")), "4.8s")
+  expect_equal(format_response_elapsed(as.difftime(77.1, units = "secs")), "1m 17.1s")
 })
 
 test_that("missing response payload announcements can be suppressed", {

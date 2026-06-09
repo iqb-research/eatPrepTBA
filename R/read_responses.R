@@ -24,25 +24,7 @@ read_responses <- function(files,
 
   diagnostics <- match.arg(diagnostics)
 
-  if (length(files) == 1) {
-    responses_raw <-
-      readr::read_delim(files, delim = ";",
-                        col_types = readr::cols(.default = readr::col_character()))
-  } else {
-    responses_raw <-
-      tibble::tibble(
-        file = files
-      ) %>%
-      dplyr::mutate(
-        data = purrr::map(file, function(file) {
-          readr::read_delim(file, delim = ";",
-                            col_types = readr::cols(.default = readr::col_character()))
-        })
-      ) %>%
-      tidyr::unnest(
-        data
-      )
-  }
+  responses_raw <- read_response_files(files)
 
   # For legacy reasons, this has to be added
   # TODO: Can this be removed at a later point in time?
@@ -95,20 +77,20 @@ read_responses <- function(files,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      responses_nest = purrr::map(responses_nest,
-                                  function(x) unnest_responses(x, is_parsed = FALSE),
-                                  .progress = response_preparation_progress(
-                                    "Preparing responses",
-                                    "Prepared responses",
-                                    diagnostics = diagnostics
-                                  )),
-      laststate_nest = purrr::map(laststate_nest,
-                                  function(x) unnest_laststate(x),
-                                  .progress = response_preparation_progress(
-                                    "Preparing last state",
-                                    "Prepared last state",
-                                    diagnostics = diagnostics
-                                  )),
+      responses_nest = map_response_preparation(
+        responses_nest,
+        function(x) unnest_responses(x, is_parsed = FALSE),
+        "Preparing responses",
+        "Prepared responses",
+        diagnostics = diagnostics
+      ),
+      laststate_nest = map_response_preparation(
+        laststate_nest,
+        function(x) unnest_laststate(x),
+        "Preparing last state",
+        "Prepared last state",
+        diagnostics = diagnostics
+      ),
     ) %>%
     tidyr::unnest(c("responses_nest", "laststate_nest"), keep_empty = TRUE) %>%
     dplyr::group_by(
@@ -141,4 +123,44 @@ read_responses <- function(files,
     ) %>%
     preserve_empty_response_payloads() %>%
     announce_missing_response_payloads("Read responses", diagnostics = diagnostics)
+}
+
+read_response_files <- function(files) {
+  if (length(files) == 1) {
+    return(read_response_file(files))
+  }
+
+  start <- Sys.time()
+  cli::cli_alert_info("Reading {format_response_count(length(files))} response files.")
+
+  responses_raw <-
+    tibble::tibble(
+      file = files
+    ) %>%
+    dplyr::mutate(
+      data = purrr::map(file, read_response_file)
+    )
+
+  cli::cli_text(
+    "Read {format_response_count(length(files))} response files in {format_response_elapsed(Sys.time() - start)}."
+  )
+
+  start <- Sys.time()
+  cli::cli_alert_info("Combining response files.")
+
+  responses_raw <- tidyr::unnest(responses_raw, data)
+
+  cli::cli_text(
+    "Combined response files in {format_response_elapsed(Sys.time() - start)}."
+  )
+
+  responses_raw
+}
+
+read_response_file <- function(file) {
+  readr::read_delim(
+    file,
+    delim = ";",
+    col_types = readr::cols(.default = readr::col_character())
+  )
 }
