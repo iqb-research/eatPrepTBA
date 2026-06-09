@@ -324,10 +324,19 @@ announce_response_slot_diagnostics <- function(responses,
     return(responses)
   }
 
+  start <- Sys.time()
+  cli::cli_alert_info(
+    "{source}: checking response payload structure for {format_response_row_count(nrow(responses))}."
+  )
+
   diagnostics <- response_slot_diagnostics(
     responses,
     is_parsed = is_parsed,
     response_col = response_col
+  )
+
+  cli::cli_text(
+    "{source}: checked response payload structure in {format_response_elapsed(Sys.time() - start)}."
   )
 
   if (diagnostics$n_payloads == 0) {
@@ -463,6 +472,13 @@ format_response_count <- function(x) {
   format(as.integer(x), big.mark = ",", scientific = FALSE, trim = TRUE)
 }
 
+format_response_row_count <- function(x) {
+  paste(
+    format_response_count(x),
+    ifelse(as.integer(x) == 1L, "row", "rows")
+  )
+}
+
 unique_response_ids <- function(ids) {
   ids <- unlist(ids, use.names = FALSE)
 
@@ -530,17 +546,6 @@ format_response_slot_examples <- function(ids, n = 5, full_hint = FALSE) {
   label
 }
 
-response_preparation_progress <- function(label,
-                                          diagnostics = c("compact", "full", "none")) {
-  diagnostics <- match.arg(diagnostics)
-
-  if (diagnostics == "none") {
-    return(FALSE)
-  }
-
-  label
-}
-
 map_response_preparation <- function(x,
                                      .f,
                                      label,
@@ -548,16 +553,14 @@ map_response_preparation <- function(x,
                                      diagnostics = c("compact", "full", "none")) {
   diagnostics <- match.arg(diagnostics)
   start <- Sys.time()
+  cli::cli_alert_info("{label}.")
 
   out <- purrr::map(
     x,
-    .f,
-    .progress = response_preparation_progress(label, diagnostics)
+    .f
   )
 
-  if (diagnostics != "none") {
-    cli::cli_text("{done_label} in {format_response_elapsed(Sys.time() - start)}.")
-  }
+  cli::cli_text("{done_label} in {format_response_elapsed(Sys.time() - start)}.")
 
   out
 }

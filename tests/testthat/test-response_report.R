@@ -166,28 +166,27 @@ test_that("standard response slot coverage includes required and optional slots"
   expect_false(grepl("absent", coverage, fixed = TRUE))
 })
 
-test_that("response preparation progress keeps elapsed time in diagnostic modes", {
-  progress <- response_preparation_progress(
+test_that("response preparation mapping preserves output", {
+  out <- map_response_preparation(
+    list(1L, 2L),
+    identity,
     "Preparing responses",
-    diagnostics = "compact"
-  )
-
-  expect_equal(progress, "Preparing responses")
-})
-
-test_that("response preparation progress is quieter when diagnostics are suppressed", {
-  progress <- response_preparation_progress(
-    "Preparing responses",
+    "Prepared responses",
     diagnostics = "none"
   )
 
-  expect_false(progress)
+  expect_equal(out, list(1L, 2L))
 })
 
 test_that("response elapsed times are formatted compactly", {
   expect_equal(format_response_elapsed(as.difftime(0.021, units = "secs")), "21ms")
   expect_equal(format_response_elapsed(as.difftime(4.84, units = "secs")), "4.8s")
   expect_equal(format_response_elapsed(as.difftime(77.1, units = "secs")), "1m 17.1s")
+})
+
+test_that("response row counts are formatted with plural labels", {
+  expect_equal(format_response_row_count(1), "1 row")
+  expect_equal(format_response_row_count(2), "2 rows")
 })
 
 test_that("missing response payload announcements can be suppressed", {

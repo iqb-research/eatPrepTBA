@@ -3,9 +3,10 @@
 * Added shape-aware diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. The new `diagnostics` argument controls compact, full, or suppressed feedback without changing output behavior.
 * Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.
 * Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to `diagnostics = "full"` when id examples are shortened.
-* Let `diagnostics = "none"` suppress missing-payload announcements and animated preparation progress.
-* Kept elapsed-time response preparation completion messages for compact and full response diagnostics.
+* Let `diagnostics = "none"` suppress missing-payload announcements and animated preparation progress while keeping stable preparation checkpoint messages.
+* Kept elapsed-time response preparation completion messages for all response diagnostics modes.
 * Added stable checkpoint messages while reading and combining multiple response files.
+* Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.
 
 # eatPrepTBA 0.9.8.9013
 
