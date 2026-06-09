@@ -192,13 +192,13 @@ test_that("response preparation progress is mode-specific", {
   )
 })
 
-test_that("response report preparation uses diagnostics progress modes", {
+test_that("downloaded response flattening uses diagnostics progress modes", {
   expect_equal(
-    response_preparation_progress("Preparing response report", diagnostics = "compact"),
-    "Preparing response report"
+    response_preparation_progress("Flattening downloaded responses", diagnostics = "compact"),
+    "Flattening downloaded responses"
   )
   expect_false(
-    response_preparation_progress("Preparing response report", diagnostics = "none")
+    response_preparation_progress("Flattening downloaded responses", diagnostics = "none")
   )
 })
 

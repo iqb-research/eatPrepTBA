@@ -17,8 +17,8 @@ response_report_to_tibble <- function(resp,
       value = map_response_preparation(
         value,
         response_report_entry_to_tibble,
-        "Preparing response report",
-        "Prepared response report",
+        "Flattening downloaded responses",
+        "Flattened downloaded responses",
         diagnostics = diagnostics
       )
     ) %>%
