@@ -179,6 +179,17 @@ test_that("response preparation progress keeps elapsed time in diagnostic modes"
   expect_match(progress$format_done, "pb_elapsed", fixed = TRUE)
 })
 
+test_that("response slot diagnostics accept progress settings", {
+  responses_raw <- tibble::tibble(
+    responses = list(response_slots(c("elementCodes", "stateVariableCodes")))
+  )
+
+  diagnostics <- response_slot_diagnostics(responses_raw, progress = FALSE)
+
+  expect_equal(diagnostics$n_wrapper_payloads, 1L)
+  expect_equal(diagnostics$missing_required, character())
+})
+
 test_that("response preparation progress is quieter when diagnostics are suppressed", {
   progress <- response_preparation_progress(
     "Preparing responses",

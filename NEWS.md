@@ -5,6 +5,7 @@
 * Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to `diagnostics = "full"` when id examples are shortened.
 * Let `diagnostics = "none"` suppress missing-payload announcements while keeping preparation progress visible.
 * Kept elapsed-time progress completion messages for compact and full response diagnostics, while using a quieter progress display for `diagnostics = "none"`.
+* Added progress feedback while response slot diagnostics scan raw response payloads.
 
 # eatPrepTBA 0.9.8.9013
 

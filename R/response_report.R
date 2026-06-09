@@ -220,7 +220,8 @@ classify_response_payload <- function(payload, is_parsed = TRUE) {
 
 response_slot_diagnostics <- function(responses,
                                       is_parsed = TRUE,
-                                      response_col = "responses") {
+                                      response_col = "responses",
+                                      progress = FALSE) {
   expected <- expected_response_slot_ids()
 
   empty_diagnostics <- list(
@@ -248,7 +249,8 @@ response_slot_diagnostics <- function(responses,
   payload_diagnostics <- purrr::map(
     responses[[response_col]],
     classify_response_payload,
-    is_parsed = is_parsed
+    is_parsed = is_parsed,
+    .progress = progress
   )
 
   non_empty_payloads <- purrr::keep(
@@ -327,7 +329,12 @@ announce_response_slot_diagnostics <- function(responses,
   diagnostics <- response_slot_diagnostics(
     responses,
     is_parsed = is_parsed,
-    response_col = response_col
+    response_col = response_col,
+    progress = response_preparation_progress(
+      "Checking response slots",
+      "Checked response slots",
+      diagnostics = verbosity
+    )
   )
 
   if (diagnostics$n_payloads == 0) {
