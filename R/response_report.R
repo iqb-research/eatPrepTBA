@@ -1,5 +1,7 @@
 response_report_to_tibble <- function(resp,
-                                      progress = "Preparing response report") {
+                                      diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+
   entries <-
     resp %>%
     purrr::compact() %>%
@@ -12,8 +14,13 @@ response_report_to_tibble <- function(resp,
   entries %>%
     tibble::enframe(name = NULL) %>%
     dplyr::mutate(
-      value = purrr::map(value, response_report_entry_to_tibble,
-                         .progress = progress)
+      value = map_response_preparation(
+        value,
+        response_report_entry_to_tibble,
+        "Preparing response report",
+        "Prepared response report",
+        diagnostics = diagnostics
+      )
     ) %>%
     tidyr::unnest(value)
 }
@@ -605,7 +612,14 @@ format_response_elapsed <- function(x) {
 }
 
 announce_empty_nested_response_payloads <- function(responses_raw,
-                                                    source = "Response report") {
+                                                    source = "Response report",
+                                                    diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+
+  if (diagnostics == "none") {
+    return(responses_raw)
+  }
+
   if (!"responses" %in% names(responses_raw) || nrow(responses_raw) == 0) {
     return(responses_raw)
   }

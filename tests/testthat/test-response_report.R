@@ -192,6 +192,16 @@ test_that("response preparation progress is mode-specific", {
   )
 })
 
+test_that("response report preparation uses diagnostics progress modes", {
+  expect_equal(
+    response_preparation_progress("Preparing response report", diagnostics = "compact"),
+    "Preparing response report"
+  )
+  expect_false(
+    response_preparation_progress("Preparing response report", diagnostics = "none")
+  )
+})
+
 test_that("response elapsed times are formatted compactly", {
   expect_equal(format_response_elapsed(as.difftime(0.021, units = "secs")), "21ms")
   expect_equal(format_response_elapsed(as.difftime(4.84, units = "secs")), "4.8s")
@@ -546,6 +556,19 @@ test_that("empty nested payloads are announced for raw reports", {
 
   announced <- announce_empty_nested_response_payloads(responses_raw)
   expect_equal(announced, responses_raw)
+})
+
+test_that("empty nested payload announcements can be suppressed", {
+  responses_raw <- tibble::tibble(
+    unitname = "SB_2631",
+    responses = list(list())
+  )
+
+  announced <- expect_silent(
+    announce_empty_nested_response_payloads(responses_raw, diagnostics = "none")
+  )
+
+  expect_identical(announced, responses_raw)
 })
 
 test_that("unit filters announce when all response rows are removed", {

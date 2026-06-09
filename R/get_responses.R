@@ -80,7 +80,10 @@ setMethod("get_responses",
             resp <- purrr::compact(resp)
 
             if (length(resp) > 0) {
-              responses_raw <- response_report_to_tibble(resp)
+              responses_raw <- response_report_to_tibble(
+                resp,
+                diagnostics = diagnostics
+              )
 
               if (nrow(responses_raw) == 0) {
                 cli::cli_alert_warning("Response reports contained no rows; returning an empty tibble.")

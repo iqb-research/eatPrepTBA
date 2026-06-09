@@ -76,7 +76,10 @@ setMethod("download_responses",
             resp <- purrr::compact(resp)
 
             if (length(resp) > 0) {
-              responses_raw <- response_report_to_tibble(resp)
+              responses_raw <- response_report_to_tibble(
+                resp,
+                diagnostics = diagnostics
+              )
 
               if (nrow(responses_raw) == 0) {
                 cli::cli_alert_warning("Response reports contained no rows; returning an empty tibble.")
@@ -85,7 +88,8 @@ setMethod("download_responses",
 
               responses_raw <- announce_empty_nested_response_payloads(
                 responses_raw,
-                "Downloaded response report"
+                "Downloaded response report",
+                diagnostics = diagnostics
               )
 
               n_before_filter <- nrow(responses_raw)

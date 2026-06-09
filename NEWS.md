@@ -9,6 +9,7 @@
 * Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.
 * Treated the known coded-response slot id `responses` as a special response slot, which can occur for stored coded responses such as StarS Player data, instead of warning that it is unexpected.
 * Restored default response preparation progress indicators for compact and full diagnostics while keeping `diagnostics = "none"` free of animated progress.
+* Aligned response report preparation and raw empty-payload announcements in `get_responses()` and `download_responses()` with the `diagnostics` modes used by `read_responses()`.
 
 # eatPrepTBA 0.9.8.9013
 
