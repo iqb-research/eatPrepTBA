@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9013</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9014</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,19 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9014" id="eatpreptba-0989014">eatPrepTBA 0.9.8.9014<a class="anchor" aria-label="anchor" href="#eatpreptba-0989014"></a></h2>
+<ul><li>Added shape-aware diagnostics in <code><a href="../reference/download_responses.html">download_responses()</a></code>, <code><a href="../reference/get_responses.html">get_responses()</a></code>, and <code><a href="../reference/read_responses.html">read_responses()</a></code> for changed Testcenter response slot ids. The new <code>diagnostics</code> argument controls compact, full, or suppressed feedback without changing output behavior.</li>
+<li>Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.</li>
+<li>Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to <code>diagnostics = "full"</code> when id examples are shortened.</li>
+<li>Let <code>diagnostics = "none"</code> suppress missing-payload announcements and animated preparation progress while keeping stable preparation checkpoint messages.</li>
+<li>Kept elapsed-time response preparation completion messages for all response diagnostics modes.</li>
+<li>Added stable checkpoint messages while reading and combining multiple response files.</li>
+<li>Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.</li>
+<li>Treated the known coded-response slot id <code>responses</code> as a special response slot, which can occur for stored coded responses such as StarS Player data, instead of warning that it is unexpected.</li>
+<li>Restored default response preparation progress indicators for compact and full diagnostics while keeping <code>diagnostics = "none"</code> free of animated progress.</li>
+<li>Aligned response report preparation and raw empty-payload announcements in <code><a href="../reference/get_responses.html">get_responses()</a></code> and <code><a href="../reference/download_responses.html">download_responses()</a></code> with the <code>diagnostics</code> modes used by <code><a href="../reference/read_responses.html">read_responses()</a></code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9013" id="eatpreptba-0989013">eatPrepTBA 0.9.8.9013<a class="anchor" aria-label="anchor" href="#eatpreptba-0989013"></a></h2>
 <ul><li>Added broad <code>testthat</code> coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.</li>

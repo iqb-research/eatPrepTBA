@@ -1,5 +1,43 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9014
+
+- Added shape-aware diagnostics in
+  [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
+  and
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
+  for changed Testcenter response slot ids. The new `diagnostics`
+  argument controls compact, full, or suppressed feedback without
+  changing output behavior.
+- Refined response slot diagnostics to classify subform/state response
+  containers separately from standard Testcenter wrapper slots.
+- Made compact response slot diagnostics less alarming and less silent
+  by confirming OK standard slots and pointing to `diagnostics = "full"`
+  when id examples are shortened.
+- Let `diagnostics = "none"` suppress missing-payload announcements and
+  animated preparation progress while keeping stable preparation
+  checkpoint messages.
+- Kept elapsed-time response preparation completion messages for all
+  response diagnostics modes.
+- Added stable checkpoint messages while reading and combining multiple
+  response files.
+- Added stable checkpoint messages while checking response payload
+  structure before response slot diagnostics are printed.
+- Treated the known coded-response slot id `responses` as a special
+  response slot, which can occur for stored coded responses such as
+  StarS Player data, instead of warning that it is unexpected.
+- Restored default response preparation progress indicators for compact
+  and full diagnostics while keeping `diagnostics = "none"` free of
+  animated progress.
+- Aligned response report preparation and raw empty-payload
+  announcements in
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
+  and
+  [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md)
+  with the `diagnostics` modes used by
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
+
 ## eatPrepTBA 0.9.8.9013
 
 - Added broad `testthat` coverage for XML readers/generators, response

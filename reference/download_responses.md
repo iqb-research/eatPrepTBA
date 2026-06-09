@@ -7,15 +7,27 @@ list entries in the raw output; after
 [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
 prepares the data, they appear as `responses = NA` and are left to
 [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
-for design-based missing completion.
+for design-based missing completion. The raw nested response slot ids
+are checked for missing required slots and unexpected new slots, but the
+returned data are not changed by these diagnostics.
 
 ## Usage
 
 ``` r
-download_responses(workspace, groups = NULL, units_filter_off = NULL)
+download_responses(
+  workspace,
+  groups = NULL,
+  units_filter_off = NULL,
+  diagnostics = c("compact", "full", "none")
+)
 
 # S4 method for class 'WorkspaceTestcenter'
-download_responses(workspace, groups = NULL, units_filter_off = NULL)
+download_responses(
+  workspace,
+  groups = NULL,
+  units_filter_off = NULL,
+  diagnostics = c("compact", "full", "none")
+)
 ```
 
 ## Arguments
@@ -34,6 +46,12 @@ download_responses(workspace, groups = NULL, units_filter_off = NULL)
 - units_filter_off:
 
   Character. Names of the units to be removed from the dataset.
+
+- diagnostics:
+
+  Character. Controls response slot diagnostics. Use `"compact"` for
+  concise feedback, `"full"` for all details, or `"none"` to suppress
+  these diagnostics.
 
 ## Value
 
