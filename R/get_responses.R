@@ -195,7 +195,7 @@ setMethod("get_responses",
                   ))
                 ) %>%
                 preserve_empty_response_payloads() %>%
-                announce_missing_response_payloads("Downloaded responses")
+                announce_missing_response_payloads("Downloaded responses", diagnostics = diagnostics)
             } else {
               cli::cli_alert_warning("No response reports were returned for the selected groups; returning an empty tibble.")
               tibble::tibble()

@@ -138,5 +138,5 @@ read_responses <- function(files,
       ))
     ) %>%
     preserve_empty_response_payloads() %>%
-    announce_missing_response_payloads("Read responses")
+    announce_missing_response_payloads("Read responses", diagnostics = diagnostics)
 }

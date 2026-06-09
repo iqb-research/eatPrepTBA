@@ -170,7 +170,17 @@ test_that("response preparation progress is shown immediately", {
   progress <- response_preparation_progress("Preparing responses", "Prepared responses")
 
   expect_equal(progress$show_after, 0)
-  expect_false(progress$clear)
+  expect_true(progress$clear)
+})
+
+test_that("missing response payload announcements can be suppressed", {
+  responses <- tibble::tibble(responses = NA_character_)
+
+  announced <- expect_silent(
+    announce_missing_response_payloads(responses, diagnostics = "none")
+  )
+
+  expect_identical(announced, responses)
 })
 
 test_that("response slot diagnostics detect unknown and suspicious wrapper ids", {
