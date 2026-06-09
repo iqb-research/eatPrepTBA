@@ -93,7 +93,8 @@ preserve_empty_response_payloads <- function(responses) {
 expected_response_slot_ids <- function() {
   list(
     required = c("elementCodes", "stateVariableCodes"),
-    optional = c("geometryVariableCodes")
+    optional = c("geometryVariableCodes"),
+    special = c("responses")
   )
 }
 
@@ -140,7 +141,7 @@ response_entry_has_name <- function(x, name) {
 
 is_response_slot_like_id <- function(id) {
   expected <- expected_response_slot_ids()
-  id %in% c(expected$required, expected$optional, "responses") ||
+  id %in% c(expected$required, expected$optional, expected$special) ||
     grepl("Codes$", id)
 }
 
@@ -236,6 +237,7 @@ response_slot_diagnostics <- function(responses,
     unknown_entry_ids = character(),
     missing_required = character(),
     missing_optional = character(),
+    special_wrapper = character(),
     unknown_wrapper = character(),
     missing_required_counts = integer(),
     missing_optional_counts = integer()
@@ -270,7 +272,7 @@ response_slot_diagnostics <- function(responses,
   subform_observed <- unique_response_ids(purrr::map(non_empty_payloads, "subform_ids"))
   direct_observed <- unique_response_ids(purrr::map(non_empty_payloads, "direct_ids"))
   unknown_entry_ids <- unique_response_ids(purrr::map(non_empty_payloads, "unknown_ids"))
-  known <- c(expected$required, expected$optional)
+  known <- c(expected$required, expected$optional, expected$special)
 
   if (length(wrapper_payloads) > 0) {
     missing_required_counts <- purrr::map_int(
@@ -307,6 +309,7 @@ response_slot_diagnostics <- function(responses,
     unknown_entry_ids = unknown_entry_ids,
     missing_required = names(missing_required_counts)[missing_required_counts > 0],
     missing_optional = names(missing_optional_counts)[missing_optional_counts > 0],
+    special_wrapper = intersect(wrapper_observed, expected$special),
     unknown_wrapper = setdiff(wrapper_observed, known),
     missing_required_counts = missing_required_counts,
     missing_optional_counts = missing_optional_counts
@@ -404,6 +407,13 @@ announce_response_slot_diagnostics <- function(responses,
 
     cli::cli_alert_warning(
       "{source}: missing required standard wrapper slot ids: {missing_required}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if ("responses" %in% diagnostics$special_wrapper) {
+    cli::cli_alert_info(
+      "{source}: found the known coded-response slot id {.field responses}. This can be normal for stored coded responses, for example StarS Player data; it is prepared as {.field coded}, not treated as an unexpected response slot.",
       wrap = TRUE
     )
   }
@@ -546,6 +556,17 @@ format_response_slot_examples <- function(ids, n = 5, full_hint = FALSE) {
   label
 }
 
+response_preparation_progress <- function(label,
+                                          diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+
+  if (diagnostics == "none") {
+    return(FALSE)
+  }
+
+  label
+}
+
 map_response_preparation <- function(x,
                                      .f,
                                      label,
@@ -557,7 +578,8 @@ map_response_preparation <- function(x,
 
   out <- purrr::map(
     x,
-    .f
+    .f,
+    .progress = response_preparation_progress(label, diagnostics)
   )
 
   cli::cli_text("{done_label} in {format_response_elapsed(Sys.time() - start)}.")

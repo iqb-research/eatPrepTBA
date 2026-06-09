@@ -178,6 +178,20 @@ test_that("response preparation mapping preserves output", {
   expect_equal(out, list(1L, 2L))
 })
 
+test_that("response preparation progress is mode-specific", {
+  expect_equal(
+    response_preparation_progress("Preparing responses", diagnostics = "compact"),
+    "Preparing responses"
+  )
+  expect_equal(
+    response_preparation_progress("Preparing responses", diagnostics = "full"),
+    "Preparing responses"
+  )
+  expect_false(
+    response_preparation_progress("Preparing responses", diagnostics = "none")
+  )
+})
+
 test_that("response elapsed times are formatted compactly", {
   expect_equal(format_response_elapsed(as.difftime(0.021, units = "secs")), "21ms")
   expect_equal(format_response_elapsed(as.difftime(4.84, units = "secs")), "4.8s")
@@ -199,7 +213,7 @@ test_that("missing response payload announcements can be suppressed", {
   expect_identical(announced, responses)
 })
 
-test_that("response slot diagnostics detect unknown and suspicious wrapper ids", {
+test_that("response slot diagnostics detect unknown wrapper ids", {
   responses_raw <- tibble::tibble(
     responses = list(response_slots(c(
       "elementCodes",
@@ -212,7 +226,8 @@ test_that("response slot diagnostics detect unknown and suspicious wrapper ids",
   diagnostics <- response_slot_diagnostics(responses_raw)
 
   expect_equal(diagnostics$missing_required, character())
-  expect_equal(diagnostics$unknown_wrapper, c("newVariableCodes", "responses"))
+  expect_equal(diagnostics$special_wrapper, "responses")
+  expect_equal(diagnostics$unknown_wrapper, "newVariableCodes")
 })
 
 test_that("response slot diagnostics classify direct response ids separately", {

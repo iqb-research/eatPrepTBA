@@ -7,6 +7,8 @@
 * Kept elapsed-time response preparation completion messages for all response diagnostics modes.
 * Added stable checkpoint messages while reading and combining multiple response files.
 * Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.
+* Treated the known coded-response slot id `responses` as a special response slot, which can occur for stored coded responses such as StarS Player data, instead of warning that it is unexpected.
+* Restored default response preparation progress indicators for compact and full diagnostics while keeping `diagnostics = "none"` free of animated progress.
 
 # eatPrepTBA 0.9.8.9013
 
