@@ -97,10 +97,16 @@ read_responses <- function(files,
     dplyr::mutate(
       responses_nest = purrr::map(responses_nest,
                                   function(x) unnest_responses(x, is_parsed = FALSE),
-                                  .progress = "Preparing responses"),
+                                  .progress = response_preparation_progress(
+                                    "Preparing responses",
+                                    "Prepared responses"
+                                  )),
       laststate_nest = purrr::map(laststate_nest,
                                   function(x) unnest_laststate(x),
-                                  .progress = "Preparing last state"),
+                                  .progress = response_preparation_progress(
+                                    "Preparing last state",
+                                    "Prepared last state"
+                                  )),
     ) %>%
     tidyr::unnest(c("responses_nest", "laststate_nest"), keep_empty = TRUE) %>%
     dplyr::group_by(

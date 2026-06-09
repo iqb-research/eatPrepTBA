@@ -115,14 +115,14 @@ test_that("response slot diagnostics treat geometry variables as optional", {
   expect_equal(diagnostics$missing_optional, "geometryVariableCodes")
 })
 
-test_that("compact response slot announcements do not report missing optional geometry", {
+test_that("compact response slot announcements report standard slots as OK", {
   responses_raw <- tibble::tibble(
     responses = list(response_slots(c("elementCodes", "stateVariableCodes")))
   )
 
-  expect_silent(
-    announce_response_slot_diagnostics(responses_raw, diagnostics = "compact")
-  )
+  announced <- announce_response_slot_diagnostics(responses_raw, diagnostics = "compact")
+
+  expect_identical(announced, responses_raw)
 })
 
 test_that("full response slot examples are not shortened", {
@@ -131,6 +131,14 @@ test_that("full response slot examples are not shortened", {
 
   expect_true(all(ids %in% strsplit(examples, ", ")[[1]]))
   expect_false(grepl("more", examples, fixed = TRUE))
+})
+
+test_that("compact response slot examples point to full diagnostics when shortened", {
+  ids <- paste0("question_", 0:12)
+  examples <- format_response_slot_examples(ids, n = 3, full_hint = TRUE)
+
+  expect_match(examples, "and 10 more", fixed = TRUE)
+  expect_match(examples, "diagnostics = \"full\"", fixed = TRUE)
 })
 
 test_that("standard response slot coverage includes required and optional slots", {
@@ -142,19 +150,27 @@ test_that("standard response slot coverage includes required and optional slots"
 
   expect_match(
     coverage,
-    "elementCodes present in 3/3 standard wrapper payloads, absent in 0/3",
+    "elementCodes present in 3/3 standard wrapper payloads",
     fixed = TRUE
   )
   expect_match(
     coverage,
-    "stateVariableCodes present in 1/3 standard wrapper payloads, absent in 2/3",
+    "stateVariableCodes present in 1/3 standard wrapper payloads",
     fixed = TRUE
   )
   expect_match(
     coverage,
-    "geometryVariableCodes present in 2/3 standard wrapper payloads, absent in 1/3",
+    "geometryVariableCodes present in 2/3 standard wrapper payloads",
     fixed = TRUE
   )
+  expect_false(grepl("absent", coverage, fixed = TRUE))
+})
+
+test_that("response preparation progress is shown immediately", {
+  progress <- response_preparation_progress("Preparing responses", "Prepared responses")
+
+  expect_equal(progress$show_after, 0)
+  expect_false(progress$clear)
 })
 
 test_that("response slot diagnostics detect unknown and suspicious wrapper ids", {

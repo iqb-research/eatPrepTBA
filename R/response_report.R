@@ -337,25 +337,41 @@ announce_response_slot_diagnostics <- function(responses,
   if (diagnostics$n_direct_payloads > 0) {
     direct_examples <- format_response_slot_examples(
       diagnostics$direct_observed,
-      n = if (identical(verbosity, "full")) Inf else 3
+      n = if (identical(verbosity, "full")) Inf else 3,
+      full_hint = identical(verbosity, "compact")
     )
 
-    cli::cli_alert_info(
-      "{source}: detected {format_response_count(diagnostics$n_direct_payloads)} direct response-shaped payload{?s}; ids such as {direct_examples} are response ids, not response slots, and were excluded from slot diagnostics.",
-      wrap = TRUE
-    )
+    if (identical(verbosity, "full")) {
+      cli::cli_alert_info(
+        "{source}: detected {format_response_count(diagnostics$n_direct_payloads)} direct response-shaped payload{?s}; ids such as {direct_examples} are response ids, not response slots, and were excluded from slot diagnostics.",
+        wrap = TRUE
+      )
+    } else {
+      cli::cli_alert_info(
+        "{source}: detected {format_response_count(diagnostics$n_direct_payloads)} direct response-shaped payload{?s}; ids such as {direct_examples} are response ids.",
+        wrap = TRUE
+      )
+    }
   }
 
   if (diagnostics$n_subform_payloads > 0) {
     subform_examples <- format_response_slot_examples(
       diagnostics$subform_observed,
-      n = if (identical(verbosity, "full")) Inf else 3
+      n = if (identical(verbosity, "full")) Inf else 3,
+      full_hint = identical(verbosity, "compact")
     )
 
-    cli::cli_alert_info(
-      "{source}: detected {format_response_count(diagnostics$n_subform_payloads)} subform response payload{?s}; ids such as {subform_examples} are subform response containers, not standard response slots, and were excluded from standard slot diagnostics.",
-      wrap = TRUE
-    )
+    if (identical(verbosity, "full")) {
+      cli::cli_alert_info(
+        "{source}: detected {format_response_count(diagnostics$n_subform_payloads)} subform response payload{?s}; ids such as {subform_examples} are subform response containers, not standard response slots, and were excluded from standard slot diagnostics.",
+        wrap = TRUE
+      )
+    } else {
+      cli::cli_alert_info(
+        "{source}: detected {format_response_count(diagnostics$n_subform_payloads)} subform response payload{?s}; ids such as {subform_examples} are subform response containers.",
+        wrap = TRUE
+      )
+    }
   }
 
   if (diagnostics$n_mixed_payloads > 0 || diagnostics$n_unknown_payloads > 0) {
@@ -379,6 +395,18 @@ announce_response_slot_diagnostics <- function(responses,
 
     cli::cli_alert_warning(
       "{source}: missing required standard wrapper slot ids: {missing_required}. Output behavior is unchanged.",
+      wrap = TRUE
+    )
+  }
+
+  if (
+    identical(verbosity, "compact") &&
+      diagnostics$n_wrapper_payloads > 0 &&
+      length(diagnostics$missing_required) == 0 &&
+      length(diagnostics$unknown_wrapper) == 0
+  ) {
+    cli::cli_alert_info(
+      "{source}: standard response slots look OK: required slots were present in all {format_response_count(diagnostics$n_wrapper_payloads)} standard wrapper payload{?s}, and no unexpected wrapper slot ids were found.",
       wrap = TRUE
     )
   }
@@ -411,7 +439,8 @@ announce_response_slot_diagnostics <- function(responses,
   if (length(diagnostics$unknown_wrapper) > 0) {
     unknown <- format_response_slot_examples(
       diagnostics$unknown_wrapper,
-      n = if (identical(verbosity, "full")) Inf else 5
+      n = if (identical(verbosity, "full")) Inf else 5,
+      full_hint = identical(verbosity, "compact")
     )
 
     if ("responses" %in% diagnostics$unknown_wrapper) {
@@ -470,10 +499,7 @@ format_standard_response_slot_counts <- function(required_absent_counts,
     format_response_count(present_counts),
     "/",
     format_response_count(total),
-    " standard wrapper payloads, absent in ",
-    format_response_count(absent_counts),
-    "/",
-    format_response_count(total),
+    " standard wrapper payloads",
     collapse = "; "
   )
 }
@@ -489,16 +515,29 @@ format_response_shape_counts <- function(mixed = 0L, unknown = 0L) {
   paste0(format_response_count(counts), " ", names(counts), collapse = ", ")
 }
 
-format_response_slot_examples <- function(ids, n = 5) {
+format_response_slot_examples <- function(ids, n = 5, full_hint = FALSE) {
   ids <- unique(as.character(ids))
   shown <- if (is.infinite(n)) ids else head(ids, n)
   label <- paste(shown, collapse = ", ")
 
   if (!is.infinite(n) && length(ids) > n) {
     label <- paste0(label, ", and ", length(ids) - n, " more")
+    if (full_hint) {
+      label <- paste0(label, " (use diagnostics = \"full\" to list all ids)")
+    }
   }
 
   label
+}
+
+response_preparation_progress <- function(label, done_label) {
+  list(
+    type = "custom",
+    show_after = 0,
+    format = paste0(label, " {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}"),
+    format_done = paste0(done_label, " in {cli::pb_elapsed}."),
+    clear = FALSE
+  )
 }
 
 announce_empty_nested_response_payloads <- function(responses_raw,
