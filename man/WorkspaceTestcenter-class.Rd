@@ -16,3 +16,4 @@ A class extending the Workspace class with additional information for the IQB Te
 
 \item{\code{ws_label}}{Label of the workspace.}
 }}
+

@@ -21,7 +21,7 @@
 #' `r lifecycle::badge("experimental")`
 #'
 #' Calculates estimated processing and loading times for units and pages. Excludes units that never
-#' actually played.
+#' actually played. Duration units are in milliseconds.
 #' New columns and nested columns:
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
@@ -109,6 +109,30 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       !is.na(booklet_id)
     ) %>%
     dplyr::mutate(ts = as.numeric(ts))
+  
+  # Parse LOADCOMPLETE rows and extract browser, version and device
+  all_logs <- all_logs %>%
+    dplyr::mutate(
+      is_loadcomplete = stringr::str_starts(log_entry, "LOADCOMPLETE"),
+      # remove the leading marker so payload is easier to parse
+      load_payload = ifelse(is_loadcomplete,
+                            stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-–]?\\s*"),
+                            NA_character_)
+    ) %>%
+    dplyr::mutate(
+      parsed_json = purrr::map2(is_loadcomplete, load_payload, ~ if (.x) {
+        tryCatch(jsonlite::fromJSON(jsonlite::fromJSON(.y)), error = function(e) NULL)
+      } else NULL))
+  
+  num_loadcompletes = nrow(all_logs[all_logs$is_loadcomplete, ])
+  num_jsons = nrow(all_logs[all_logs$parsed_json!="NULL", ])
+  if (num_jsons < num_loadcompletes)
+  {print("Please note: Not all LOADCOMPLETE logs parsed successfully for browser and device information.")}
+  else if (num_jsons > num_loadcompletes)
+  {print("Please note: Logs other than LOADCOMPLETE logs parsed as jsons.")}
+  else
+  {print("LOADCOMPLETE logs successfully parsed for browser and device information.")}
+
 
   if (!is.null(full_design)) {
     if (!"testlet_no" %in% names(full_design)) {
