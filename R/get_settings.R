@@ -19,6 +19,8 @@ setGeneric("get_settings", function(workspace, metadata = TRUE) {
 setMethod("get_settings",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace, metadata = TRUE) {
+            checkmate::assert_logical(metadata, len = 1)
+
             # TODO: This function should only run once (for access_workspace or for access_workspace_group)
             base_req <- workspace@login@base_req
             ws_id <- workspace@ws_id
@@ -96,6 +98,11 @@ setMethod("get_settings",
           })
 
 prepare_ws_settings <- function(ws, metadata) {
+  # input validation
+  checkmate::assert_list(ws)
+  checkmate::assert_logical(metadata, len = 1)
+
+
   if (!is.null(ws$settings)) {
     ws_defaults <-
       ws$settings %>%

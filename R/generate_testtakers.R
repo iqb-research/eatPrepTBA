@@ -1,8 +1,8 @@
 #' Generates testtakers XML from unit information
 #'
-#' @param testtakers Must be a data frame with the columns ...
+#' @param testtakers Must be a data frame with the columns `group_id` and `login_name`.
 #' @param custom_texts Optional. List of custom texts to be modified.
-#' @param profiles Optional. List of profiles for the group monitor.
+#' @param profiles Optional. Data frame of profiles for the group monitor.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
 #'
@@ -15,6 +15,18 @@ generate_testtakers <- function(testtakers,
                                 app_version = "16.0.2",
                                 login = NULL) {
   cli_setting()
+  # input validation
+  testtakers_cols <- c("group_id", "login_name")
+  checkmate::assert_data_frame(testtakers)
+  assert_cols(testtakers, testtakers_cols, "testtakers")
+  testtakers <- tibble::as_tibble(testtakers)
+  checkmate::assert_list(custom_texts, null.ok = TRUE)
+  checkmate::assert_data_frame(profiles, null.ok = TRUE)
+  if(!is.null(profiles)) assert_cols(profiles, "profile_id", "profiles")
+  if(!is.null(profiles)) profiles <- tibble::as_tibble(profiles)
+  checkmate::assert_character(app_version, len = 1)
+  checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
+
 
   if (!is.null(login)) {
     app_version <- login@app_version

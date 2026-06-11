@@ -9,6 +9,8 @@
 #'
 #' @export
 read_system_checks <- function(file) {
+  assert_existing_files(file, "file")
+
   system_checks_raw <- readr::read_delim(file, delim = ";")
 
   system_checks_raw %>%

@@ -5,8 +5,9 @@
 #' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
 #'
+#' @description
 #' This function automatically completes missings for coded responses.
 #'
 #' @return A tibble.
@@ -18,16 +19,51 @@ complete_design <- function(coded,
                             overwrite = FALSE,
                             missings = NULL
 ) {
-  # if (is.null(missings)) {
-  #   missings <-
-  #     tibble::tribble(
-  #       ~code_id, ~code_status, ~code_score, ~code_type,
-  #       -96, "NOT_REACHED", 0, "MISSING_NOT_REACHED",
-  #       -97, "CODING_ERROR", 0, "MISSING_CODING_IMPOSSIBLE",
-  #       -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
-  #       -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
-  #     )
-  # }
+  # input validation
+  checkmate::assert_character(identifiers)
+  checkmate::assert_logical(overwrite, len = 1)
+
+  checkmate::assert_tibble(coded)
+  checkmate::assert_tibble(design)
+  identifiers <- intersect(names(design), identifiers)
+
+  coded_cols <- c(identifiers, "unit_key", "unit_alias", "variable_id", "booklet_id", "code_status", "value", "code_id", "code_type", "code_score")
+  assert_cols(coded, coded_cols, "coded")
+
+  checkmate::assert_tibble(units)
+  units_cols <- if (!overwrite && tibble::has_name(units, "unit_codes")) {
+    c("unit_key", "unit_codes")
+  } else {
+    c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
+  }
+  assert_cols(units, units_cols, "units")
+
+  design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
+  assert_cols(design, design_cols, "design")
+
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  missings_cols <- c("code_id", "code_status", "code_score", "code_type")
+  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
+
+  if (is.null(missings)) {
+    missings <-
+      tibble::tribble(
+        ~code_id, ~code_status, ~code_score, ~code_type,
+        -96, "NOT_REACHED", NA_real_, "MISSING_NOT_REACHED",
+        -97, "CODING_ERROR", NA_real_, "MISSING_CODING_IMPOSSIBLE",
+        -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
+        -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
+      )
+  }
+
+  missings_lookup <-
+    missings %>%
+    dplyr::select(
+      code_type,
+      missing_code_id = code_id,
+      missing_code_status = code_status,
+      missing_code_score = code_score
+    )
 
   cli_setting()
 
@@ -49,8 +85,6 @@ complete_design <- function(coded,
       "unit_key", "variable_id", "variable_source_type",
       "variable_level", "variable_page", "variable_section", "variable_page_always_visible"
     )))
-
-  identifiers <- intersect(names(design), identifiers)
 
   # Merge codes and design
   design_coded <-
@@ -165,6 +199,15 @@ complete_design <- function(coded,
         .default = code_score
       )
     ) %>%
+    dplyr::left_join(
+      missings_lookup,
+      by = dplyr::join_by("code_type")
+    ) %>%
+    dplyr::mutate(
+      code_id = dplyr::coalesce(missing_code_id, code_id),
+      code_status = dplyr::coalesce(code_status, missing_code_status),
+      code_score = dplyr::coalesce(missing_code_score, code_score)
+    ) %>%
     dplyr::arrange(dplyr::across(
       dplyr::any_of(c(
         identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
@@ -172,7 +215,8 @@ complete_design <- function(coded,
     )) %>%
     dplyr::select(
       -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr"
+        "not_reach", "nr", "lag_nr", "check_nr",
+        "missing_code_id", "missing_code_status", "missing_code_score"
       ))
     )
 }

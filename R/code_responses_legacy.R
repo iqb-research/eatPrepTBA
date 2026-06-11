@@ -5,7 +5,7 @@
 #' @param prepare Logical. Whether to unpack the coding results and to add information from the coding schemes.
 #' @param by Character. Additional columns as subgroups for the coding (e.g., in case of duplicate unit data for a specific person that could emerge in offline settings).
 #' @param codes_manual Tibble (optional). Data frame holding the manual codes. Defaults to `NULL` and does only automatic coding.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `score`, and `code_type`. Defaults to `NULL` and uses default scheme.
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
 #' @param parallel Logical. Should the coding be conducted on multiple cores?
 #' @param n_cores Integer. Number of the cores to be used for coding (only relevant if `parallel = TRUE`). Will default to number of available system cores - 1.
 #'
@@ -26,6 +26,27 @@ code_responses_legacy <- function(responses,
                            n_cores = NULL
 ) {
   cli_setting()
+  # input validation
+  responses_cols <- c("unitname", "groupname", "loginname", "code", "bookletname")
+  checkmate::assert_tibble(responses)
+  assert_cols(responses, responses_cols, "responses")
+  units_cols <- c("unit_key", "coding_scheme")
+  checkmate::assert_tibble(units)
+  assert_cols(units, units_cols, "units")
+
+  codes_manual_cols <- c("groupId", "bookletId", "personId", "variableId",
+                         "unitId", "code")
+  checkmate::assert_tibble(codes_manual, null.ok = TRUE)
+  if(!is.null(codes_manual)) assert_cols(codes_manual, codes_manual_cols, "codes_manual")
+  missings_cols <- c("code_id", "status", "code_score", "code_type")
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
+
+  checkmate::assert_character(by, null.ok = TRUE)
+  checkmate::assert_numeric(n_cores, null.ok = TRUE)
+  checkmate::assert_logical(prepare, len = 1)
+  checkmate::assert_logical(parallel, len = 1)
+
   # progressr::handlers("cli")
 
   # if (parallel) {
@@ -235,7 +256,7 @@ code_responses_legacy <- function(responses,
     responses_inserted <-
       responses_insert_prepared %>%
       dplyr::mutate(
-        responses = purrr::map2_chr(responses, codes_manual, insert_manual,
+        responses = purrr::map2_chr(responses, codes_manual, insert_manual_legacy,
                                     .progress = list(
                                       type ="custom",
                                       show_after = 0,
@@ -284,7 +305,7 @@ code_responses_legacy <- function(responses,
     dplyr::mutate(
       unit_codes = purrr::pmap(
         .l = list(unit_responses, coding_scheme),
-        .f = code_unit,
+        .f = code_unit_legacy,
         .progress = list(
           type ="custom",
           show_after = 0,
@@ -354,6 +375,11 @@ code_responses_legacy <- function(responses,
 #'
 #' @keywords internal
 code_unit_legacy <- function(unit_responses, coding_scheme) {
+  # input validation
+  checkmate::assert_tibble(unit_responses)
+  assert_cols(unit_responses, "responses", "unit_responses")
+  checkmate::assert_character(coding_scheme)
+
   unit_responses %>%
     # dplyr::mutate(
     #   responses = purrr::map_chr(responses, "content")
@@ -388,6 +414,10 @@ code_unit_legacy <- function(unit_responses, coding_scheme) {
 #'
 #' @keywords internal
 insert_manual_legacy <- function(unit_responses, unit_codes_manual) {
+  # input validation
+  checkmate::assert_character(unit_responses)
+  checkmate::assert_list(unit_codes_manual, null.ok = TRUE)
+
   # Check if unit_codes_manual is NULL or empty, return original unit_responses if so
   if (is.null(unit_codes_manual) || length(unit_codes_manual) == 0) {
     return(unit_responses)

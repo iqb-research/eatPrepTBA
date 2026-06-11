@@ -10,6 +10,7 @@ test_that("prepare_coding_scheme returns empty tibbles for missing schemes", {
   expect_equal(dim(prepare_coding_scheme(NA_character_)), c(0L, 0L))
   expect_equal(dim(prepare_coding_scheme("")), c(0L, 0L))
   expect_equal(dim(prepare_coding_scheme("null")), c(0L, 0L))
+  expect_error(prepare_coding_scheme(NA_character_, filter_has_codes = "yes"), "logical")
 })
 
 test_that("prepare_coding_scheme completes missing schemer columns", {

@@ -9,6 +9,9 @@
 #'
 #' @keywords internal
 get_metadata_profile <- function(url) {
+  # input validation
+  checkmate::assert_character(url, len = 1)
+
   str_replacements <- "[-:/ \\*]+"
   str_removals <- "[\\(\\)]"
 

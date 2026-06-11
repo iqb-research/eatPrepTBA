@@ -26,7 +26,7 @@ change_units_settings(
 )
 }
 \arguments{
-\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
+\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
 
 \item{unit_ids}{IDs of the units to be changed.}
 

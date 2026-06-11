@@ -16,7 +16,14 @@ generate_booklets <- function(
 ) {
 
   cli_setting()
+  # input validation
+  booklets_cols <- c("booklet_id", "booklet_label", "booklet_units")
+  checkmate::assert_tibble(booklets)
+  assert_cols(booklets, booklets_cols, "booklets")
+  checkmate::assert_character(app_version, len = 1)
+  checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
 
+  # function
   if (!is.null(login)) {
     app_version <- login@app_version
   }

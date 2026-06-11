@@ -9,7 +9,13 @@
 #' @keywords internal
 add_source_tree <- function(units, filter_has_codes = TRUE) {
   cli_setting()
+  # input validation
+  units_cols <- c("ws_id", "unit_id", "unit_key", "variable_id", "variable_ref", "variable_level", "variable_source_type", "variable_sources")
+  checkmate::assert_tibble(units)
+  assert_cols(units, units_cols, "units")
+  checkmate::assert_logical(filter_has_codes, len = 1)
 
+  # function
   units_cs <-
     units %>%
     dplyr::distinct(

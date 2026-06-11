@@ -24,6 +24,14 @@ test_that("read_logs reads one or multiple CSV files and normalizes unit aliases
   expect_equal(out$log_entry, c("PLAYER = RUNNING", "PLAYER = LOADING"))
 })
 
+test_that("reader functions validate file paths", {
+  missing_file <- file.path(tempdir(), "does-not-exist.csv")
+
+  expect_error(read_logs(missing_file), "do not exist")
+  expect_error(read_responses(missing_file), "do not exist")
+  expect_error(read_system_checks(missing_file), "do not exist")
+})
+
 test_that("read_responses expands response and last-state JSON columns", {
   file <- tempfile(fileext = ".csv")
   responses <- jsonlite::toJSON(
@@ -102,6 +110,9 @@ test_that("prepare_responses and prepare_coded unnest response JSON", {
   expect_equal(coded_out$variable_id, "V1")
   expect_equal(coded_out$code_id, 1)
   expect_equal(coded_out$value, "A")
+
+  expect_error(prepare_responses(tibble::tibble(x = "[]")), "responses")
+  expect_error(prepare_coded(tibble::tibble(x = "[]")), "coded")
 })
 
 test_that("prepare_logs parses selected log event types", {
@@ -123,6 +134,8 @@ test_that("prepare_logs parses selected log event types", {
   expect_equal(out$player[2], "running")
   expect_equal(out$connection[3], "LOST")
   expect_equal(out$focus[4], "HAS_NOT")
+
+  expect_error(prepare_logs(tibble::tibble(x = "PLAYER = RUNNING")), "log_entry")
 })
 
 test_that("unnest helpers handle legacy response shapes and duplicated last states", {

@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9016
+
+* Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.
+* Removed the redundant plain-text `Author` field from `DESCRIPTION`; contributor metadata is now maintained via `Authors@R`.
+
 # eatPrepTBA 0.9.8.9015
 
 * Refreshed the getting-started vignette with IQB Studio login, workspace, unit metadata, and coding-scheme walkthroughs.

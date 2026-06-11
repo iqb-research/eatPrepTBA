@@ -50,6 +50,53 @@ test_that("code_responses delegates unit coding and returns normalized columns",
   expect_equal(out$code_status, "CODING_COMPLETE")
 })
 
+test_that("code_responses with no payloads does not require coding-scheme columns", {
+  responses <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    responses = NA_character_
+  )
+  units <- tibble::tibble(unit_key = "U1")
+
+  out <- code_responses(responses, units, prepare = TRUE)
+
+  expect_s3_class(out, "tbl_df")
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("code_responses_legacy accepts optional NULL coding inputs", {
+  testthat::local_mocked_bindings(
+    code_responses = function(coding_scheme, responses) {
+      tibble::tibble(
+        id = "V1",
+        code = 1L,
+        value = list("A")
+      )
+    },
+    .package = "eatAutoCode"
+  )
+
+  responses <- tibble::tibble(
+    unitname = "U1",
+    groupname = "G1",
+    loginname = "L1",
+    code = "C1",
+    bookletname = "B1",
+    responses = list(list(id = "elementCodes", content = "[{}]"))
+  )
+  units <- tibble::tibble(
+    unit_key = "U1",
+    coding_scheme = "scheme"
+  )
+
+  expect_no_error(out <- code_responses_legacy(responses, units))
+  expect_s3_class(out, "tbl_df")
+  expect_equal(out$unit_key, "U1")
+})
+
 test_that("complete_design fills missing responses according to booklet order", {
   testthat::local_mocked_bindings(
     add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
@@ -89,6 +136,95 @@ test_that("complete_design fills missing responses according to booklet order", 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$code_id, -96)
   expect_false(out$id_used)
+})
+
+test_that("complete_design only requires identifiers available in design", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    .package = "eatPrepTBA"
+  )
+
+  units <- minimal_units()
+  design <- tibble::tibble(
+    login_code = "C1",
+    booklet_id = "B1",
+    booklet_no = 1L,
+    testlet_no = 1L,
+    unit_booklet_no = 1L,
+    unit_key = "U1",
+    unit_alias = "U1",
+    variable_id = "V1"
+  )
+  coded <- tibble::tibble(
+    login_code = character(),
+    booklet_id = character(),
+    unit_key = character(),
+    unit_alias = character(),
+    variable_id = character(),
+    code_status = character(),
+    code_type = character(),
+    code_id = integer(),
+    code_score = numeric(),
+    value = character()
+  )
+
+  out <- complete_design(coded, units, design)
+
+  expect_equal(out$code_type, "MISSING_NOT_REACHED")
+  expect_equal(out$login_code, "C1")
+})
+
+test_that("complete_design applies custom missing metadata", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    .package = "eatPrepTBA"
+  )
+
+  units <- minimal_units()
+  design <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    booklet_no = 1L,
+    testlet_no = 1L,
+    unit_booklet_no = 1L,
+    unit_key = "U1",
+    unit_alias = "U1",
+    variable_id = "V1"
+  )
+  coded <- tibble::tibble(
+    group_id = character(),
+    login_name = character(),
+    login_code = character(),
+    booklet_id = character(),
+    unit_key = character(),
+    unit_alias = character(),
+    variable_id = character(),
+    code_status = character(),
+    code_type = character(),
+    code_id = integer(),
+    code_score = numeric(),
+    value = character()
+  )
+  missings <- tibble::tibble(
+    code_id = c(-196L, -197L, -198L, -199L),
+    code_status = c("CUSTOM_NOT_REACHED", "CUSTOM_ERROR", "CUSTOM_INVALID", "CUSTOM_OMISSION"),
+    code_score = c(0.5, NA_real_, 0, 0),
+    code_type = c(
+      "MISSING_NOT_REACHED",
+      "MISSING_CODING_IMPOSSIBLE",
+      "MISSING_INVALID_RESPONSE",
+      "MISSING_BY_OMISSION"
+    )
+  )
+
+  out <- complete_design(coded, units, design, missings = missings)
+
+  expect_equal(out$code_type, "MISSING_NOT_REACHED")
+  expect_equal(out$code_id, -196L)
+  expect_equal(out$code_status, "CUSTOM_NOT_REACHED")
+  expect_equal(out$code_score, 0.5)
 })
 
 test_that("estimate_unit_times computes unit play and loading intervals", {

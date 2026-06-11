@@ -35,6 +35,12 @@ login_testcenter <- function(base_url = "https://iqb-testcenter2.de/",
                              insecure = FALSE,
                              verbose = FALSE) {
   cli_setting()
+  checkmate::assert_character(base_url, len = 1)
+  checkmate::assert_logical(keyring, len = 1)
+  checkmate::assert_logical(change_key, len = 1)
+  checkmate::assert_logical(dialog, len = 1)
+  checkmate::assert_logical(insecure, len = 1)
+  checkmate::assert_logical(verbose, len = 1)
 
   # Authentication
   credentials <- get_credentials(base_url = base_url,

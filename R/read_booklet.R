@@ -11,6 +11,8 @@
 
 # booklet_xml <- xml2::read_xml("D:/data/THB001_1.xml")
 read_booklet <- function(booklet_xml) {
+  checkmate::assert_class(booklet_xml, "xml_document")
+
   # Metadata
   booklet_metadata <-
     booklet_xml %>%
