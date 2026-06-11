@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>eatPrepTBA • eatPrepTBA</title>
+<title>Introduction to the IQB-Studio with eatPrepTBA • eatPrepTBA</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="eatPrepTBA">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Introduction to the IQB-Studio with eatPrepTBA">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9014</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9015</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,7 +61,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>eatPrepTBA</h1>
+      <h1>Introduction to the IQB-Studio with eatPrepTBA</h1>
             
       
 
@@ -70,88 +70,234 @@
 
     
     
+<p><code>eatPrepTBA</code> is an R package designed to support the
+preparation and management of technology-based assessments (TBA) used in
+IQB research workflows. It provides wrapper functions to interact with
+the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some
+routines for preparing and combining data from these different resources
+to manage TBA studies.</p>
 <div class="section level2">
 <h2 id="preparations">Preparations<a class="anchor" aria-label="anchor" href="#preparations"></a>
 </h2>
+<p><code>eatPrepTBA</code> can be installed from <a href="https://github.com/iqb-research/eatPrepTBA" class="external-link">GitHub</a>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># library(eatPrepTBA)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iqb-research/eatPrepTBA"</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iqb-research.github.io/eatPrepTBA/">eatPrepTBA</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="login-to-the-iqb-testcenter">Login to the IQB Testcenter<a class="anchor" aria-label="anchor" href="#login-to-the-iqb-testcenter"></a>
+<h2 id="iqb-studio-login">IQB-Studio Login<a class="anchor" aria-label="anchor" href="#iqb-studio-login"></a>
 </h2>
-<p>To log in to the IQB Testcenter, you can call the function
-<code>create_login()</code>. You will be asked to provide your user name
-and your password (either in the console or a dialog when using
-RStudio). The function invisibly provides an access token, i.e.,
-something like a key to all of your studies, that can be used on other
-function calls to retrieve data from the IQB Testcenter. To use this key
-in other functions, it should be assigned to an <code>R</code> object,
-e.g., <code>login</code>.</p>
+<p>To log in to the IQB Studio, you can call the function
+<code><a href="../reference/login_studio.html">login_studio()</a></code>.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># login &lt;- create_login()</span></span></code></pre></div>
-<p>For the purpose of following along this documentation, you can use
-the following credentials when asked: - username:
-<code>eatPrepTBA</code> - password: <code>eatPrepTBA</code></p>
-<p>The initial call of <code>create_login()</code> (and calling the
-<code>login</code> object) returns a list of workspaces that can be
-accessed with your credentials.</p>
+<code class="sourceCode R"><span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="st">"16.0.0"</span><span class="op">)</span></span></code></pre></div>
+<p>You will be asked to provide your username and password either in the
+console or in a dialogue (when using RStudio). This is equivalent to
+logging into the Studio by entering your username and password on <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>.</p>
+<p>The current <code>app_version</code> needs to be updated manually and
+can be found <a href="https://www.iqb-studio.de" class="external-link">here</a>.</p>
+<p><img src="images/Studio_Login.png" class="r-plt" alt="" width="100%"></p>
+<p>If you use the argument <code>keyring = TRUE</code>, your login data
+will be saved locally to your computer, so that you don’t have to log in
+every time you call <code><a href="../reference/login_studio.html">login_studio()</a></code>. If you want to change
+your login information (e.g. after accidentally entering the wrong
+password), you can add the argument <code>change_key = TRUE</code> to
+the <code><a href="../reference/login_studio.html">login_studio()</a></code>-function. This will call the dialogue
+for entering your login information again.</p>
+<p>The function itself invisibly provides an access token, i.e.,
+something like a key to all of your studies. This can be used on other
+function calls to retrieve data from the IQB-Studio. To use this key in
+other functions, it should be assigned to an <code>R</code> object,
+e.g., <code>login</code>. Calling the <code>login</code> object returns
+a list of workspaces that can be accessed with your credentials.</p>
 </div>
 <div class="section level2">
-<h2 id="access-a-workspace">Access a workspace<a class="anchor" aria-label="anchor" href="#access-a-workspace"></a>
+<h2 id="accessing-a-workspace">Accessing a workspace<a class="anchor" aria-label="anchor" href="#accessing-a-workspace"></a>
 </h2>
-<p>As can be seen, we have access to a workspace labelled as
-<em>eatPrepTBA Documentation</em> that is associated with a unique id,
-i.e., 134.</p>
-<p>To access this workspace, you can either provide the label of the
-workspace or its id (or both – in this case, they have to match, of
-course). This workspace should again be assigned to an object, i.e.,
-<code>workspace</code>, as it carries the token generated by the
-<code>create_login()</code> and information about the path to find the
-associated files.</p>
+<p>All workspaces are part of a workspace group and have a unique
+ID.</p>
+<p>You can access a workspace with the function
+<code><a href="../reference/access_workspace.html">access_workspace()</a></code>. With the argument
+<code>ws_id = x</code>, you choose which workspace to access.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># workspace &lt;- access_workspace(login = login, label = "eatPrepTBA Documentation")</span></span>
-<span><span class="co"># workspace &lt;- access_workspace(login = login, id = 134)</span></span></code></pre></div>
-<p>This information can be used to access the files (i.e., testtakers,
-booklets, and units) and results (i.e., responses and log data).</p>
+<code class="sourceCode R"><span><span class="va">workspace</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span>login <span class="op">=</span> <span class="va">login</span>, ws_id <span class="op">=</span> <span class="fl">1300</span><span class="op">)</span></span></code></pre></div>
+<p>The ID of a workspace can be found by looking at its URL in the
+Studio (last digits) or by calling the <code>login</code> object, which
+prints a list of the workspace groups and workspaces that you have
+access to, including their respective IDs (<code>ws_id</code>).</p>
+<p><img src="images/Studio_Access_Workspace.png" class="r-plt" alt="" width="100%"></p>
+<p>You should save your output into an object (e.g., “workspace”) to be
+able to work with it later.</p>
+<p>You can also access multiple workspaces at the same time:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">workspace</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span>login <span class="op">=</span> <span class="va">login</span>, ws_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1300</span>, <span class="fl">919</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="retrieve-files-from-the-workspace">Retrieve files from the workspace<a class="anchor" aria-label="anchor" href="#retrieve-files-from-the-workspace"></a>
+<h2 id="accessing-the-units-in-a-workspace">Accessing the units in a workspace<a class="anchor" aria-label="anchor" href="#accessing-the-units-in-a-workspace"></a>
 </h2>
-<p>Using the output of <code><a href="../reference/access_workspace.html">access_workspace()</a></code>, one can list
-(<code>list*()</code> family) the different types of files. These files
-can also be retrieved as <code>R</code> objects, i.e.,
-<code>tibble</code>s (<code>get*()</code> family).</p>
-<div class="section level3">
-<h3 id="testtakers">Testtakers<a class="anchor" aria-label="anchor" href="#testtakers"></a>
-</h3>
-<p>These functions allow to list all testtaker files
-(<code><a href="../reference/list_testtakers.html">list_testtakers()</a></code>) and return the associated testtaker
-information (<code><a href="../reference/get_testtakers.html">get_testtakers()</a></code>), i.e., a list of all logins
-for potential testtakers.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># list_testtakers(workspace = workspace)</span></span>
-<span><span class="co"># get_testtakers(workspace = workspace)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="booklets">Booklets<a class="anchor" aria-label="anchor" href="#booklets"></a>
-</h3>
-<p>These functions list all booklet files (<code><a href="../reference/list_booklets.html">list_booklets()</a></code>)
-and return the associated designs (<code><a href="../reference/get_booklets.html">get_booklets()</a></code>).</p>
+<p>Using the <code>workspace</code> object, you can now extract the
+units using the <code><a href="../reference/get_units.html">get_units()</a></code> function. This function allows
+you to look at many units at once, instead of having to go through them
+one by one like in the Studio. Depending on how many workspaces you
+access, this might take a moment to load.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># list_booklets(workspace = workspace)</span></span>
-<span><span class="co"># get_booklets(workspace = workspace)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="units">Units<a class="anchor" aria-label="anchor" href="#units"></a>
-</h3>
-<p>These functions list all unit files (<code><a href="../reference/list_units.html">list_units()</a></code>) and
-return the associated unit meta data (<code><a href="../reference/get_units.html">get_units()</a></code>), i.e.,
-the item information and the coding scheme used for scoring the
-responses.</p>
+<code class="sourceCode R"><span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_units.html">get_units</a></span><span class="op">(</span>workspace <span class="op">=</span> <span class="va">workspace</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/get_units.html">get_units()</a></code> returns a tibble with one row per unit and
+several metadata columns, including nested list-columns.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># list_units(workspace = workspace)</span></span>
-<span><span class="co"># get_units(workspace = workspace)</span></span></code></pre></div>
-</div>
+<code class="sourceCode R"><span><span class="va">units</span></span></code></pre></div>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 3 × 27</span></span></span>
+<span><span class="co">##   ws_label         wsg_id wsg_label unit_id unit_key unit_label group_name ws_id</span></span>
+<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> Illustration_ea…     46 Methoden   <span style="text-decoration: underline;">145</span>615 D2_BT18  Richtig-F… <span style="color: #949494;">""</span>          <span style="text-decoration: underline;">1</span>300</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> Illustration_ea…     46 Methoden   <span style="text-decoration: underline;">145</span>616 D3_UF04  EMOJIS     <span style="color: #949494;">""</span>          <span style="text-decoration: underline;">1</span>300</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> Illustration_ea…     46 Methoden   <span style="text-decoration: underline;">145</span>617 D3_JP03  Sprachenw… <span style="color: #949494;">""</span>          <span style="text-decoration: underline;">1</span>300</span></span>
+<span><span class="co">## <span style="color: #949494;"># ℹ 19 more variables: state_id &lt;chr&gt;, state_color &lt;chr&gt;, state_label &lt;chr&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   description &lt;chr&gt;, unit_variables &lt;list&gt;, unit_profiles &lt;list&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   items_list &lt;list&gt;, items_profiles &lt;list&gt;, coding_scheme &lt;chr&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   player &lt;chr&gt;, editor &lt;chr&gt;, schemer &lt;chr&gt;, scheme_type &lt;chr&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   last_change_definition &lt;chr&gt;, last_change_definition_user &lt;chr&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   last_change_scheme &lt;chr&gt;, last_change_scheme_user &lt;chr&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   last_change_metadata &lt;chr&gt;, last_change_metadata_user &lt;chr&gt;</span></span></span></code></pre>
+<p>The tibble contains the following variables:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##  [1] "ws_label"                    "wsg_id"                     </span></span>
+<span><span class="co">##  [3] "wsg_label"                   "unit_id"                    </span></span>
+<span><span class="co">##  [5] "unit_key"                    "unit_label"                 </span></span>
+<span><span class="co">##  [7] "group_name"                  "ws_id"                      </span></span>
+<span><span class="co">##  [9] "state_id"                    "state_color"                </span></span>
+<span><span class="co">## [11] "state_label"                 "description"                </span></span>
+<span><span class="co">## [13] "unit_variables"              "unit_profiles"              </span></span>
+<span><span class="co">## [15] "items_list"                  "items_profiles"             </span></span>
+<span><span class="co">## [17] "coding_scheme"               "player"                     </span></span>
+<span><span class="co">## [19] "editor"                      "schemer"                    </span></span>
+<span><span class="co">## [21] "scheme_type"                 "last_change_definition"     </span></span>
+<span><span class="co">## [23] "last_change_definition_user" "last_change_scheme"         </span></span>
+<span><span class="co">## [25] "last_change_scheme_user"     "last_change_metadata"       </span></span>
+<span><span class="co">## [27] "last_change_metadata_user"</span></span></code></pre>
+<p>Four of these variables are already familiar from the workspace
+information:</p>
+<ul>
+<li>
+<code>ws_id</code>: the ID of the respective workspace</li>
+<li>
+<code>ws_label</code>: the name of the respective workspace</li>
+<li>
+<code>wsg_id</code>: the ID of the workspace group of the respective
+workspace</li>
+<li>
+<code>wsg_label</code>: the name of the workspace group of the
+respective workspace</li>
+</ul>
+<p>Like workspaces, each unit has its own unique ID and label. Each unit
+also has a unit key and sometimes a description and information about
+its state.</p>
+<ul>
+<li>
+<code>unit_id</code>: the unique ID of the unit.</li>
+<li>
+<code>unit_label</code>: the label (name) of the unit.</li>
+<li>
+<code>unit_key</code>: the short name of the unit.</li>
+<li>
+<code>group_name</code>: the group assigned to the unit.</li>
+<li>
+<code>description</code>: the description or notes stored for the
+unit.</li>
+<li>
+<code>state_id</code>: If no state is set, this variable is 0. The
+package can also attach the corresponding <code>state_label</code>
+(e.g. <code>state_id = 1</code> means “zu klären”) and
+<code>state_color</code> when those settings exist.</li>
+</ul>
+<p><img src="images/Studio_Unit_Overview.png" class="r-plt" alt="" width="100%"></p>
+<p><img src="images/Studio_State_ID.png" class="r-plt" alt="" width="100%"></p>
+<p>In the Studio, the tab “Verona Module” shows information about the
+software component behind a unit’s editor, preview, or coding
+interface.</p>
+<ul>
+<li>
+<code>editor</code>: the editor module assigned to the unit</li>
+<li>
+<code>player</code>: the preview/runtime module assigned to the
+unit</li>
+<li>
+<code>schemer</code>: the coding module assigned to the unit</li>
+</ul>
+<p>To check for updates and changes via the Editor, you can have a look
+at the variables starting with <code>last_change</code>.</p>
+<ul>
+<li>
+<code>last_change_definition</code>: timestamp of the last change to
+the unit definition.</li>
+<li>
+<code>last_change_definition_user</code>: user who last changed the
+unit definition.</li>
+<li>
+<code>last_change_scheme</code>: timestamp of the last change to the
+coding scheme.</li>
+<li>
+<code>last_change_scheme_user</code>: user who last changed the
+coding scheme.</li>
+<li>
+<code>last_change_metadata</code>: timestamp of the last change to
+the metadata.</li>
+<li>
+<code>last_change_metadata_user</code>: user who last changed the
+metadata.</li>
+</ul>
+<p><img src="images/Studio_Verona.png" class="r-plt" alt="" width="100%"></p>
+<p>The coding scheme of a unit defines how responses in a unit are
+interpreted or scored. <code><a href="../reference/get_units.html">get_units()</a></code> returns it in JSON
+format. In the Studio, it is not possible to check for mistakes in the
+coding scheme across several units. With eatPrepTBA, you can check
+several units at once.</p>
+<ul>
+<li>
+<code>coding_scheme</code>: the coding scheme of the respective unit
+in JSON format.</li>
+</ul>
+<p><img src="images/Studio_Coding_Scheme.png" class="r-plt" alt="" width="100%"></p>
+<p>The variables <code>unit_variables</code>,
+<code>unit_profiles</code>, <code>items_list</code>, and
+<code>items_profiles</code> are list-columns containing nested
+information rather than single values.</p>
+<ul>
+<li>
+<code>unit_variables</code>: which individual variables a unit
+contains. An item is sometimes derived from multiple variables, for
+example by summing several true/false statements. Each row represents
+one variable (that is, one “Basisvariable”), but during coding a sum is
+calculated, and that sum becomes the item.</li>
+</ul>
+<p>For a closer look at the variables inside the unit, the lists can be
+unnested:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># undo nested structure</span></span>
+<span><span class="va">units_unnested</span> <span class="op">&lt;-</span> <span class="va">units</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">unit_key</span>, <span class="va">unit_variables</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/unnest.html" class="external-link">unnest</a></span><span class="op">(</span><span class="va">unit_variables</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">units_unnested</span></span></code></pre></div>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 37 × 11</span></span></span>
+<span><span class="co">##    unit_key variable_id variable_ref variable_page variable_type variable_format</span></span>
+<span><span class="co">##    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 1</span> D2_BT18  01a         01a          <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 2</span> D2_BT18  01b         01b          <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 3</span> D2_BT18  01c         01c          <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 4</span> D2_BT18  01d         01d          <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 5</span> D2_BT18  01e         01e          <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 6</span> D3_UF04  12          12           <span style="color: #949494;">""</span>            string        <span style="color: #949494;">"</span>text-selectio…</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 7</span> D3_UF04  01          01           <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 8</span> D3_UF04  02          02           <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 9</span> D3_UF04  03          03           <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">10</span> D3_UF04  04          04           <span style="color: #949494;">""</span>            integer       <span style="color: #949494;">""</span>             </span></span>
+<span><span class="co">## <span style="color: #949494;"># ℹ 27 more rows</span></span></span>
+<span><span class="co">## <span style="color: #949494;"># ℹ 5 more variables: variable_values &lt;list&gt;, variable_multiple &lt;lgl&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   variable_nullable &lt;lgl&gt;, variable_values_complete &lt;lgl&gt;,</span></span></span>
+<span><span class="co">## <span style="color: #949494;">#   variable_value_position_labels &lt;list&gt;</span></span></span></code></pre>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

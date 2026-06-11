@@ -1,5 +1,13 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9015
+
+- Refreshed the getting-started vignette with IQB Studio login,
+  workspace, unit metadata, and coding-scheme walkthroughs.
+- Added anonymized example unit data and Studio screenshots used by the
+  vignette.
+- Kept the shared RStudio project file tracked in the repository.
+
 ## eatPrepTBA 0.9.8.9014
 
 - Added shape-aware diagnostics in
