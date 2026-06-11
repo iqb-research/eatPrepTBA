@@ -11,7 +11,6 @@ Authors@R:
     person(given = "Lea", family = "Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807")),
     person(given = "Edna", family ="Grewers", email = "edna.grewers@iqb.hu-berlin.de", role = c("ctb"))
     )
-Author: Philipp Franikowski, Karoline Sachse, Jakob Schaefer, Kristoph Schumann, Lea Musiolek, Edna Grewers
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
