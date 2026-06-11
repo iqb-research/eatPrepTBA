@@ -111,29 +111,39 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(ts = as.numeric(ts))
   
   # Parse LOADCOMPLETE rows and extract browser, version and device
-  all_logs <- all_logs %>%
-    dplyr::mutate(
-      is_loadcomplete = stringr::str_starts(log_entry, "LOADCOMPLETE"),
-      # remove the leading marker so payload is easier to parse
-      load_payload = ifelse(is_loadcomplete,
-                            stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-–]?\\s*"),
-                            NA_character_)
-    ) %>%
-    dplyr::mutate(
-      parsed_json = purrr::map2(is_loadcomplete, load_payload, ~ if (.x) {
-        tryCatch(jsonlite::fromJSON(jsonlite::fromJSON(.y)), error = function(e) NULL)
-      } else NULL))
+  dev_logs <- all_logs %>%
+    dplyr::filter(stringr::str_detect(log_entry, "LOADCOMPLETE")) 
   
-  num_loadcompletes = nrow(all_logs[all_logs$is_loadcomplete, ])
-  num_jsons = nrow(all_logs[all_logs$parsed_json!="NULL", ])
-  if (num_jsons < num_loadcompletes)
-  {print("Please note: Not all LOADCOMPLETE logs parsed successfully for browser and device information.")}
-  else if (num_jsons > num_loadcompletes)
-  {print("Please note: Logs other than LOADCOMPLETE logs parsed as jsons.")}
-  else
-  {print("LOADCOMPLETE logs successfully parsed for browser and device information.")}
-
-
+  if (nrow(dev_logs)==0) {
+    warning("No LOADCOMPLETE logs (which contain device and browser information) found in the data.")
+  } else {
+    dev_logs <- dev_logs %>%
+      dplyr::mutate(
+        load_payload = stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-–]?\\s*")
+      ) %>%
+      dplyr::mutate(
+        load_payload = stringr::str_replace_all(load_payload, '""', '\\\\"')
+      ) %>%
+      dplyr::mutate(
+        parsed_col = map(load_payload, function(cell) {
+        safe_limit <- 0
+        # Apply fromJSON up to 5 times
+        while (is.character(cell) && safe_limit < 5) {
+          cell <- jsonlite::fromJSON(cell)
+          safe_limit <- safe_limit + 1
+        }
+        return(cell)
+      })) %>%
+      tidyr::unnest_wider(parsed_col) %>%
+      subset(select = -c(load_payload, screenSizeWidth, screenSizeHeight, loadTime))
+    
+    if (sum(is.na(dev_logs$browserName)) > 0 |
+        sum(is.null(dev_logs$browserName)) > 0 |
+        sum(dev_logs$browserName=="NULL") > 0 ) {
+      warning("Not all LOADCOMPLETE logs successfully parsed from json.")}
+    
+    devicecolumns <- c("device", "osName", "browserName", "browserVersion")}
+    
   if (!is.null(full_design)) {
     if (!"testlet_no" %in% names(full_design)) {
       full_design$testlet_no <- NA_integer_
@@ -476,10 +486,19 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     print("Keine Seiten-IDs; Seiten-Bearbeitungszeiten werden nicht berechnet")
     unit_logs$unit_page_logs <- NA
   }
+  
+  if (nrow(dev_logs)>0) {
+    unit_logs <- unit_logs %>%
+      dplyr::left_join(
+        dev_logs %>% dplyr::select(dplyr::all_of(c(groups_booklet, devicecolumns))),
+        by = groups_booklet,
+        multiple = "first")}
+  
   unit_logs <- unit_logs %>%
     dplyr::left_join(
       all_ts %>% dplyr::select(dplyr::all_of(c(groups_unit, "unit_alias", "unit_key", "unit_ident"))),
       by = groups_unit,
       multiple = "any")
+  
   return(unit_logs)
 }

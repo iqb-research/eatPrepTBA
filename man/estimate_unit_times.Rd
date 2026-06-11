@@ -37,7 +37,7 @@ Tibble containing various times and timestamps per unit and page
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
 Calculates estimated processing and loading times for units and pages. Excludes units that never
-actually played.
+actually played. Duration units are in milliseconds.
 New columns and nested columns:
 \itemize{
 \item unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
