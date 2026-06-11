@@ -97,6 +97,25 @@ test_that("code_responses_legacy accepts optional NULL coding inputs", {
   expect_equal(out$unit_key, "U1")
 })
 
+issue9_units <- function(unit_keys, variable_ids) {
+  tibble::tibble(
+    unit_key = unit_keys,
+    unit_codes = Map(
+      function(variable_id) {
+        tibble::tibble(
+          variable_id = variable_id,
+          variable_source_type = "BASE",
+          variable_level = 0L,
+          variable_page = 1L,
+          variable_section = 1L,
+          variable_page_always_visible = FALSE
+        )
+      },
+      variable_ids
+    )
+  )
+}
+
 test_that("complete_design fills missing responses according to booklet order", {
   testthat::local_mocked_bindings(
     add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
@@ -136,6 +155,127 @@ test_that("complete_design fills missing responses according to booklet order", 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$code_id, -96)
   expect_false(out$id_used)
+})
+
+test_that("complete_design recodes trailing omissions as not reached", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    .package = "eatPrepTBA"
+  )
+
+  units <- issue9_units(c("U1", "U2"), c("V1", "V2"))
+  design <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    booklet_no = 1L,
+    testlet_no = 1L,
+    unit_booklet_no = c(1L, 2L),
+    unit_key = c("U1", "U2"),
+    unit_alias = c("U1", "U2"),
+    variable_id = c("V1", "V2")
+  )
+  coded <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = c("U1", "U2"),
+    unit_alias = c("U1", "U2"),
+    variable_id = c("V1", "V2"),
+    code_status = "DISPLAYED",
+    code_type = NA_character_,
+    code_id = -99L,
+    code_score = 0,
+    value = NA_character_
+  )
+
+  out <- complete_design(coded, units, design)
+
+  expect_equal(out$code_type, c("MISSING_NOT_REACHED", "MISSING_NOT_REACHED"))
+  expect_equal(out$code_id, c(-96, -96))
+})
+
+test_that("complete_design uses whole booklet order across testlets", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    .package = "eatPrepTBA"
+  )
+
+  units <- issue9_units(c("U1", "U2"), c("V1", "V2"))
+  design <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    booklet_no = 1L,
+    testlet_no = c(1L, 2L),
+    unit_booklet_no = c(1L, 2L),
+    unit_key = c("U1", "U2"),
+    unit_alias = c("U1", "U2"),
+    variable_id = c("V1", "V2")
+  )
+  coded <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = c("U1", "U2"),
+    unit_alias = c("U1", "U2"),
+    variable_id = c("V1", "V2"),
+    code_status = c("DISPLAYED", "CODING_COMPLETE"),
+    code_type = c(NA_character_, "FULL_CREDIT"),
+    code_id = c(-99L, 1L),
+    code_score = c(0, 1),
+    value = c(NA_character_, "A")
+  )
+
+  out <- complete_design(coded, units, design)
+
+  expect_equal(out$code_type, c("MISSING_BY_OMISSION", "FULL_CREDIT"))
+  expect_equal(out$code_id, c(-99, 1))
+})
+
+test_that("complete_design uses order-only design rows without returning them", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    .package = "eatPrepTBA"
+  )
+
+  units <- issue9_units(c("U1", "U3"), c("V1", "V3"))
+  design <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    booklet_no = 1L,
+    testlet_no = c(1L, 1L, 2L),
+    unit_booklet_no = c(1L, 2L, 3L),
+    unit_key = c("U1", "U2", "U3"),
+    unit_alias = c("U1", "U2", "U3"),
+    variable_id = c("V1", NA_character_, "V3")
+  )
+  coded <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U3",
+    unit_alias = "U3",
+    variable_id = "V3",
+    code_status = "CODING_COMPLETE",
+    code_type = "FULL_CREDIT",
+    code_id = 1L,
+    code_score = 1,
+    value = "A"
+  )
+
+  out <- complete_design(coded, units, design)
+
+  expect_equal(out$unit_key, c("U1", "U3"))
+  expect_false(any(is.na(out$variable_id)))
+  expect_equal(out$code_type, c("MISSING_BY_OMISSION", "FULL_CREDIT"))
 })
 
 test_that("complete_design only requires identifiers available in design", {

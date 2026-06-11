@@ -22,7 +22,7 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 A tibble.
 }
 \description{
-This function returns a frame of all booklets and testtakers in a given Testcenter instance. Optionally, coding schemes can be used to add variables that provides for a dataset to be merged to coded responses. Please note that adding a the units object will remove the other test parts from the design that are not reflected by the units. A remedy would be to retrieve all units that are used in the test.
+This function returns a frame of all booklets and testtakers in a given Testcenter instance. Optionally, coding schemes can be used to add variables that provides for a dataset to be merged to coded responses. Units without coding schemes are retained as order-only rows with missing \code{variable_id} values so downstream missing completion can still use the whole booklet order.
 }
 \section{Functions}{
 \itemize{

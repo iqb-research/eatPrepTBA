@@ -90,6 +90,7 @@ complete_design <- function(coded,
   design_coded <-
     design %>%
     dplyr::mutate(
+      design_analysis_row = !is.na(variable_id),
       booklet_merge = stringr::str_to_upper(booklet_id)
     ) %>%
     dplyr::left_join(
@@ -154,7 +155,7 @@ complete_design <- function(coded,
       ))
     )) %>%
     dplyr::summarise(
-      not_reach = all(code_type == "MISSING_NOT_REACHED" | is.na(code_type)),
+      not_reach = all(code_type %in% c("MISSING_NOT_REACHED", "MISSING_BY_OMISSION") | is.na(code_type)),
       .groups = "drop"
     )
 
@@ -162,10 +163,10 @@ complete_design <- function(coded,
     not_reached_classification %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no"
+        identifiers, "booklet_no"
       ))
     )) %>%
-    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
+    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no"))), dplyr::desc(unit_booklet_no)) %>%
     dplyr::mutate(
       nr = dplyr::cumall(not_reach),
       # Da es keine Unit danach mehr geben kann, wird sie diese hypothetische Unit als NOT_REACHED behandelt
@@ -182,10 +183,10 @@ complete_design <- function(coded,
     dplyr::mutate(
       code_type = dplyr::case_when(
         # Setzt -96, wenn Unit leer oder teilweise befüllt, aber letzte Unit vor Ende oder leeren Units
-        (code_type == "MISSING_NOT_REACHED" | is.na(code_type)) &
+        (code_type %in% c("MISSING_NOT_REACHED", "MISSING_BY_OMISSION") | is.na(code_type)) &
           check_nr ~  "MISSING_NOT_REACHED",
         # Kodiert andernfalls auf -99
-        (code_type == "MISSING_NOT_REACHED" | is.na(code_type))
+        (code_type %in% c("MISSING_NOT_REACHED", "MISSING_BY_OMISSION") | is.na(code_type))
         ~  "MISSING_BY_OMISSION",
         .default = code_type),
       code_id = dplyr::case_when(
@@ -208,6 +209,7 @@ complete_design <- function(coded,
       code_status = dplyr::coalesce(code_status, missing_code_status),
       code_score = dplyr::coalesce(missing_code_score, code_score)
     ) %>%
+    dplyr::filter(.data$design_analysis_row) %>%
     dplyr::arrange(dplyr::across(
       dplyr::any_of(c(
         identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
@@ -216,7 +218,8 @@ complete_design <- function(coded,
     dplyr::select(
       -dplyr::any_of(c(
         "not_reach", "nr", "lag_nr", "check_nr",
-        "missing_code_id", "missing_code_status", "missing_code_score"
+        "missing_code_id", "missing_code_status", "missing_code_score",
+        "design_analysis_row"
       ))
     )
 }
