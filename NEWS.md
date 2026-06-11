@@ -1,7 +1,10 @@
+# eatPrepTBA 0.9.8.9017
+
+* Added `recode_omissions_to_not_reached` to `complete_design()` so users can choose whether trailing omission sequences at the end of a booklet are recoded as not reached.
+* Fixed `complete_design()` not-reached detection to use whole-booklet order rather than ending the check separately within each testlet.
+
 # eatPrepTBA 0.9.8.9016
 
-* Fixed `complete_design()` missing completion so trailing omission sequences at the end of the whole booklet are recoded as not reached, while omissions followed by later valid work remain omissions.
-* Kept non-coding booklet units as order-only rows in `get_design(units = ...)`, allowing `complete_design()` to classify missings against the whole booklet order before returning codable variable rows.
 * Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.
 * Removed the redundant plain-text `Author` field from `DESCRIPTION`; contributor metadata is now maintained via `Authors@R`.
 

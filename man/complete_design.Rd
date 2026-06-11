@@ -10,7 +10,8 @@ complete_design(
   design,
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
-  missings = NULL
+  missings = NULL,
+  recode_omissions_to_not_reached = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ complete_design(
 \item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
 
 \item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
+
+\item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a booklet? Defaults to \code{FALSE}.}
 
 }
 \value{

@@ -439,8 +439,8 @@ test_that("get_design combines testtakers, booklets, and optional units", {
   design_units <- get_design(fake_testcenter_workspace(), units = units)
 
   expect_equal(design$unit_key, c("U1", "U2"))
-  expect_equal(design_units$unit_key, c("U1", "U2"))
-  expect_equal(design_units$variable_id, c("V1", NA_character_))
+  expect_equal(design_units$unit_key, "U1")
+  expect_equal(design_units$variable_id, "V1")
 })
 
 test_that("download and upload wrappers delegate to safe API calls", {

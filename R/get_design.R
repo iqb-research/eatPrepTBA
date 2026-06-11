@@ -6,7 +6,7 @@
 #' @param mode Character. Only testtakers with the specified modes will be filtered. Defaults to `"run-hot-return"`.
 #'
 #' @description
-#' This function returns a frame of all booklets and testtakers in a given Testcenter instance. Optionally, coding schemes can be used to add variables that provides for a dataset to be merged to coded responses. Units without coding schemes are retained as order-only rows with missing `variable_id` values so downstream missing completion can still use the whole booklet order.
+#' This function returns a frame of all booklets and testtakers in a given Testcenter instance. Optionally, coding schemes can be used to add variables that provides for a dataset to be merged to coded responses. Please note that adding a the units object will remove the other test parts from the design that are not reflected by the units. A remedy would be to retrieve all units that are used in the test.
 #'
 #' @return A tibble.
 #'
@@ -86,6 +86,7 @@ setMethod("get_design",
 
             cli::cli_h3("Merging set of {.testtaker-label testtakers} and {.booklet-label booklets} with {.unit-label units}")
             testtakers_booklets %>%
+              dplyr::semi_join(units_cs_merge %>% dplyr::select(unit_key)) %>%
               dplyr::left_join(units_cs_merge, by = dplyr::join_by("unit_key"), relationship = "many-to-many") %>%
               dplyr::filter(
                 login_mode == mode
