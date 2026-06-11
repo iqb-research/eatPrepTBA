@@ -73,11 +73,11 @@ code_responses <- function(responses,
   if (n_missing_response_payloads > 0) {
     if (nrow(responses_codable) == 0) {
       cli::cli_alert_warning(
-        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be assigned later with {.fn complete_design}."
+        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be completed afterwards with {.fn complete_design}."
       )
     } else {
       cli::cli_alert_info(
-        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be assigned later with {.fn complete_design}."
+        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be completed afterwards with {.fn complete_design}."
       )
     }
   }

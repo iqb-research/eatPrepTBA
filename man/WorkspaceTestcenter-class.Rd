@@ -5,15 +5,14 @@
 \alias{WorkspaceTestcenter-class}
 \title{Workspace access for IQB Testcenter}
 \description{
-A class extending the Login class with additional information for the IQB Studio. It can be created by the function \code{\link[=login_studio]{login_studio()}}.
+A class extending the Workspace class with additional information for the IQB Testcenter. It can be created by the function \code{\link[=access_workspace]{access_workspace()}} after \code{\link[=login_testcenter]{login_testcenter()}}.
 }
 \section{Slots}{
 
 \describe{
 \item{\code{login}}{\link[=LoginTestcenter-class]{LoginTestcenter}. Login information for the IQB Testcenter.}
 
-\item{\code{wsg_id}}{ID of the workspace group the current workspace belongs to. See URL to identify the workspace group id.}
+\item{\code{ws_id}}{ID of the workspace. The workspace ID can also be found in the workspace URL.}
 
-\item{\code{wsg_label}}{Label of the workspace group the current workspace belongs to.}
+\item{\code{ws_label}}{Label of the workspace.}
 }}
-

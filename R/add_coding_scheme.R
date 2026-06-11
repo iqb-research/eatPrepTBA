@@ -74,6 +74,20 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
           "rule_operator", "rule_fragment_position", "rule_method", "rule_parameter"))
       )
 
+    if (nrow(units_coding) == 0L) {
+      units_return <-
+        units %>%
+        dplyr::select(-any_of("unit_codes")) %>%
+        dplyr::mutate(
+          unit_codes = rep(list(NULL), dplyr::n())
+        )
+
+      add_attributes <- setdiff(names(unit_attributes), names(attributes(units_return)))
+      attributes(units_return) <- c(attributes(units_return), unit_attributes[add_attributes])
+
+      return(units_return)
+    }
+
     # Derive sources from coding scheme
     units_ds <-
       units_coding %>%

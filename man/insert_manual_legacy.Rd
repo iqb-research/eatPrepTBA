@@ -9,7 +9,7 @@ insert_manual_legacy(unit_responses, unit_codes_manual)
 \arguments{
 \item{unit_responses}{Character. Response data of one unit retrieved from the IQB Testcenter in JSON format.}
 
-\item{unit_codes_manual}{List of manual codes to insert into the unit responses.}
+\item{unit_codes_manual}{List. Manual codes to insert into the response data.}
 }
 \value{
 A tibble.

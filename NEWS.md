@@ -1,6 +1,43 @@
-# eatPrepTBA 0.9.8.9012
+# eatPrepTBA 0.9.8.9016
 
 * Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.
+
+# eatPrepTBA 0.9.8.9015
+
+* Refreshed the getting-started vignette with IQB Studio login, workspace, unit metadata, and coding-scheme walkthroughs.
+* Added anonymized example unit data and Studio screenshots used by the vignette.
+* Kept the shared RStudio project file tracked in the repository.
+
+# eatPrepTBA 0.9.8.9014
+
+* Added shape-aware diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. The new `diagnostics` argument controls compact, full, or suppressed feedback without changing output behavior.
+* Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.
+* Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to `diagnostics = "full"` when id examples are shortened.
+* Let `diagnostics = "none"` suppress missing-payload announcements and animated preparation progress while keeping stable preparation checkpoint messages.
+* Kept elapsed-time response preparation completion messages for all response diagnostics modes.
+* Added stable checkpoint messages while reading and combining multiple response files.
+* Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.
+* Treated the known coded-response slot id `responses` as a special response slot, which can occur for stored coded responses such as StarS Player data, instead of warning that it is unexpected.
+* Restored default response preparation progress indicators for compact and full diagnostics while keeping `diagnostics = "none"` free of animated progress.
+* Aligned response report preparation and raw empty-payload announcements in `get_responses()` and `download_responses()` with the `diagnostics` modes used by `read_responses()`.
+
+# eatPrepTBA 0.9.8.9013
+
+* Added broad `testthat` coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.
+* Fixed `compute_sizes()` by assigning the intermediate dependency-size table before summarising resource sizes.
+* Made codebook preparation helpers robust to single-variable and single-code JSON structures.
+* Declared the `methods` dependency used by S4 class exports and constructors.
+* Corrected `WorkspaceTestcenter` slot documentation.
+* Reduced `R CMD check` diagnostics for startup messages, Rd files, imports, and data-masked column names.
+* Added a GitHub Actions workflow for Codecov coverage uploads.
+
+# eatPrepTBA 0.9.8.9012
+
+* Made `prepare_coding_scheme()` more robust for missing, partial, and mixed-type schemer payloads.
+* Preserved multi-parameter rule expansion and normalized rule operators, rule positions, code models, and code identifiers to stable output types.
+* Made `add_coding_scheme()` tolerate units with missing coding schemes while preserving the original unit rows.
+* Kept `read_booklet()` working for both flat `Units > Unit` and nested `Units > Testlet > Unit` booklet structures.
+* Added regression tests for missing coding schemes, incomplete schemer columns, multi-parameter rules, mixed rule-position types, and coded-response joins.
 
 # eatPrepTBA 0.9.8.9011
 
@@ -19,6 +56,7 @@
 
 * Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
 * Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
+* Added `geometry_variables` and `geometry_variables_ts` columns to `get_responses()` and `read_responses()` for Testcenter `geometryVariableCodes` payloads.
 * Preserved response rows with empty nested response data so units without stored responses remain visible in `download_responses()`, `get_responses()`, and `read_responses()`.
 * Preserved units whose response report payload only contains empty coded responses (`responses = []`) so they remain available for design-based missing completion.
 * Fixed response report edge cases for empty API results, parsed `laststate` objects, and `units_filter_off` handling.
