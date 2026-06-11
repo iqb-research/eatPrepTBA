@@ -170,10 +170,10 @@ complete_design <- function(coded,
     not_reached_classification %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no"
+        identifiers, "booklet_no", "testlet_no"
       ))
     )) %>%
-    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no"))), dplyr::desc(unit_booklet_no)) %>%
+    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
     dplyr::mutate(
       nr = dplyr::cumall(not_reach),
       # Da es keine Unit danach mehr geben kann, wird sie diese hypothetische Unit als NOT_REACHED behandelt

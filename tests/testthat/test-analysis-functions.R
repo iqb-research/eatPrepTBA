@@ -237,7 +237,7 @@ test_that("complete_design can recode trailing omissions as not reached", {
   expect_equal(out$code_id, c(-96, -96))
 })
 
-test_that("complete_design uses whole booklet order across testlets", {
+test_that("complete_design keeps not-reached detection within testlets", {
   testthat::local_mocked_bindings(
     add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
     .package = "eatPrepTBA"
@@ -273,8 +273,8 @@ test_that("complete_design uses whole booklet order across testlets", {
 
   out <- complete_design(coded, units, design, recode_omissions_to_not_reached = TRUE)
 
-  expect_equal(out$code_type, c("MISSING_BY_OMISSION", "FULL_CREDIT"))
-  expect_equal(out$code_id, c(-99, 1))
+  expect_equal(out$code_type, c("MISSING_NOT_REACHED", "FULL_CREDIT"))
+  expect_equal(out$code_id, c(-96, 1))
 })
 
 test_that("complete_design only requires identifiers available in design", {
