@@ -13,8 +13,8 @@ IQB Studio. It can be created by the function
 - `base_req`:
 
   Function. Base
-  [httr2::httr2](https://httr2.r-lib.org/reference/httr2-package.html)
-  request (will be handled internally).
+  [httr2](https://httr2.r-lib.org/reference/httr2-package.html) request
+  (will be handled internally).
 
 - `ws_list`:
 

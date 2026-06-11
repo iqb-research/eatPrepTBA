@@ -44,8 +44,8 @@ evaluate_psychometrics(
 
 - max_n_categories:
 
-  Tibble. Maximum number of categories to check for category frequencies
-  for list values, e.g., `[[01_1,01_2]]`. Defaults to `10`.
+  Integer. Maximum number of categories to check for category
+  frequencies for list values, e.g., `[[01_1,01_2]]`. Defaults to `10`.
 
 - overwrite:
 

@@ -55,7 +55,8 @@ code_responses_legacy(
 - missings:
 
   Tibble (optional). Provide missing meta data with `code_id`, `status`,
-  `score`, and `code_type`. Defaults to `NULL` and uses default scheme.
+  `code_score`, and `code_type`. Defaults to `NULL` and uses default
+  scheme.
 
 - parallel:
 

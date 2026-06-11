@@ -18,7 +18,7 @@ generate_testtakers(
 
 - testtakers:
 
-  Must be a data frame with the columns ...
+  Must be a data frame with the columns `group_id` and `login_name`.
 
 - custom_texts:
 
@@ -26,7 +26,7 @@ generate_testtakers(
 
 - profiles:
 
-  Optional. List of profiles for the group monitor.
+  Optional. Data frame of profiles for the group monitor.
 
 - app_version:
 

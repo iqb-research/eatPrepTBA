@@ -1,6 +1,6 @@
 # Complete design with coded responses
 
-Complete design with coded responses
+This function automatically completes missings for coded responses.
 
 ## Usage
 
@@ -53,11 +53,10 @@ complete_design(
 
 - missings:
 
-  Tibble (optional). Provide missing meta data with `code_id`, `status`,
-  `score`, and `code_type`. Defaults to `NULL` and uses default scheme.
-  (Currently, only one missing scheme is supported.)
-
-  This function automatically completes missings for coded responses.
+  Tibble (optional). Provide missing meta data with `code_id`,
+  `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and
+  uses default scheme. (Currently, only one missing scheme is
+  supported.)
 
 ## Value
 

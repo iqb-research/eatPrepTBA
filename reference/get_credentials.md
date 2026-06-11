@@ -18,13 +18,13 @@ get_credentials(base_url, keyring, change_key, dialog, ...)
 - keyring:
 
   Logical. Should the
-  [keyring::keyring](https://keyring.r-lib.org/reference/keyring-package.html)
+  [keyring](https://keyring.r-lib.org/reference/keyring-package.html)
   package be used?
 
 - change_key:
 
   Logical. Should the
-  [keyring::keyring](https://keyring.r-lib.org/reference/keyring-package.html)
+  [keyring](https://keyring.r-lib.org/reference/keyring-package.html)
   credentials be changed (only valid, if keyring is set to `TRUE`)?
 
 - dialog:
