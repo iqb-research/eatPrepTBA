@@ -6,6 +6,7 @@
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a booklet? Defaults to `FALSE`.
 #'
 #' @description
 #' This function automatically completes missings for coded responses.
@@ -17,11 +18,13 @@ complete_design <- function(coded,
                             design,
                             identifiers = c("group_id", "login_name", "login_code"),
                             overwrite = FALSE,
-                            missings = NULL
+                            missings = NULL,
+                            recode_omissions_to_not_reached = FALSE
 ) {
   # input validation
   checkmate::assert_character(identifiers)
   checkmate::assert_logical(overwrite, len = 1)
+  checkmate::assert_logical(recode_omissions_to_not_reached, len = 1)
 
   checkmate::assert_tibble(coded)
   checkmate::assert_tibble(design)
@@ -64,6 +67,11 @@ complete_design <- function(coded,
       missing_code_status = code_status,
       missing_code_score = code_score
     )
+
+  not_reached_tail_types <- "MISSING_NOT_REACHED"
+  if (recode_omissions_to_not_reached) {
+    not_reached_tail_types <- c(not_reached_tail_types, "MISSING_BY_OMISSION")
+  }
 
   cli_setting()
 
@@ -154,7 +162,7 @@ complete_design <- function(coded,
       ))
     )) %>%
     dplyr::summarise(
-      not_reach = all(code_type == "MISSING_NOT_REACHED" | is.na(code_type)),
+      not_reach = all(code_type %in% not_reached_tail_types | is.na(code_type)),
       .groups = "drop"
     )
 
@@ -182,10 +190,10 @@ complete_design <- function(coded,
     dplyr::mutate(
       code_type = dplyr::case_when(
         # Setzt -96, wenn Unit leer oder teilweise befüllt, aber letzte Unit vor Ende oder leeren Units
-        (code_type == "MISSING_NOT_REACHED" | is.na(code_type)) &
+        (code_type %in% not_reached_tail_types | is.na(code_type)) &
           check_nr ~  "MISSING_NOT_REACHED",
         # Kodiert andernfalls auf -99
-        (code_type == "MISSING_NOT_REACHED" | is.na(code_type))
+        (code_type %in% not_reached_tail_types | is.na(code_type))
         ~  "MISSING_BY_OMISSION",
         .default = code_type),
       code_id = dplyr::case_when(

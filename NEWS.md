@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9017
+
+* Added `recode_omissions_to_not_reached` to `complete_design()` so users can choose whether trailing omission sequences at the end of a testlet are recoded as not reached.
+* Kept `complete_design()` not-reached detection within each `testlet_no`.
+
 # eatPrepTBA 0.9.8.9016
 
 * Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.

@@ -420,11 +420,11 @@ test_that("get_design combines testtakers, booklets, and optional units", {
         testlet_id = NA_character_,
         testlet_label = NA_character_,
         testlet_no = 1L,
-        unit_key = "U1",
-        unit_label = "Unit 1",
-        unit_alias = "U1",
-        unit_testlet_no = 1L,
-        unit_booklet_no = 1L
+        unit_key = c("U1", "U2"),
+        unit_label = c("Unit 1", "Unit 2"),
+        unit_alias = c("U1", "U2"),
+        unit_testlet_no = c(1L, 2L),
+        unit_booklet_no = c(1L, 2L)
       )
     },
     add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) {
@@ -438,7 +438,8 @@ test_that("get_design combines testtakers, booklets, and optional units", {
   design <- get_design(fake_testcenter_workspace())
   design_units <- get_design(fake_testcenter_workspace(), units = units)
 
-  expect_equal(design$unit_key, "U1")
+  expect_equal(design$unit_key, c("U1", "U2"))
+  expect_equal(design_units$unit_key, "U1")
   expect_equal(design_units$variable_id, "V1")
 })
 
