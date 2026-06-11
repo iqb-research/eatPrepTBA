@@ -32,13 +32,13 @@ evaluate_psychometrics <- function(
 
   design_coded_cols <- c(identifiers, "id_used", "code_id", "unit_key", "variable_id", "variable_source_type", "code_score", "code_type", "value")
   checkmate::assert_tibble(design_coded)
-  if(!(all(design_coded_cols %in% colnames(design_coded)))) stop(paste0("'design_coded' must contain the columns {", paste0(design_coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_coded_cols, colnames(design_coded)), collapse = ", "), "}."))
+  assert_cols(design_coded, design_coded_cols, "design_coded")
   units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "coding_scheme", "unit_variables")
   checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
   domains_cols <- c("domain", "unit_key")
   checkmate::assert_tibble(domains, null.ok = TRUE)
-  if(!is.null(domains) && !(all(domains_cols %in% colnames(domains)))) stop(paste0("'domains' must contain the columns {", paste0(domains_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(domains_cols, colnames(domains)), collapse = ", "), "}."))
+  if(!is.null(domains)) assert_cols(domains, domains_cols, "domains")
 
   # responses <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/data/responses.RData")
   # units <- readr::read_rds("Q:/BiStaTest/SekI_Sprachen/2_Pilotierung/50_Datenaufbereitung/db/units.RData")

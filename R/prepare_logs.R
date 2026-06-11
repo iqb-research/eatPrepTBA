@@ -12,6 +12,10 @@
 #'
 #' @export
 prepare_logs <- function(logs, log_events = NULL) {
+  checkmate::assert_tibble(logs)
+  assert_cols(logs, "log_entry", "logs")
+  checkmate::assert_character(log_events, null.ok = TRUE)
+
   all_events <-
     c("current_unit_id",
       "current_page_id",

@@ -9,6 +9,8 @@
 #'
 #' @export
 read_logs <- function(files) {
+  assert_existing_files(files)
+
   if (length(files) == 1) {
     logs_raw <-
       readr::read_delim(files, delim = ";",

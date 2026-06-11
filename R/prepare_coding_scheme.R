@@ -10,6 +10,8 @@
 #' @return A tibble.
 #' @export
 prepare_coding_scheme <- function(coding_scheme, filter_has_codes = TRUE) {
+  checkmate::assert_logical(filter_has_codes, len = 1)
+
   if (
     is.null(coding_scheme) ||
     length(coding_scheme) != 1 ||

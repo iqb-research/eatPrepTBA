@@ -28,7 +28,7 @@ complete_design <- function(coded,
   identifiers <- intersect(names(design), identifiers)
 
   coded_cols <- c(identifiers, "unit_key", "unit_alias", "variable_id", "booklet_id", "code_status", "value", "code_id", "code_type", "code_score")
-  if(!(all(coded_cols %in% colnames(coded)))) stop(paste0("'coded' must contain the columns {", paste0(coded_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(coded_cols, colnames(coded)), collapse = ", "), "}."))
+  assert_cols(coded, coded_cols, "coded")
 
   checkmate::assert_tibble(units)
   units_cols <- if (!overwrite && tibble::has_name(units, "unit_codes")) {
@@ -36,14 +36,14 @@ complete_design <- function(coded,
   } else {
     c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
   }
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
 
   design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
-  if(!(all(design_cols %in% colnames(design)))) stop(paste0("'design' must contain the columns {", paste0(design_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_cols, colnames(design)), collapse = ", "), "}."))
+  assert_cols(design, design_cols, "design")
 
   checkmate::assert_tibble(missings, null.ok = TRUE)
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")
-  if(!is.null(missings) && !(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
+  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
 
   if (is.null(missings)) {
     missings <-

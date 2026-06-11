@@ -28,17 +28,17 @@ code_responses <- function(responses,
   # input validation
   responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id")
   checkmate::assert_tibble(responses)
-  if(!(all(responses_cols %in% colnames(responses)))) stop(paste0("'responses' must contain the columns {", paste0(responses_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(responses_cols, colnames(responses)), collapse = ", "), "}."))
+  assert_cols(responses, responses_cols, "responses")
   units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
   checkmate::assert_logical(prepare, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
 
   codes_manual_cols <- c("group_id", "booklet_id", "login_code", "login_name", "variable_id", "unit_key", "code_id")
   checkmate::assert_tibble(codes_manual, null.ok = TRUE)
-  if(!is.null(codes_manual) && !(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
+  if(!is.null(codes_manual)) assert_cols(codes_manual, codes_manual_cols, "codes_manual")
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(missings) && !(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
+  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
 
 
   if (is.null(missings)) {
@@ -88,7 +88,7 @@ code_responses <- function(responses,
   }
 
   checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
 
   units_prep <-
     units %>%

@@ -10,6 +10,7 @@
 #' @export
 read_testtakers <- function(testtakers_xml) {
   cli_setting()
+  checkmate::assert_class(testtakers_xml, "xml_document")
 
   # Metadata
   testtakers <-

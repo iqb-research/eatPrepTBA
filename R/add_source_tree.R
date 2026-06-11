@@ -12,7 +12,7 @@ add_source_tree <- function(units, filter_has_codes = TRUE) {
   # input validation
   units_cols <- c("ws_id", "unit_id", "unit_key", "variable_id", "variable_ref", "variable_level", "variable_source_type", "variable_sources")
   checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
   checkmate::assert_logical(filter_has_codes, len = 1)
 
   # function

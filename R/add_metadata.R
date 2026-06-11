@@ -19,7 +19,7 @@ add_metadata <- function(units) {
     units <- read_metadata(units = units)
   }
   units_cols <- c("unit_profiles", "items_profiles")
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
 
   unit_items <-
     units %>%

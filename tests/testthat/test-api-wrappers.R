@@ -87,6 +87,11 @@ test_that("login_studio and login_testcenter build invisible login objects from 
   expect_equal(testcenter@app_version, "16.0.2")
 })
 
+test_that("login functions validate scalar arguments before prompting", {
+  expect_error(login_studio(verbose = "yes"), "logical")
+  expect_error(login_testcenter(insecure = "yes"), "logical")
+})
+
 test_that("get_credentials can run in test mode without prompting", {
   old <- getOption("eatPrepTBA.test_mode")
   options("eatPrepTBA.test_mode" = TRUE)

@@ -81,13 +81,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
 
   logs_cols <- c("unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
   checkmate::assert_tibble(logs)
-  if (!(all(logs_cols %in% colnames(logs)))) {
-    stop(paste0("'logs' must contain the columns {",
-                paste0(logs_cols, collapse = ", "),
-                "}, but is missing the column(s): {",
-                paste0(setdiff(logs_cols, colnames(logs)), collapse = ", "),
-                "}."))
-  }
+  assert_cols(logs, logs_cols, "logs")
   checkmate::assert_tibble(full_design, null.ok = TRUE)
 
   checkmate::assert_logical(use_unit_alias, len = 1)

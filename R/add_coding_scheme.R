@@ -27,7 +27,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
   }
 
   units_cols <- c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
+  assert_cols(units, units_cols, "units")
 
   unit_keys <- units$unit_key
 

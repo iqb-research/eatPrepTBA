@@ -28,14 +28,15 @@
 
 
 test_coding_scheme <- function(data, exceptions = list(), name_list = FALSE, console = FALSE) {
+  checkmate::assert_tibble(data)
+  checkmate::assert_list(exceptions)
+  checkmate::assert_logical(name_list, len = 1)
+  checkmate::assert_logical(console, len = 1)
 
   # Initialisierung ------------------------------------------------------------
 
   all_tests     <- character()
   error_results <- tibble::tibble()
-
-  data_filter_base_no_value <- data %>%
-    dplyr::filter(variable_source_type != "BASE_NO_VALUE")
 
   # Testdefinitionen -----------------------------------------------------------
   tests <- list(
@@ -255,6 +256,10 @@ test_coding_scheme <- function(data, exceptions = list(), name_list = FALSE, con
   if (name_list) {
     return(tibble::tibble(Nr = seq_along(tests), Testname = purrr::map_chr(tests, "desc")))
   }
+
+  assert_cols(data, c("unit_key", "variable_id", "variable_source_type", "variable_codes"), "data")
+  data_filter_base_no_value <- data %>%
+    dplyr::filter(variable_source_type != "BASE_NO_VALUE")
 
 
   # Tests ausfuehren ------------------------------------------------------------

@@ -13,12 +13,7 @@ extract_metadata <- function(units) {
   checkmate::assert_tibble(units)
 
   entries <- c("ws_settings", "item_md_profile", "unit_md_profile")
-  missing_entries <- setdiff(entries, names(attributes(units)))
-  if (length(missing_entries) > 0) {
-    stop(paste0("'units' must contain the attributes {", paste0(entries, collapse = ", "),
-                "}, but is missing the attribute(s): {",
-                paste0(missing_entries, collapse = ", "), "}."))
-  }
+  assert_attrs(units, entries, "units")
 
   attributes(units)[entries] %>%
     purrr::set_names(c("ws_settings", "item_md_profile", "unit_md_profile"))

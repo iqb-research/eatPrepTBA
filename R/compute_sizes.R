@@ -10,7 +10,7 @@ compute_sizes <- function(data) {
   # input validation
   data_cols <- c("name", "size", "type", "dependencies")
   checkmate::assert_tibble(data)
-  if(!(all(data_cols %in% colnames(data)))) stop(paste0("'data' must contain the columns {", paste0(data_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(data_cols, colnames(data)), collapse = ", "), "}."))
+  assert_cols(data, data_cols, "data")
 
   all_sizes <-
     data %>%
