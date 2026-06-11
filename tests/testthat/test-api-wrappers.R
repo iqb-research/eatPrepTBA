@@ -491,6 +491,18 @@ test_that("change and comment wrappers build settings and use run_safe", {
     group_name = "Group A",
     state = "Open"
   ))
+  expect_no_error(eatPrepTBA:::settings(
+    workspace,
+    unit_id = 10,
+    unit_key = "A",
+    unit_name = NULL,
+    description = NULL,
+    player = 2.10,
+    editor = NULL,
+    schemer = NULL,
+    group_name = NULL,
+    state = NULL
+  ))
   expect_no_error(change_units_settings(workspace, unit_ids = c(10, 11), editor = "3.2"))
   expect_no_error(eatPrepTBA:::add_comment(workspace@login, ws_id = 1, unit_id = 10, comment = "<p>Hello</p>"))
   expect_true(length(changed) >= 4)

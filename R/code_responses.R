@@ -30,8 +30,6 @@ code_responses <- function(responses,
   checkmate::assert_tibble(responses)
   if(!(all(responses_cols %in% colnames(responses)))) stop(paste0("'responses' must contain the columns {", paste0(responses_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(responses_cols, colnames(responses)), collapse = ", "), "}."))
   units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
-  checkmate::assert_tibble(units)
-  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
   checkmate::assert_logical(prepare, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
 
@@ -88,6 +86,9 @@ code_responses <- function(responses,
 
     return(empty_coded_responses(responses, prepare = prepare))
   }
+
+  checkmate::assert_tibble(units)
+  if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
   units_prep <-
     units %>%
