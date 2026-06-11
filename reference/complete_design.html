@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9016</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9017</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,8 @@
 <span>  <span class="va">design</span>,</span>
 <span>  identifiers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"group_id"</span>, <span class="st">"login_name"</span>, <span class="st">"login_code"</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  missings <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  missings <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -79,6 +80,10 @@
 
 <dt id="arg-missings">missings<a class="anchor" aria-label="anchor" href="#arg-missings"></a></dt>
 <dd><p>Tibble (optional). Provide missing meta data with <code>code_id</code>, <code>code_status</code>, <code>code_score</code>, and <code>code_type</code>. Defaults to <code>NULL</code> and uses default scheme. (Currently, only one missing scheme is supported.)</p></dd>
+
+
+<dt id="arg-recode-omissions-to-not-reached">recode_omissions_to_not_reached<a class="anchor" aria-label="anchor" href="#arg-recode-omissions-to-not-reached"></a></dt>
+<dd><p>Logical. Should trailing omissions (<code>MISSING_BY_OMISSION</code>) be recoded to not reached (<code>MISSING_NOT_REACHED</code>) when they occur at the end of a booklet? Defaults to <code>FALSE</code>.</p></dd>
 
 
 </dl></div>

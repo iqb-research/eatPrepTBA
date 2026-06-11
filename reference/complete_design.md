@@ -11,7 +11,8 @@ complete_design(
   design,
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
-  missings = NULL
+  missings = NULL,
+  recode_omissions_to_not_reached = FALSE
 )
 ```
 
@@ -57,6 +58,12 @@ complete_design(
   `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and
   uses default scheme. (Currently, only one missing scheme is
   supported.)
+
+- recode_omissions_to_not_reached:
+
+  Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded
+  to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a
+  booklet? Defaults to `FALSE`.
 
 ## Value
 
