@@ -26,7 +26,7 @@ code_responses_legacy(
 
 \item{codes_manual}{Tibble (optional). Data frame holding the manual codes. Defaults to \code{NULL} and does only automatic coding.}
 
-\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{status}, \code{score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.}
+\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.}
 
 \item{parallel}{Logical. Should the coding be conducted on multiple cores?}
 

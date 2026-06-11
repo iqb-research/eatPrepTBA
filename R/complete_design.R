@@ -16,8 +16,8 @@ complete_design <- function(coded,
                             units,
                             design,
                             identifiers = c("group_id", "login_name", "login_code"),
-                            overwrite = FALSE
-                            #missings = NULL
+                            overwrite = FALSE,
+                            missings = NULL
 ) {
   # input validation
   checkmate::assert_character(identifiers)
@@ -40,19 +40,28 @@ complete_design <- function(coded,
   if(!(all(design_cols %in% colnames(design)))) stop(paste0("'design' must contain the columns {", paste0(design_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(design_cols, colnames(design)), collapse = ", "), "}."))
 
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(missings) && !(all(c("code_id", "code_status", "code_score", "code_type") %in% colnames(missings))))
-    stop(paste0("'missings' must contain the columns 'code_id', 'code_status', 'code_score' and 'code_type', but has the columns: ", paste0(colnames(missings), collapse = ", ")))
+  missings_cols <- c("code_id", "code_status", "code_score", "code_type")
+  if(!is.null(missings) && !(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
 
-  # if (is.null(missings)) {
-  #   missings <-
-  #     tibble::tribble(
-  #       ~code_id, ~code_status, ~code_score, ~code_type,
-  #       -96, "NOT_REACHED", 0, "MISSING_NOT_REACHED",
-  #       -97, "CODING_ERROR", 0, "MISSING_CODING_IMPOSSIBLE",
-  #       -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
-  #       -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
-  #     )
-  # }
+  if (is.null(missings)) {
+    missings <-
+      tibble::tribble(
+        ~code_id, ~code_status, ~code_score, ~code_type,
+        -96, "NOT_REACHED", NA_real_, "MISSING_NOT_REACHED",
+        -97, "CODING_ERROR", NA_real_, "MISSING_CODING_IMPOSSIBLE",
+        -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
+        -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
+      )
+  }
+
+  missings_lookup <-
+    missings %>%
+    dplyr::select(
+      code_type,
+      missing_code_id = code_id,
+      missing_code_status = code_status,
+      missing_code_score = code_score
+    )
 
   cli_setting()
 
@@ -190,6 +199,15 @@ complete_design <- function(coded,
         .default = code_score
       )
     ) %>%
+    dplyr::left_join(
+      missings_lookup,
+      by = dplyr::join_by("code_type")
+    ) %>%
+    dplyr::mutate(
+      code_id = dplyr::coalesce(missing_code_id, code_id),
+      code_status = dplyr::coalesce(code_status, missing_code_status),
+      code_score = dplyr::coalesce(missing_code_score, code_score)
+    ) %>%
     dplyr::arrange(dplyr::across(
       dplyr::any_of(c(
         identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
@@ -197,7 +215,8 @@ complete_design <- function(coded,
     )) %>%
     dplyr::select(
       -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr"
+        "not_reach", "nr", "lag_nr", "check_nr",
+        "missing_code_id", "missing_code_status", "missing_code_score"
       ))
     )
 }

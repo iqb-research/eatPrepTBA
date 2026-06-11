@@ -5,7 +5,7 @@
 #' @param prepare Logical. Whether to unpack the coding results and to add information from the coding schemes.
 #' @param by Character. Additional columns as subgroups for the coding (e.g., in case of duplicate unit data for a specific person that could emerge in offline settings).
 #' @param codes_manual Tibble (optional). Data frame holding the manual codes. Defaults to `NULL` and does only automatic coding.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `score`, and `code_type`. Defaults to `NULL` and uses default scheme.
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
 #' @param parallel Logical. Should the coding be conducted on multiple cores?
 #' @param n_cores Integer. Number of the cores to be used for coding (only relevant if `parallel = TRUE`). Will default to number of available system cores - 1.
 #'
@@ -35,12 +35,12 @@ code_responses_legacy <- function(responses,
   if(!(all(units_cols %in% colnames(units)))) stop(paste0("'units' must contain the columns {", paste0(units_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(units_cols, colnames(units)), collapse = ", "), "}."))
 
   codes_manual_cols <- c("groupId", "bookletId", "personId", "variableId",
-                         "unitId", "code", "status", "status_miss", "code_score", "code_score_miss")
+                         "unitId", "code")
   checkmate::assert_tibble(codes_manual, null.ok = TRUE)
-  if(!(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
-  missings_cols <- c("code_id", "status", "code_score_miss", "code_type")
+  if(!is.null(codes_manual) && !(all(codes_manual_cols %in% colnames(codes_manual)))) stop(paste0("'codes_manual' must contain the columns {", paste0(codes_manual_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(codes_manual_cols, colnames(codes_manual)), collapse = ", "), "}."))
+  missings_cols <- c("code_id", "status", "code_score", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
+  if(!is.null(missings) && !(all(missings_cols %in% colnames(missings)))) stop(paste0("'missings' must contain the columns {", paste0(missings_cols, collapse = ", "), "}, but is missing the column(s): {", paste0(setdiff(missings_cols, colnames(missings)), collapse = ", "), "}."))
 
   checkmate::assert_character(by, null.ok = TRUE)
   checkmate::assert_numeric(n_cores, null.ok = TRUE)
@@ -256,7 +256,7 @@ code_responses_legacy <- function(responses,
     responses_inserted <-
       responses_insert_prepared %>%
       dplyr::mutate(
-        responses = purrr::map2_chr(responses, codes_manual, insert_manual,
+        responses = purrr::map2_chr(responses, codes_manual, insert_manual_legacy,
                                     .progress = list(
                                       type ="custom",
                                       show_after = 0,
@@ -305,7 +305,7 @@ code_responses_legacy <- function(responses,
     dplyr::mutate(
       unit_codes = purrr::pmap(
         .l = list(unit_responses, coding_scheme),
-        .f = code_unit,
+        .f = code_unit_legacy,
         .progress = list(
           type ="custom",
           show_after = 0,
