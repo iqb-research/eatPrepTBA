@@ -37,6 +37,7 @@ reference:
   contents: get_units
 - subtitle: Retrieve responses from IQB Testcenter
   contents:
+  - download_responses
   - get_responses
   - read_responses
   - prepare_responses
@@ -53,6 +54,7 @@ reference:
   - prepare_logs
   - get_reviews
   - compute_sizes
+  - prepare_coded
 - subtitle: Functions for units
   contents:
   - add_metadata
@@ -85,3 +87,5 @@ reference:
   - complete_design
   - estimate_unit_times
   - evaluate_psychometrics
+  - compute_staytime_tables
+  - layout_staytime_tables

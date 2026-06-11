@@ -4,14 +4,25 @@
 \alias{read_responses}
 \title{Reads responses files}
 \usage{
-read_responses(files)
+read_responses(files, diagnostics = c("compact", "full", "none"))
 }
 \arguments{
 \item{files}{Character. Vector of paths to the csv files from the IQB Testcenter to be read.}
+
+\item{diagnostics}{Character. Controls response slot diagnostics. Use \code{"compact"}
+for concise feedback, \code{"full"} for all details, or \code{"none"} to
+suppress these diagnostics.}
 }
 \value{
 A tibble.
 }
 \description{
-This function only returns the testtakers information for a downloaded testtakers file.
+This function reads response files downloaded from the IQB Testcenter and
+prepares them for further processing with \code{\link[=code_responses]{code_responses()}}. Rows with empty
+response payloads are kept as rows with \code{responses = NA} so that the observed
+unit structure remains available; final missing codes are assigned later by
+\code{\link[=complete_design]{complete_design()}} when the coded data are checked against the full test
+design. The raw nested response slot ids are checked for missing required
+slots and unexpected new slots, but the returned data are not changed by these
+diagnostics.
 }

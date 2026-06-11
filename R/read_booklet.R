@@ -15,8 +15,12 @@ read_booklet <- function(booklet_xml) {
   booklet_metadata <-
     booklet_xml %>%
     rvest::html_elements("Metadata") %>%
-    xml2::as_list() %>%
-    purrr::map(purrr::list_simplify) %>%
+    purrr::map(function(metadata) {
+      metadata_children <- metadata %>% rvest::html_children()
+      metadata_values <- metadata_children %>% rvest::html_text2()
+      names(metadata_values) <- metadata_children %>% rvest::html_name()
+      metadata_values %>% as.list() %>% tibble::as_tibble()
+    }) %>%
     dplyr::bind_rows() %>%
     dplyr::rename(
       booklet_id = Id,
@@ -67,11 +71,20 @@ read_booklet <- function(booklet_xml) {
     tidyr::unnest(
       dplyr::any_of("booklet_units")
     ) %>%
-    dplyr::rename(
-      dplyr::any_of(c(
-        "testlet_id" = "id",
-        "testlet_label" = "label"
-      ))
+    {
+      for (col in c("id", "label", "testlet_id", "testlet_label")) {
+        if (!tibble::has_name(., col)) {
+          .[[col]] <- NA_character_
+        }
+      }
+      .
+    } %>%
+    dplyr::mutate(
+      testlet_id = dplyr::coalesce(testlet_id, id),
+      testlet_label = dplyr::coalesce(testlet_label, label)
+    ) %>%
+    dplyr::select(
+      -dplyr::any_of(c("id", "label"))
     ) %>%
     tidyr::unnest(
       dplyr::any_of("testlet_units")

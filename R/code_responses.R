@@ -7,7 +7,13 @@
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
 #'
-#' This function automatically codes responses by using the `eatAutoCode` package. It is already prepared for the new data format of the responses received from the [get_responses()] and [read_responses()] routines. This function will soon be deleted and be part of [code_responses()].
+#' @description
+#' This function automatically codes responses by using the `eatAutoCode`
+#' package. It is prepared for the response format returned by [get_responses()]
+#' and [read_responses()]. Rows with `responses = NA` are removed before coding
+#' schemes are prepared and are not sent to the auto-coder; they represent units
+#' with no stored response payload and are left for [complete_design()] to
+#' classify against the full test design.
 #'
 #' @return A tibble.
 #' @export
@@ -37,10 +43,39 @@ code_responses <- function(responses,
 
   cli::cli_text("Time started: {start_time}")
 
+  if (!"responses" %in% names(responses)) {
+    responses$responses <- NA_character_
+  }
+
+  responses_codable <-
+    responses %>%
+    dplyr::filter(!is.na(responses))
+
+  n_missing_response_payloads <- nrow(responses) - nrow(responses_codable)
+
+  if (n_missing_response_payloads > 0) {
+    if (nrow(responses_codable) == 0) {
+      cli::cli_alert_warning(
+        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be completed afterwards with {.fn complete_design}."
+      )
+    } else {
+      cli::cli_alert_info(
+        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be completed afterwards with {.fn complete_design}."
+      )
+    }
+  }
+
+  if (nrow(responses_codable) == 0) {
+    cli::cli_alert_info("No response payloads available for automatic coding.")
+    cli::cli_text("Time finished: {Sys.time()}")
+
+    return(empty_coded_responses(responses, prepare = prepare))
+  }
+
   units_prep <-
     units %>%
     dplyr::filter(
-      unit_key %in% responses$unit_key
+      unit_key %in% responses_codable$unit_key
     ) %>%
     dplyr::select(
       dplyr::all_of(c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")),
@@ -67,6 +102,13 @@ code_responses <- function(responses,
   n_units <- length(unique(unit_keys))
   cli::cli_alert_success("Identified {n_units} units that can be coded.")
 
+  if (n_units == 0) {
+    cli::cli_alert_warning("No coding schemes available for the provided response payloads.")
+    cli::cli_text("Time finished: {Sys.time()}")
+
+    return(empty_coded_responses(responses, prepare = prepare))
+  }
+
   # Insert manual codes
   if (!is.null(codes_manual) || prepare) {
     cli::cli_h3("Prepare coding schemes")
@@ -75,11 +117,12 @@ code_responses <- function(responses,
       add_coding_scheme(filter_has_codes = TRUE, overwrite = overwrite) %>%
       dplyr::select(unit_key, unit_codes) %>%
       tidyr::unnest(unit_codes) %>%
-      dplyr::select(unit_key, variable_id, variable_source_type, variable_codes)
+      dplyr::select(unit_key, variable_id,
+                    variable_source_type, variable_codes, variable_source_processing)
 
     pcs_variables <-
       coding_schemes_prepared %>%
-      dplyr::distinct(unit_key, variable_id, variable_source_type)
+      dplyr::distinct(unit_key, variable_id, variable_source_type, variable_source_processing)
 
     pcs_codes <-
       coding_schemes_prepared %>%
@@ -92,9 +135,16 @@ code_responses <- function(responses,
   if (!is.null(codes_manual)) {
     cli::cli_h3("Prepare manual codes")
 
-    # pcs_variables_insert <-
-    #   pcs_variables %>%
-    #   dplyr::select(-source_type)
+    # TODO: This should be somehow added to the coded object to signal that this could also become a NOT_REACHED or DISPLAYED state?
+    pcs_variables_insert <-
+      pcs_variables %>%
+      dplyr::mutate(
+        transform_displayed = purrr::map_lgl(variable_source_processing,
+                                             function(x) "TAKE_DISPLAYED_AS_VALUE_CHANGED" %in% x),
+        transform_not_reached = purrr::map_lgl(variable_source_processing,
+                                               function(x) "TAKE_NOT_REACHED_AS_VALUE_CHANGED" %in% x),
+      ) %>%
+      dplyr::select(-variable_source_type, -variable_source_processing)
 
     pcs_codes_insert <-
       pcs_codes %>%
@@ -117,6 +167,10 @@ code_responses <- function(responses,
         code_id = as.integer(code_id)
       ) %>%
       dplyr::left_join(
+        pcs_variables_insert,
+        by = dplyr::join_by("unit_key", "variable_id")
+      ) %>%
+      dplyr::left_join(
         pcs_codes_insert,
         by = dplyr::join_by("unit_key", "variable_id", "code_id")
       ) %>%
@@ -126,9 +180,21 @@ code_responses <- function(responses,
       ) %>%
       dplyr::mutate(
         code_status = dplyr::coalesce(code_status, code_status_miss),
-        code_score = dplyr::coalesce(code_score, code_score_miss)
+        code_score = dplyr::coalesce(code_score, code_score_miss),
+        # NEW: Transformation of specific missings before coding (only for manual codes)
+        code_status = dplyr::case_when(
+          transform_displayed & code_status == "DISPLAYED" ~ "CODING_COMPLETE",
+          transform_not_reached & code_status == "NOT_REACHED" ~ "CODING_COMPLETE",
+          .default = code_status
+        ),
+        code_score = dplyr::case_when(
+          transform_displayed & code_status == "DISPLAYED" ~ 0L,
+          transform_not_reached & code_status == "NOT_REACHED" ~ 0L,
+          .default = code_score
+        ),
       ) %>%
-      dplyr::select(-code_status_miss, -code_score_miss)
+      dplyr::select(-code_status_miss, -code_score_miss,
+                    -transform_displayed, -transform_not_reached)
 
     codes_manual_nested <-
       codes_manual_prepared %>%
@@ -159,14 +225,14 @@ code_responses <- function(responses,
 
     # TODO: Add filter for unit_keys that are only in coding_schemes, also needs to be arranged
     responses_inserted <-
-      responses %>%
+      responses_codable %>%
       dplyr::left_join(
         codes_manual_json,
         by = dplyr::join_by("group_id", "login_code", "login_name", "booklet_id", "unit_key")
       )
 
   } else {
-    responses_inserted <- responses
+    responses_inserted <- responses_codable
   }
 
   coding_schemes_merge <-
@@ -202,7 +268,7 @@ code_responses <- function(responses,
     dplyr::mutate(
       unit_codes = purrr::pmap(
         .l = list(coding_scheme, unit_responses),
-        .f = eatAutoCode:::code_responses_array,
+        .f = eatAutoCode::code_responses_array,
         .progress = list(
           type ="custom",
           show_after = 0,
@@ -237,7 +303,9 @@ code_responses <- function(responses,
       responses_coded %>%
         tidyr::unnest(value, keep_empty = TRUE) %>%
         dplyr::semi_join(pcs_variables, by = dplyr::join_by("unit_key", "variable_id")) %>%
-        dplyr::left_join(pcs_variables, by = dplyr::join_by("unit_key", "variable_id")) %>%
+        dplyr::left_join(pcs_variables %>%
+                           dplyr::select(-variable_source_processing),
+                         by = dplyr::join_by("unit_key", "variable_id")) %>%
         dplyr::left_join(pcs_codes %>% dplyr::select(unit_key, variable_id, code_id, code_type),
                          by = dplyr::join_by("unit_key", "variable_id", "code_id")) %>%
         dplyr::relocate(
@@ -259,4 +327,34 @@ code_responses <- function(responses,
 
     return(responses_coded)
   }
+}
+
+empty_coded_responses <- function(responses, prepare = FALSE) {
+  response_cols <- c(
+    "file", "group_id", "login_name", "login_code", "booklet_id",
+    "unit_key", "unit_alias"
+  )
+
+  out <-
+    responses %>%
+    dplyr::slice(0) %>%
+    dplyr::select(dplyr::any_of(response_cols))
+
+  missing_response_cols <- setdiff(response_cols, names(out))
+  for (col in missing_response_cols) {
+    out[[col]] <- character()
+  }
+
+  out$variable_id <- character()
+  out$value <- list()
+  out$code_id <- integer()
+  out$code_score <- double()
+  out$code_status <- character()
+
+  if (prepare) {
+    out$variable_source_type <- character()
+    out$code_type <- character()
+  }
+
+  out
 }

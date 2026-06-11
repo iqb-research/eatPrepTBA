@@ -1,6 +1,6 @@
-#' Prepares responses
+#' Prepares codes
 #'
-#' @param responses Tibble. Responses retrieved from the IQB Testcenter via [get_responses()] or from an extracted csv and read via [read_responses()].
+#' @param responses Tibble. Responses retrieved from the IQB Testcenter via [get_responses()] or from an extracted csv and read via [read_responses()]. It can be used for data gathered by the StarS player.
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
@@ -10,10 +10,10 @@
 #' @return A tibble.
 #'
 #' @export
-prepare_responses <- function(responses) {
+prepare_coded <- function(responses) {
   responses %>%
     dplyr::mutate(
-      responses = purrr::map(responses, function(x) {
+      coded = purrr::map(coded, function(x) {
         if (!is.null(x) & !is.na(x)) {
           resp <-
             x %>%
@@ -34,10 +34,15 @@ prepare_responses <- function(responses) {
       }, .progress = TRUE)
     ) %>%
     tidyr::unnest(
-      c(responses)
+      c(coded)
+    ) %>%
+    tidyr::unnest(value) %>% dplyr::mutate(
+      value = purrr::map_chr(value, as.character)
     ) %>%
     dplyr::rename(dplyr::any_of(c(
       "variable_id" = "id",
-      "variable_status" = "status"
+      "code_id" = "code",
+      "code_score" = "score",
+      "code_status" = "status"
     )))
 }

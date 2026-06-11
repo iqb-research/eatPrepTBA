@@ -8,6 +8,8 @@
 compute_sizes <- function(data) {
   cli_setting()
 
+  all_sizes <-
+    data %>%
     dplyr::filter(type %in% c("Unit", "Booklet")) %>%
     dplyr::mutate(
       dependencies = purrr::map(dependencies, function(x) {

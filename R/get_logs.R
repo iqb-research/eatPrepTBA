@@ -28,18 +28,27 @@ setMethod("get_logs",
 
             # TODO: Loop, but no safe-run by now
             run_req <- function(group) {
-              base_req(method = "GET",
-                       endpoint = c("workspace", ws_id, "report", "log"),
-                       query = list(dataIds = group, useNewVersion = FALSE)) %>%
-                httr2::req_perform() %>%
-                httr2::resp_body_json()
+              resp <- base_req(method = "GET",
+                               endpoint = c("workspace", ws_id, "report", "log"),
+                               query = list(dataIds = group, useNewVersion = FALSE)) %>%
+                      httr2::req_perform()
+
+              # Hotfix of `Can't retrieve empty body.` To be tested.
+              tryCatch(
+                httr2::resp_body_json(resp),
+                error = function(e) {
+                  warning("Failed to parse response for group: ", paste(group, collapse = ", "))
+                  NULL
+                }
+              )
             }
 
             n_groups <- length(groups)
 
             resp <-
               groups %>%
-              purrr::map(run_req, .progress = "Downloading logs")
+              purrr::map(run_req, .progress = "Downloading logs") %>%
+              purrr::compact()
 
             if (!is.null(resp)) {
               logs_raw <-

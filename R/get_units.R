@@ -84,10 +84,13 @@ setMethod("get_units",
                 names(ws_info),
                 .before = "unit_id"
               ) %>%
+              # TODO: Does this slow down get_units()? (necessary for state instantiation)
+              dplyr::rowwise() %>%
               dplyr::mutate(
-                # Fresh units might not have a state
-                state_id = ifelse("state_id" %in% names(.), state_id, NA)
+              #   # Fresh units might not have a state
+                state_id = ifelse("state_id" %in% names(.), state_id, NA_character_)
               ) %>%
+              dplyr::ungroup() %>%
               dplyr::left_join(ws_states, by = dplyr::join_by("ws_id", "state_id")) %>%
               dplyr::relocate(
                 names(ws_states),

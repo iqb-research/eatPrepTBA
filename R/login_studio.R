@@ -4,7 +4,7 @@
 #' Provides a routine to login to an instance of the IQB Studio Lite.
 #'
 #' @param base_url Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.
-#' @param app_version Character. App version of the IQB Studio instance. Defaults to "13.8.0".
+#' @param app_version Character. App version of the IQB Studio instance. Defaults to "16.0.0".
 #' @param keyring Logical. Should the [keyring] package be used to save the passkey? This saves your credentials to your local machine. Defaults to `FALSE`.
 #' @param change_key Logical. If your password on the domain has changed - should the [keyring] password be changed? Defaults to `FALSE`.
 #' @param dialog Logical. Should the password be entered using the RStudio dialog (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
@@ -19,14 +19,14 @@
 #'
 #' ```
 #' curl --location --request POST '{base_url}/api/login?username={name}&password={password}'
-#' --header 'app-version: 13.8.0'
+#' --header 'app-version: 16.0.0'
 #' }'
 #' ```
 #' Note that the name and the password are only available to the function call
 #' and cannot be accessed later as they are not part of the [Login-class] object generated.
 #' @export
 login_studio <- function(base_url = "https://www.iqb-studio.de/",
-                         app_version = "13.8.0",
+                         app_version = "16.0.0",
                          keyring = FALSE,
                          change_key = FALSE,
                          dialog = TRUE,
@@ -47,10 +47,9 @@ login_studio <- function(base_url = "https://www.iqb-studio.de/",
     httr2::req_body_json(data = list(username = credentials$name,
                                      password = credentials$password)) %>%
     httr2::req_perform() %>%
-    httr2::resp_body_string() %>%
-    stringr::str_remove_all("\"")
+    httr2::resp_body_json()
 
-  auth_token <- glue::glue("Bearer {token}")
+  auth_token <- glue::glue("Bearer {token$accessToken}")
 
   base_req <- generate_base_req(type = "studio",
                                 base_url = base_url,

@@ -8,6 +8,7 @@
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/iqb-research/eatPrepTBA/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iqb-research/eatPrepTBA?branch=main)
 <!-- badges: end -->
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with
@@ -37,5 +38,5 @@ This is a basic example which shows you how to solve a common problem:
 
 ``` r
 library(eatPrepTBA)
-#> ℹ eatPrepTBA v0.9.8.9001
+#> ℹ eatPrepTBA v0.9.8.9008
 ```
