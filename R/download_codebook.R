@@ -48,20 +48,6 @@ setGeneric("download_codebook", function(workspace,
                                          # Code-Label in Großbuchstaben
                                          code_label_to_upper = TRUE) {
   cli_setting()
-  
-  # Input validation
-  assert_workspace_object(workspace, "workspace")
-  checkmate::assert_string(path, min.chars = 1)
-  checkmate::assert_string(file_prefix)
-  checkmate::assert_character(unit_keys, null.ok = TRUE)
-  checkmate::assert_logical(only_coded, len = 1)
-  checkmate::assert_logical(general_instructions, len = 1)
-  checkmate::assert_logical(hide_item_var_relation, len = 1)
-  checkmate::assert_logical(derived, len = 1)
-  checkmate::assert_logical(manual, len = 1)
-  checkmate::assert_logical(closed, len = 1)
-  checkmate::assert_logical(show_score, len = 1)
-  checkmate::assert_logical(code_label_to_upper, len = 1)
 
   standardGeneric("download_codebook")
 })

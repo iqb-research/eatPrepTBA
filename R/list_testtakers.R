@@ -12,9 +12,7 @@
 #' @aliases
 #' list_testtakers,WorkspaceTestcenter-method
 setGeneric("list_testtakers", function(workspace) {
-  # Input validation
-  assert_workspace_object(workspace, "workspace")
-  
+
   standardGeneric("list_testtakers")
 })
 

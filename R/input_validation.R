@@ -5,7 +5,7 @@ assert_cols <- function(x, cols, arg) {
   checkmate::assert_data_frame(x, min.rows = 0)
   checkmate::assert_character(cols, min.len = 1)
   checkmate::assert_string(arg)
-  
+
   missing_cols <- setdiff(cols, names(x))
 
   if (length(missing_cols) > 0L) {
@@ -27,7 +27,7 @@ assert_cols <- function(x, cols, arg) {
 assert_attrs <- function(x, attrs, arg) {
   checkmate::assert_character(attrs, min.len = 1)
   checkmate::assert_string(arg)
-  
+
   missing_attrs <- setdiff(attrs, names(attributes(x)))
 
   if (length(missing_attrs) > 0L) {
@@ -69,7 +69,7 @@ assert_existing_files <- function(files, arg = "files") {
 # Additional validation helpers
 assert_login_object <- function(login, arg = "login") {
   checkmate::assert_string(arg)
-  
+
   if (!inherits(login, "Login")) {
     stop(
       paste0(
@@ -79,30 +79,14 @@ assert_login_object <- function(login, arg = "login") {
       call. = FALSE
     )
   }
-  
-  invisible(login)
-}
 
-assert_workspace_object <- function(workspace, arg = "workspace") {
-  checkmate::assert_string(arg)
-  
-  if (!inherits(workspace, "Workspace")) {
-    stop(
-      paste0(
-        "'", arg, "' must be a Workspace object, ",
-        "but got class: ", paste(class(workspace), collapse = ", "), "."
-      ),
-      call. = FALSE
-    )
-  }
-  
-  invisible(workspace)
+  invisible(login)
 }
 
 assert_url <- function(url, arg = "url") {
   checkmate::assert_string(url, min.chars = 1)
   checkmate::assert_string(arg)
-  
+
   if (!grepl("^https?://", url)) {
     stop(
       paste0(
@@ -112,6 +96,6 @@ assert_url <- function(url, arg = "url") {
       call. = FALSE
     )
   }
-  
+
   invisible(url)
 }
