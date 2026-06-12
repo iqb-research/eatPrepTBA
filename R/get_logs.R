@@ -12,6 +12,10 @@
 #' @aliases
 #' get_logs,WorkspaceTestcenter-method
 setGeneric("get_logs", function(workspace, groups = NULL) {
+  # Input validation
+  assert_workspace_object(workspace, "workspace")
+  checkmate::assert_character(groups, null.ok = TRUE)
+  
   standardGeneric("get_logs")
 })
 

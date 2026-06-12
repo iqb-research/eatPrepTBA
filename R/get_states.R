@@ -12,6 +12,9 @@
 #' @aliases
 #' get_states,WorkspaceStudio-method
 setGeneric("get_states", function(workspace) {
+  # Input validation
+  assert_workspace_object(workspace, "workspace")
+  
   standardGeneric("get_states")
 })
 

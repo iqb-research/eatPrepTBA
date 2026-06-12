@@ -12,6 +12,9 @@
 #' get_coding_report,WorkspaceStudio-method
 setGeneric("get_coding_report", function(workspace) {
   cli_setting()
+  
+  # Input validation
+  assert_workspace_object(workspace, "workspace")
 
   standardGeneric("get_coding_report")
 })
