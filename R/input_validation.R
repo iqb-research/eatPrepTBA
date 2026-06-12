@@ -4,7 +4,7 @@
 assert_cols <- function(x, cols, arg) {
   checkmate::assert_data_frame(x, min.rows = 0)
   checkmate::assert_character(cols, min.len = 1)
-  checkmate::assert_string(arg)
+  checkmate::assert_string(arg) # name of the data frame
 
   missing_cols <- setdiff(cols, names(x))
 

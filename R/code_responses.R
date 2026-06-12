@@ -30,6 +30,8 @@ code_responses <- function(responses,
   checkmate::assert_tibble(responses)
   assert_cols(responses, responses_cols, "responses")
   units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
+  checkmate::assert_tibble(units)
+  assert_cols(units, units_cols, "units")
   checkmate::assert_logical(prepare, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
 
@@ -39,7 +41,6 @@ code_responses <- function(responses,
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")
   checkmate::assert_tibble(missings, null.ok = TRUE)
   if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
-
 
   if (is.null(missings)) {
     missings <-
@@ -348,10 +349,11 @@ code_responses <- function(responses,
 }
 
 empty_coded_responses <- function(responses, prepare = FALSE) {
-  response_cols <- c(
-    "file", "group_id", "login_name", "login_code", "booklet_id",
-    "unit_key", "unit_alias"
-  )
+  # input validation
+  responses_cols <- c("file", "group_id", "login_name", "login_code", "booklet_id", "unit_key", "unit_alias")
+  checkmate::assert_tibble(responses)
+  assert_cols(responses, responses_cols, "responses")
+  checkmate::assert_logical(prepare, len = 1)
 
   out <-
     responses %>%
