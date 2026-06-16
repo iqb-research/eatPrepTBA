@@ -9,6 +9,8 @@
 #' @export
 add_metadata <- function(units) {
   cli_setting()
+  # input validation
+  checkmate::assert_tibble(units)
 
   # Conserve attributes
   unit_attributes <- attributes(units)
@@ -16,6 +18,8 @@ add_metadata <- function(units) {
   if (tibble::has_name(units, "unit_metadata")) {
     units <- read_metadata(units = units)
   }
+  units_cols <- c("unit_profiles", "items_profiles")
+  assert_cols(units, units_cols, "units")
 
   unit_items <-
     units %>%
@@ -53,6 +57,13 @@ add_metadata <- function(units) {
 # Adds profiles to all columns if possible
 #' @keywords internal
 add_profile <- function(unit_items, units, md_profile, profiles, extra_columns = NULL) {
+  # input validation
+  checkmate::assert_tibble(unit_items)
+  checkmate::assert_tibble(units)
+  checkmate::assert_character(md_profile, len = 1)
+  checkmate::assert_character(profiles, len = 1)
+  checkmate::assert_character(extra_columns, null.ok = TRUE)
+
   unit_attributes <- attributes(unit_items)
 
   ws_settings <- attr(units, "ws_settings")

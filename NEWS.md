@@ -1,7 +1,36 @@
-# eatPrepTBA 0.9.8.9014
+# eatPrepTBA 0.9.8.9018
 
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
 * Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
+
+# eatPrepTBA 0.9.8.9017
+
+* Added `recode_omissions_to_not_reached` to `complete_design()` so users can choose whether trailing omission sequences at the end of a testlet are recoded as not reached.
+* Kept `complete_design()` not-reached detection within each `testlet_no`.
+
+# eatPrepTBA 0.9.8.9016
+
+* Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.
+* Removed the redundant plain-text `Author` field from `DESCRIPTION`; contributor metadata is now maintained via `Authors@R`.
+
+# eatPrepTBA 0.9.8.9015
+
+* Refreshed the getting-started vignette with IQB Studio login, workspace, unit metadata, and coding-scheme walkthroughs.
+* Added anonymized example unit data and Studio screenshots used by the vignette.
+* Kept the shared RStudio project file tracked in the repository.
+
+# eatPrepTBA 0.9.8.9014
+
+* Added shape-aware diagnostics in `download_responses()`, `get_responses()`, and `read_responses()` for changed Testcenter response slot ids. The new `diagnostics` argument controls compact, full, or suppressed feedback without changing output behavior.
+* Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.
+* Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to `diagnostics = "full"` when id examples are shortened.
+* Let `diagnostics = "none"` suppress missing-payload announcements and animated preparation progress while keeping stable preparation checkpoint messages.
+* Kept elapsed-time response preparation completion messages for all response diagnostics modes.
+* Added stable checkpoint messages while reading and combining multiple response files.
+* Added stable checkpoint messages while checking response payload structure before response slot diagnostics are printed.
+* Treated the known coded-response slot id `responses` as a special response slot, which can occur for stored coded responses such as StarS Player data, instead of warning that it is unexpected.
+* Restored default response preparation progress indicators for compact and full diagnostics while keeping `diagnostics = "none"` free of animated progress.
+* Aligned response report preparation and raw empty-payload announcements in `get_responses()` and `download_responses()` with the `diagnostics` modes used by `read_responses()`.
 
 # eatPrepTBA 0.9.8.9013
 
@@ -38,6 +67,7 @@
 
 * Added `download_responses()` for retrieving raw response reports from the Testcenter response endpoint.
 * Updated `get_responses()`, `read_responses()`, and response documentation for the current response report format.
+* Added `geometry_variables` and `geometry_variables_ts` columns to `get_responses()` and `read_responses()` for Testcenter `geometryVariableCodes` payloads.
 * Preserved response rows with empty nested response data so units without stored responses remain visible in `download_responses()`, `get_responses()`, and `read_responses()`.
 * Preserved units whose response report payload only contains empty coded responses (`responses = []`) so they remain available for design-based missing completion.
 * Fixed response report edge cases for empty API results, parsed `laststate` objects, and `units_filter_off` handling.

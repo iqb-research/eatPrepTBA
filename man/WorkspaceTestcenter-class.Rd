@@ -10,7 +10,7 @@ A class extending the Workspace class with additional information for the IQB Te
 \section{Slots}{
 
 \describe{
-\item{\code{login}}{\linkS4class{LoginTestcenter}. Login information for the IQB Testcenter.}
+\item{\code{login}}{\link[=LoginTestcenter-class]{LoginTestcenter}. Login information for the IQB Testcenter.}
 
 \item{\code{ws_id}}{ID of the workspace. The workspace ID can also be found in the workspace URL.}
 

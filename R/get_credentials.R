@@ -13,6 +13,12 @@
 #'
 #' @keywords internal
 get_credentials <- function(base_url, keyring, change_key, dialog, ...) {
+  # input validation
+  checkmate::assert_character(base_url, len = 1)
+  checkmate::assert_logical(keyring, len = 1)
+  checkmate::assert_logical(change_key, len = 1)
+  checkmate::assert_logical(dialog, len = 1)
+
   is_r_studio <- Sys.getenv("RSTUDIO") == "1"
   test_mode <- getOption("eatPrepTBA.test_mode")
 

@@ -79,6 +79,15 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                 full_design=NULL, block_self_switch=FALSE) {
   cli_setting()
 
+  logs_cols <- c("unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
+  checkmate::assert_tibble(logs)
+  assert_cols(logs, logs_cols, "logs")
+  checkmate::assert_tibble(full_design, null.ok = TRUE)
+
+  checkmate::assert_logical(use_unit_alias, len = 1)
+  checkmate::assert_logical(block_self_switch, len = 1)
+
+
   if (use_unit_alias) {
     logs$unit_ident <- logs$unit_alias
   } else {
@@ -126,7 +135,6 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
           Any unit loading start will be treated as a focus regained event where focus was lost before.")
     block_self_switch <- TRUE
   }
-
 
   all_logs <- all_logs %>%
     dplyr::arrange(dplyr::across(dplyr::all_of(c(groups_booklet, "ts")))) %>%
@@ -430,6 +438,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       tidyr::nest(unit_page_logs = dplyr::any_of(c("page_id", "page_start_time",
                                                    "page_n_play", "page_time", "page_logs_i")))
 
+
     unit_logs <- unit_logs %>%
       dplyr::left_join(
         unit_page_logs,
@@ -438,6 +447,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       dplyr::mutate(
         unit_has_pages = purrr::map_lgl(unit_page_logs, function(x) !is.null(x))
       )
+
   } else {
     print("Keine Seiten-IDs; Seiten-Bearbeitungszeiten werden nicht berechnet")
     unit_logs$unit_page_logs <- NA

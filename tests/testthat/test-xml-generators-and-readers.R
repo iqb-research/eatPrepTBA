@@ -18,6 +18,7 @@ test_that("generate_booklet and read_booklet round-trip units and testlets", {
   expect_equal(unique(parsed$booklet_id), "B1")
   expect_equal(parsed$unit_key, c("U1", "U2"))
   expect_equal(parsed$unit_alias, c("UA1", "UA2"))
+  expect_error(read_booklet("<Booklet></Booklet>"), "xml_document")
 })
 
 test_that("generate_booklets creates XML for nested booklet specifications", {
@@ -106,6 +107,7 @@ test_that("read_testtakers expands booklet codes and preserves order", {
   expect_equal(out$group_id, rep("G1", 3))
   expect_equal(out$login_code, c("C1", "C2", "C3"))
   expect_equal(out$booklet_no, c(1L, 1L, 1L))
+  expect_error(read_testtakers("<Testtakers></Testtakers>"), "xml_document")
 })
 
 test_that("configuration and restriction helpers build compact XML-ready lists", {

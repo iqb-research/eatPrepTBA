@@ -11,6 +11,9 @@
 #'
 #' @export
 prepare_coded <- function(responses) {
+  checkmate::assert_tibble(responses)
+  assert_cols(responses, "coded", "responses")
+
   responses %>%
     dplyr::mutate(
       coded = purrr::map(coded, function(x) {

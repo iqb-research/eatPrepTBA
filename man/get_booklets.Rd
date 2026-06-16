@@ -10,7 +10,7 @@ get_booklets(workspace, files = NULL)
 \S4method{get_booklets}{WorkspaceTestcenter}(workspace, files = NULL)
 }
 \arguments{
-\item{workspace}{\linkS4class{WorkspaceTestcenter}. Workspace information necessary to retrieve unit information and resources from the API.}
+\item{workspace}{\link[=WorkspaceTestcenter-class]{WorkspaceTestcenter}. Workspace information necessary to retrieve unit information and resources from the API.}
 
 \item{files}{Character (optional). Names of the booklet files to be retrieved. Defaults to \code{NULL} which returns all booklets defined on the workspace.}
 }

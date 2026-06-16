@@ -25,6 +25,21 @@ code_responses <- function(responses,
                            missings = NULL
 ) {
   cli_setting()
+  # input validation
+  responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id")
+  checkmate::assert_tibble(responses)
+  assert_cols(responses, responses_cols, "responses")
+  units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
+  checkmate::assert_logical(prepare, len = 1)
+  checkmate::assert_logical(overwrite, len = 1)
+
+  codes_manual_cols <- c("group_id", "booklet_id", "login_code", "login_name", "variable_id", "unit_key", "code_id")
+  checkmate::assert_tibble(codes_manual, null.ok = TRUE)
+  if(!is.null(codes_manual)) assert_cols(codes_manual, codes_manual_cols, "codes_manual")
+  missings_cols <- c("code_id", "code_status", "code_score", "code_type")
+  checkmate::assert_tibble(missings, null.ok = TRUE)
+  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
+
 
   if (is.null(missings)) {
     missings <-
@@ -56,11 +71,11 @@ code_responses <- function(responses,
   if (n_missing_response_payloads > 0) {
     if (nrow(responses_codable) == 0) {
       cli::cli_alert_warning(
-        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be assigned later with {.fn complete_design}."
+        "Every response row ({n_missing_response_payloads}) has a missing payload; automatic coding will return no codes, and missing codes should be completed afterwards with {.fn complete_design}."
       )
     } else {
       cli::cli_alert_info(
-        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be assigned later with {.fn complete_design}."
+        "Skipping automatic coding for {n_missing_response_payloads} row{?s} with missing response payloads; missing codes should be completed afterwards with {.fn complete_design}."
       )
     }
   }
@@ -71,6 +86,9 @@ code_responses <- function(responses,
 
     return(empty_coded_responses(responses, prepare = prepare))
   }
+
+  checkmate::assert_tibble(units)
+  assert_cols(units, units_cols, "units")
 
   units_prep <-
     units %>%

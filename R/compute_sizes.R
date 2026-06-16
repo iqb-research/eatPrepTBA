@@ -7,6 +7,10 @@
 #' @export
 compute_sizes <- function(data) {
   cli_setting()
+  # input validation
+  data_cols <- c("name", "size", "type", "dependencies")
+  checkmate::assert_tibble(data)
+  assert_cols(data, data_cols, "data")
 
   all_sizes <-
     data %>%
