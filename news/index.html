@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9017</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9018</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,11 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9018" id="eatpreptba-0989018">eatPrepTBA 0.9.8.9018<a class="anchor" aria-label="anchor" href="#eatpreptba-0989018"></a></h2>
+<ul><li>Fixed <code><a href="../reference/read_booklet.html">read_booklet()</a></code> for booklet XMLs where <code>Unit</code> elements already carry <code>testlet_id</code> or <code>testlet_label</code> attributes, avoiding duplicate-column failures while preserving testlet information.</li>
+<li>Added regression tests for <code><a href="../reference/read_booklet.html">read_booklet()</a></code> with pre-existing testlet attributes on standalone and nested units.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9017" id="eatpreptba-0989017">eatPrepTBA 0.9.8.9017<a class="anchor" aria-label="anchor" href="#eatpreptba-0989017"></a></h2>
 <ul><li>Added <code>recode_omissions_to_not_reached</code> to <code><a href="../reference/complete_design.html">complete_design()</a></code> so users can choose whether trailing omission sequences at the end of a testlet are recoded as not reached.</li>

@@ -1,5 +1,16 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9018
+
+- Fixed
+  [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
+  for booklet XMLs where `Unit` elements already carry `testlet_id` or
+  `testlet_label` attributes, avoiding duplicate-column failures while
+  preserving testlet information.
+- Added regression tests for
+  [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
+  with pre-existing testlet attributes on standalone and nested units.
+
 ## eatPrepTBA 0.9.8.9017
 
 - Added `recode_omissions_to_not_reached` to
