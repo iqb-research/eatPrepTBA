@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9018
+
+* Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
+* Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
+
 # eatPrepTBA 0.9.8.9017
 
 * Added `recode_omissions_to_not_reached` to `complete_design()` so users can choose whether trailing omission sequences at the end of a testlet are recoded as not reached.
