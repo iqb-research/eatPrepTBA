@@ -26,10 +26,10 @@ code_responses <- function(responses,
 ) {
   cli_setting()
   # input validation
-  responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id")
+  responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id") # tests fail in "test-response_report", due to "file", "unit_alias"
   checkmate::assert_tibble(responses)
   assert_cols(responses, responses_cols, "responses")
-  units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
+  units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables") # these units seem to cause trouble in "test-analysis-functions.R"
   checkmate::assert_tibble(units)
   assert_cols(units, units_cols, "units")
   checkmate::assert_logical(prepare, len = 1)
@@ -350,9 +350,9 @@ code_responses <- function(responses,
 
 empty_coded_responses <- function(responses, prepare = FALSE) {
   # input validation
-  responses_cols <- c("file", "group_id", "login_name", "login_code", "booklet_id", "unit_key", "unit_alias")
+  response_cols <- c("file", "group_id", "login_name", "login_code", "booklet_id", "unit_key", "unit_alias") # cols don't match the tests in test-response_report.R
   checkmate::assert_tibble(responses)
-  assert_cols(responses, responses_cols, "responses")
+  assert_cols(responses, response_cols, "responses")
   checkmate::assert_logical(prepare, len = 1)
 
   out <-

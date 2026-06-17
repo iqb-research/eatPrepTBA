@@ -100,7 +100,7 @@ settings <- function(workspace,
   checkmate::assert_character(unit_key, len = 1, null.ok = TRUE)
   checkmate::assert_character(unit_name, len = 1, null.ok = TRUE)
   checkmate::assert_character(description, len = 1, null.ok = TRUE)
-  checkmate::assert_character(player, len = 1, null.ok = TRUE)
+  #checkmate::assert_character(player, len = 1, null.ok = TRUE)
   checkmate::assert_character(editor, len = 1, null.ok = TRUE)
   checkmate::assert_character(schemer, len = 1, null.ok = TRUE)
   checkmate::assert_character(group_name, len = 1, null.ok = TRUE)
