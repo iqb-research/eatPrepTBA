@@ -573,7 +573,7 @@ layout_staytime_tables <- function(data,
                                    views = TRUE,
                                    download = NULL) {
   # input validation
-  #data?
+  checkmate::assert_numeric(data, names = "named")
   checkmate::assert_character(id, len = 1)
   checkmate::assert_character(subject, len = 1)
   checkmate::assert_logical(filterable, len = 1)

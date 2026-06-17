@@ -8,6 +8,9 @@
 #' @return A tibble.
 #' @keywords internal
 prepare_source_tree <- function(coding_scheme) {
+  # input validation
+  checkmate::assert_logical(coding_scheme, len = 1, null.ok = TRUE)
+
   sources_nest <-
     coding_scheme %>%
     eatAutoCode::get_dependency_tree() %>%

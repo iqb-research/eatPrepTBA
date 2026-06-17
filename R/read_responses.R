@@ -22,6 +22,7 @@ read_responses <- function(files,
                            diagnostics = c("compact", "full", "none")) {
   cli_setting()
   assert_existing_files(files)
+  checkmate::assert_choice(diagnostics, choices = c("compact", "full", "none"))
 
   diagnostics <- match.arg(diagnostics)
 

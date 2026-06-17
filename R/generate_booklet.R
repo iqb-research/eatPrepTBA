@@ -28,9 +28,11 @@ generate_booklet <- function(booklet_id,
   checkmate::assert_character(booklet_label)
   checkmate::assert_character(booklet_description, null.ok = TRUE)
   checkmate::assert_list(booklet_configuration, null.ok = TRUE)
-  # tbd: units, testlets
   checkmate::assert_character(app_version, len = 1)
   checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
+  # units, testlets (noch keine doc)
+  checkmate::assert_tibble(units, null.ok = TRUE)
+  checkmate::assert_tibble(testlets, null.ok = TRUE)
 
   BookletConfig <- rlang::exec("configure_booklet", !!!booklet_configuration)
 
