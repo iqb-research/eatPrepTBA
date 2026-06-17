@@ -22,4 +22,49 @@ eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio
 
 The browser can be used to identify which API calls Studio or Testcenter make. Open the browser developer tools, switch to the Network tab, and perform the desired action in the web interface. The Network tab shows the request URL, HTTP method, request headers, request payload, and server response.
 
+## Access tokens
+
+After logging in to IQB Studio (www.iqb-studio.de), the server generates an access token for the current session. This token must be sent with every subsequent request to the Studio API. 
+
+The token can be found in the browser developer tools: open the console with `Ctrl + Shift + I`, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`. 
+
+When reproducing the request in R with `httr2`, this value is passed with `req_headers()`. In eatPrepTBA, users normally do not need to copy this token manually, because `login_studio()` handles the login and stores the token for later requests.
+
+```{r login-studio-example, eval=FALSE}
+login <- eatPrepTBA::login_studio(app_version = "17.0.1")
+```
+
+
+## A simple request with httr2
+
+The following example shows the basic structure of a request to the IQB Studio API.
+It retrieves the list of units from one workspace.
+
+```{r first-studio-request, eval=FALSE}
+library(httr2)
+
+access_token <- "<access-token-from-login>"
+app_version <- "17.0.1"
+workspace_id <- 1300
+
+units <- httr2::request("https://www.iqb-studio.de/api/") %>%
+  httr2::req_url_path_append("workspaces", workspace_id, "units") %>%
+  httr2::req_headers(
+    "Authorization" = paste("Bearer", access_token),
+    "App-Version" = app_version
+  ) %>%
+  httr2::req_perform() %>%
+  httr2::resp_body_json()
+```
+
+The request starts from the Studio API base URL. The path
+`workspaces/{workspace_id}/units` specifies that the unit list of a specific
+workspace should be retrieved.
+
+The `Authorization` header contains the bearer token that was returned by Studio
+during login. This token has to be sent with every authenticated Studio request.
+The `App-Version` header tells the API which Studio app version is used.
+
+The response is parsed with `resp_body_json()`, because the Studio API usually
+returns data in JSON format.
 
