@@ -1,0 +1,25 @@
+---
+title: "How eatPrepTBA communicates with IQB APIs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How eatPrepTBA communicates with IQB APIs}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# How eatPrepTBA communicates with IQB Studio and IQB Testcenter APIs
+
+eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests happen with use of the R package `httr2`. eatPrepTBA wraps this in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that eatPrepTBA users do not need to write `httr2` code directly.
+
+## Basic request workflow
+
+The browser can be used to identify which API calls Studio or Testcenter make. Open the browser developer tools, switch to the Network tab, and perform the desired action in the web interface. The Network tab shows the request URL, HTTP method, request headers, request payload, and server response.
+
+
