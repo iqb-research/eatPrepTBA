@@ -46,7 +46,8 @@
 #'     In this case, load times were not calculated.
 #' - n_failed_loadings: Number of failed loading attempts for the unit
 #' - focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
-#'   as well as unit and page switches (which are considered as marking regained focus)
+#'   as well as unit and page switches (which are considered as marking regained focus).
+#'   Empty for units with no focus lost events.
 #'   - focus_event_ts: Timestamp of the focus event
 #'   - focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
 #'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event
@@ -503,6 +504,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       all_ts %>% dplyr::select(dplyr::all_of(c(groups_unit, "unit_alias", "unit_key", "unit_ident"))),
       by = groups_unit,
       multiple = "any")
+  
+  unit_logs$unit_page_logs[unit_logs$unit_page_logs=="NULL"] <- NA
+  unit_logs$focus_events[unit_logs$focus_events=="NULL"] <- NA
+  unit_logs$unit_playbacks[unit_logs$unit_playbacks=="NULL"] <- NA
   
   return(unit_logs)
 }
