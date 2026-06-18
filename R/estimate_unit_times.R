@@ -70,6 +70,10 @@
 #' - unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 #' - unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 #'   use_unit_alias
+#' - device: Testing device, drawn from LOADCOMPLETE log entries
+#' - osName: Operating system, drawn from LOADCOMPLETE log entries
+#' - browserName: Browser used for testing, drawn from LOADCOMPLETE log entries
+#' - browserVersion: Browser version, drawn from LOADCOMPLETE log entries
 #'
 #' Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 #'
@@ -125,7 +129,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         load_payload = stringr::str_replace_all(load_payload, '""', '\\\\"')
       ) %>%
       dplyr::mutate(
-        parsed_col = map(load_payload, function(cell) {
+        parsed_col = purrr::map(load_payload, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
