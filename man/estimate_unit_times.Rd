@@ -16,10 +16,10 @@ estimate_unit_times(
 
 \item{use_unit_alias}{Boolean value. Determines whether to use unit_alias as unit identifier. If
 FALSE, use unit_key instead, which is the default.
-By default, unit_alias == unit_key (mapping to the Studio unit). In special cases —
+By default, unit_alias == unit_key (mapping to the Studio unit). In special cases -
 particularly for unit start pages and units that appear identically in multiple test
 booklets but are to be evaluated separately (which is rare; this has so far only
-applied to instruction pages or clarification questions) — a different unit_alias
+applied to instruction pages or clarification questions) - a different unit_alias
 is intentionally assigned to logically identical units. In these cases, setting this
 parameter to TRUE can be advisable.}
 
@@ -65,7 +65,8 @@ In this case, load times were not calculated.
 }
 \item n_failed_loadings: Number of failed loading attempts for the unit
 \item focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
-as well as unit and page switches (which are considered as marking regained focus)
+as well as unit and page switches (which are considered as marking regained focus).
+NA for units with no focus lost events.
 \itemize{
 \item focus_event_ts: Timestamp of the focus event
 \item focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
@@ -74,7 +75,7 @@ before another lost event appears
 \item focus_lost_duration: For focus lost events, time until focus regained
 }
 \item unit_page_logs: Tibble containing one row with information for each page of the unit.
-NULL when a unit only has one page.
+NA when a unit only has one page.
 \itemize{
 \item page_id: Digit(s) extracted from the log entry for this page
 \item page_start_time: Timestamp at which page is logged in log entry
@@ -95,6 +96,10 @@ or the end of the booklet (i. e. the final timestamp within the current booklet 
 \item unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 \item unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 use_unit_alias
+\item device: Testing device, drawn from LOADCOMPLETE log entries
+\item osName: Operating system, drawn from LOADCOMPLETE log entries
+\item browserName: Browser used for testing, drawn from LOADCOMPLETE log entries
+\item browserVersion: Browser version, drawn from LOADCOMPLETE log entries
 }
 
 Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.

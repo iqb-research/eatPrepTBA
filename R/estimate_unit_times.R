@@ -3,10 +3,10 @@
 #' @param logs Tibble. Must be a logs tibble retrieved with `get_logs()` or `read_logs()`.
 #' @param use_unit_alias Boolean value. Determines whether to use unit_alias as unit identifier. If
 #'        FALSE, use unit_key instead, which is the default.
-#'        By default, unit_alias == unit_key (mapping to the Studio unit). In special cases —
+#'        By default, unit_alias == unit_key (mapping to the Studio unit). In special cases -
 #'        particularly for unit start pages and units that appear identically in multiple test
 #'        booklets but are to be evaluated separately (which is rare; this has so far only
-#'        applied to instruction pages or clarification questions) — a different unit_alias
+#'        applied to instruction pages or clarification questions) - a different unit_alias
 #'        is intentionally assigned to logically identical units. In these cases, setting this
 #'        parameter to TRUE can be advisable.
 #' @param full_design Tibble. Design tibble containing block information,
@@ -47,14 +47,14 @@
 #' - n_failed_loadings: Number of failed loading attempts for the unit
 #' - focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
 #'   as well as unit and page switches (which are considered as marking regained focus).
-#'   Empty for units with no focus lost events.
+#'   NA for units with no focus lost events.
 #'   - focus_event_ts: Timestamp of the focus event
 #'   - focus_event_type: Type of event ("LOST" or "REGAINED", but REGAINED events are not returned)
 #'   - focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT followed by a regained event
 #'     before another lost event appears
 #'   - focus_lost_duration: For focus lost events, time until focus regained
 #' - unit_page_logs: Tibble containing one row with information for each page of the unit.
-#'   NULL when a unit only has one page.
+#'   NA when a unit only has one page.
 #'   - page_id: Digit(s) extracted from the log entry for this page
 #'   - page_start_time: Timestamp at which page is logged in log entry
 #'   - page_n_play: Number of playbacks of current page
@@ -124,7 +124,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   } else {
     dev_logs <- dev_logs %>%
       dplyr::mutate(
-        load_payload = stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-–]?\\s*")
+        load_payload = stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-]?\\s*")
       ) %>%
       dplyr::mutate(
         load_payload = stringr::str_replace_all(load_payload, '""', '\\\\"')
@@ -270,7 +270,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(
       ts_next = dplyr::lead(ts),
       unit_time = ts_next - ts, # Unit time hier definiert als Zeitspanne von Unit RUNNING
-      # bis zur nächsten Aktion innerhalb des Booklets
+      # bis zur naechsten Aktion innerhalb des Booklets
       ts_prev = dplyr::lag(ts),
       unit_loadtime = ts - ts_prev # Unit Loadtime hier definiert als Zeitspanne von
       # PLAYER=LOADING bis zu PLAYER=RUNNING (erfolglose Ladeversuche inklusive)
@@ -278,9 +278,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(
       unit_loadtime = dplyr::case_when(
         run_no_load == TRUE ~ NA, .default = unit_loadtime
-      ), # Ladezeiten löschen, wenn vor RUNNING kein LOADING kam
+      ), # Ladezeiten loeschen, wenn vor RUNNING kein LOADING kam
       ts_prev = dplyr::case_when(
-        run_no_load == TRUE ~ NA, .default = ts_prev # Dasselbe für ts_prev
+        run_no_load == TRUE ~ NA, .default = ts_prev # Dasselbe fuer ts_prev
       )) %>%
     dplyr::filter(ts_name =="unit_start_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
