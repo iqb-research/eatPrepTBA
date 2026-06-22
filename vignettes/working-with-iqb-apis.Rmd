@@ -18,15 +18,37 @@ knitr::opts_chunk$set(
 
 eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests happen with use of the R package `httr2`. eatPrepTBA wraps this in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that eatPrepTBA users do not need to write `httr2` code directly.
 
+
+
 ## Basic request workflow
 
-The browser can be used to identify which API calls Studio or Testcenter make. Open the browser developer tools, switch to the Network tab, and perform the desired action in the web interface. The Network tab shows the request URL, HTTP method, request headers, request payload, and server response.
+To inspect the API requests sent by IQB Studio, open the browser developer tools. The developer tools make it possible to inspect the requests that are sent from the browser to the server.
+
+They can usually be opened in one of the following ways:
+
+* **Windows/Linux:** press `F12` or `Ctrl + Shift + I`
+* **Mac:** press `Cmd + Option + I`
+* **Any browser:** right-click anywhere on the page and select **Inspect**
+
+After opening the developer tools, switch to the **Network** tab. In German browser interfaces this tab may be called **Netzwerkanalyse**. When an action is performed in IQB Studio, for example selecting a workspace or opening a unit, the Network tab shows the corresponding API requests. Selecting one of these requests makes it possible to inspect the request URL, method, headers, and response.
+
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Browser_Developer_Tools.png")
+```
+
+In the `Authorization` header, the access token used for the request token appears in the form `Bearer <access-token>`. You will need it for further requests via httr2.
+
+```{r eval = FALSE}
+access_token <- "eyJhbGciOiJIUzI1NiI..."
+```
+
+
 
 ## Access tokens
 
 After logging in to IQB Studio (www.iqb-studio.de), the server generates an access token for the current session. This token must be sent with every subsequent request to the Studio API. 
 
-The token can be found in the browser developer tools: open the console with `Ctrl + Shift + I`, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`. 
+The token can be found in the browser developer tools: open the console, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`. 
 
 When reproducing the request in R with `httr2`, this value is passed with `req_headers()`. In eatPrepTBA, users normally do not need to copy this token manually, because `login_studio()` handles the login and stores the token for later requests.
 
@@ -35,7 +57,7 @@ login <- eatPrepTBA::login_studio(app_version = "17.0.1")
 ```
 
 
-## A simple request with httr2
+## A simple GET request with httr2
 
 The following example shows the basic structure of a request to the IQB Studio API.
 It retrieves the list of units from one workspace.
@@ -43,19 +65,25 @@ It retrieves the list of units from one workspace.
 ```{r first-studio-request, eval=FALSE}
 library(httr2)
 
-access_token <- "<access-token-from-login>"
-app_version <- "17.0.1"
-workspace_id <- 1300
-
-units <- httr2::request("https://www.iqb-studio.de/api/") %>%
-  httr2::req_url_path_append("workspaces", workspace_id, "units") %>%
+httr2_result <- httr2::request("https://www.iqb-studio.de/api/") %>%
+  httr2::req_url_path_append("workspaces", 1300, "units") %>%
+  httr2::req_url_query(
+    targetWorkspaceId = 1300,
+    withLastSeenCommentTimeStamp = "true"
+  ) %>%
   httr2::req_headers(
     "Authorization" = paste("Bearer", access_token),
-    "App-Version" = app_version
+    "App-Version" = "17.0.1"
   ) %>%
   httr2::req_perform() %>%
   httr2::resp_body_json()
 ```
+
+```{r}
+# Anonymize and save result
+httr2_result <- purrr::map(httr2_result, \(x) { x[grepl("User$", names(x))] <- "Max Mustermann"; x })
+```
+
 
 The request starts from the Studio API base URL. The path
 `workspaces/{workspace_id}/units` specifies that the unit list of a specific
@@ -65,6 +93,26 @@ The `Authorization` header contains the bearer token that was returned by Studio
 during login. This token has to be sent with every authenticated Studio request.
 The `App-Version` header tells the API which Studio app version is used.
 
-The response is parsed with `resp_body_json()`, because the Studio API usually
-returns data in JSON format.
+Since the response type is JSON, the same request can be reproduced in R with `httr2` and parsed with `resp_body_json()`.
+
+This is the result:
+
+```{r}
+httr2_result  %>% 
+  tibble::enframe()
+
+httr2_result  %>% 
+  purrr::list_transpose()
+tibble::as_tibble()
+
+
+```
+
+
+```{r echo = FALSE}
+# ...pre saved to be used in the vignette without needing to log into the Studio
+units <- readr::read_rds(system.file("extdata", "example_units.rds", package = "eatPrepTBA"))
+```
+
+
 
