@@ -31,10 +31,10 @@ or did they have to wait for the time to run out / the test conductor to switch 
 This is relevant for finding lost focus events.}
 }
 \value{
-Tibble containing various times and timestamps per unit and page
+Tibble containing various times and timestamps per participant unit and page
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 
 Calculates estimated processing and loading times for units and pages. Excludes units that never
 actually played. Duration units are in milliseconds.

@@ -15,10 +15,10 @@
 #'        or did they have to wait for the time to run out / the test conductor to switch blocks?
 #'        This is relevant for finding lost focus events.
 #'
-#' @return Tibble containing various times and timestamps per unit and page
+#' @return Tibble containing various times and timestamps per participant unit and page
 #'
 #' @description
-#' `r lifecycle::badge("experimental")`
+#' `r lifecycle::badge("stable")`
 #'
 #' Calculates estimated processing and loading times for units and pages. Excludes units that never
 #' actually played. Duration units are in milliseconds.
@@ -510,4 +510,68 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   unit_logs$unit_playbacks[unit_logs$unit_playbacks=="NULL"] <- NA
   
   return(unit_logs)
+}
+
+
+#' Mines information on audio and video clips and their play rates from the response data
+#'
+#' @param response_df Tibble. Pulled from test center using get_responses().
+#'
+#' @return Tibble containing number of playbacks per participant unit, clip and page.
+#'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#'
+#' Extracts the audio and video clip IDs and playback numbers from the "response" JSON strings in the 
+#' input tibble, and unnests them for each participant.
+#' New columns:
+#' - id: Audio or video clip ID
+#' - status: Unclear
+#' - n_plays: Number of playbacks per participant and booklet, usually integer, sometimes float (?)
+#' - media_ids: Concatenated unit_key and id. Contains identifiers for both the unit and the clip.
+#'
+#' @export
+#'
+estimate_audio_video_plays <- function(response_df) {
+  audiomask_resp <- stringr::str_detect(response_df$responses, "audio")
+  audio_resp_rows <- response_df[audiomask_resp, ]
+  parsed_audios <- audio_resp_rows %>%
+    dplyr::filter(!is.na(responses)) %>%
+    dplyr::mutate(
+      parsed_col = purrr::map(responses, function(cell) {
+        safe_limit <- 0
+        # Apply fromJSON up to 5 times
+        while (is.character(cell) && safe_limit < 5) {
+          cell <- jsonlite::fromJSON(cell)
+          safe_limit <- safe_limit + 1
+        }
+        return(cell)
+      })) %>%
+    subset(select = c(group_id, login_name, login_code, booklet_id, unit_key, page_no, parsed_col)) %>%
+    tidyr::unnest(parsed_col) %>%
+    dplyr::filter(stringr::str_detect(id, "audio"))
+  
+  videomask_resp <- stringr::str_detect(response_df$responses, "video")
+  video_resp_rows <- response_df[videomask_resp, ]
+  parsed_videos <- video_resp_rows %>%
+    dplyr::filter(!is.na(responses)) %>%
+    dplyr::mutate(
+      parsed_col = purrr::map(responses, function(cell) {
+        safe_limit <- 0
+        # Apply fromJSON up to 5 times
+        while (is.character(cell) && safe_limit < 5) {
+          cell <- jsonlite::fromJSON(cell)
+          safe_limit <- safe_limit + 1
+        }
+        return(cell)
+      })) %>%
+    subset(select = c(group_id, login_name, login_code, booklet_id, unit_key, page_no, parsed_col)) %>%
+    tidyr::unnest(parsed_col) %>%
+    dplyr::filter(stringr::str_detect(id, "video"))
+  
+  all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))
+  all_parsed$media_unit_ids <- paste(all_parsed$unit_key, all_parsed$id)
+  all_parsed <- rename(all_parsed, n_plays = value)
+  
+  return(all_parsed)
 }
