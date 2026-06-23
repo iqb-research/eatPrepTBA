@@ -571,7 +571,7 @@ estimate_audio_video_plays <- function(response_df) {
   
   all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))
   all_parsed$media_unit_ids <- paste(all_parsed$unit_key, all_parsed$id)
-  all_parsed <- rename(all_parsed, n_plays = value)
+  all_parsed <- dplyr::rename(all_parsed, n_plays = value)
   
   return(all_parsed)
 }

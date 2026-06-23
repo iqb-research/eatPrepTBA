@@ -133,13 +133,13 @@ compute_staytime_tables <- function(fach,
 
   unit_page_logtimes <-
     log_times %>%
-    unnest(unit_page_logs, keep_empty = TRUE) %>%
+    tidyr::unnest(unit_page_logs, keep_empty = TRUE) %>%
     dplyr::mutate(
-      item_time = case_when(
+      item_time = dplyr::case_when(
         unit_has_pages ~ page_time,
         .default = unit_time
       ),
-      page_id = coalesce(page_id, 0)
+      page_id = dplyr::coalesce(page_id, 0)
     )
   rm(log_times)
 
@@ -150,20 +150,20 @@ compute_staytime_tables <- function(fach,
   # Unit-Details auspacken
   units_cs <-
     units_cs %>%
-    unnest(unit_codes, keep_empty = TRUE)
+    tidyr::unnest(unit_codes, keep_empty = TRUE)
 
   # Korrektur fuer die Markieritems
   units_cs_corrected <-
     units_cs %>%
     dplyr::mutate(
-      # variable_temp = case_when(
+      # variable_temp = dplyr::case_when(
       #   grepl("^[0-9]+$", variable_label) ~ as.integer(variable_label),
       #   .default = NA),
       variable_temp = tryCatch({readr::parse_integer(variable_label)},
                                warning = function(w) {
                                  NA
                                }),
-      variable_page = case_when(
+      variable_page = dplyr::case_when(
         !is.na(variable_temp) ~ variable_temp,
         .default = as.integer(variable_page)
       )
@@ -183,23 +183,23 @@ compute_staytime_tables <- function(fach,
         final_responses$code_type != "EXAMPLE" &
         final_responses$code_type != "NO_CODING", ] %>%
     dplyr::mutate(
-      design = case_when(
+      design = dplyr::case_when(
         str_detect(booklet_id, FS_marker) ~ "FS",
         .default = "RS"
       ),
-      booklet_id = str_to_upper(booklet_id)
+      booklet_id = stringr::str_to_upper(booklet_id)
     )
   rm(final_responses)
 
   resp_pages <-
     final_resp %>%
-    filter(!is.na(item_id), !is.na(variable_id)) %>%
+    dplyr::filter(!is.na(item_id)) %>%
     dplyr::left_join(units_cs_corrected %>% dplyr::select(unit_key, variable_id, variable_page))
   rm(units_cs_corrected, final_resp)
 
   resp_page_logtimes <-
     resp_pages %>%
-    dplyr::left_join(unit_page_logtimes %>% rename(variable_page = page_id))
+    dplyr::left_join(unit_page_logtimes %>% dplyr::rename(variable_page = page_id))
   rm(resp_pages)
   if (!is.null(students_select)) {
     resp_page_logtimes <- resp_page_logtimes[resp_page_logtimes$IDSTUD %in% students_select, ]
@@ -207,14 +207,14 @@ compute_staytime_tables <- function(fach,
 
   stim_logs_quant <-
     unit_page_logtimes %>%
-    rename(variable_page = page_id) %>%
-    anti_join(resp_page_logtimes) %>% # select leftover page logtimes not in resp_page_logtimes,
+    dplyr::rename(variable_page = page_id) %>%
+    dplyr::anti_join(resp_page_logtimes) %>% # select leftover page logtimes not in resp_page_logtimes,
     # i. e. pages without item IDs
-    semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
+    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
                                               booklet_id, unit_key)) %>% # select only those use
     # combinations which appear in resp_page_logtimes
     dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
-    filter(variable_page == 0 & !is.na(page_time)) %>%
+    dplyr::filter(variable_page == 0 & !is.na(page_time)) %>%
     dplyr::group_by(unit_key, item_id = variable_id, variable_page) %>%
     dplyr::summarise(
       page_n_valid = length(na.omit(page_time)),
@@ -231,14 +231,14 @@ compute_staytime_tables <- function(fach,
 
   stim_logs_quant_design <-
     unit_page_logtimes %>%
-    rename(variable_page = page_id) %>%
-    anti_join(resp_page_logtimes) %>%
-    semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
+    dplyr::rename(variable_page = page_id) %>%
+    dplyr::anti_join(resp_page_logtimes) %>%
+    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
                                               booklet_id, unit_key)) %>%
     dplyr::left_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
                                               booklet_id, unit_key, design)) %>%
     dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
-    filter(variable_page == 0 & !is.na(page_time))
+    dplyr::filter(variable_page == 0 & !is.na(page_time))
 
   if (sum(stim_logs_quant_design$design == "FS", na.rm=TRUE) == 0) {
     for (i in 1:11) {
@@ -356,10 +356,9 @@ compute_staytime_tables <- function(fach,
   unit_meta <-
     unit_meta %>%
     dplyr::select(ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata) %>%
-    unnest(unit_metadata) %>%
-    unnest(item_metadata) %>%
-    dplyr::select(matches(str_c(select_cols, collapse = "|"))) %>%
-    assert_cols("Aufgabenzeit", "unit_meta after unnesting metadata") %>%
+    tidyr::unnest(unit_metadata) %>%
+    tidyr::unnest(item_metadata) %>%
+    dplyr::select(dplyr::matches(stringr::str_c(select_cols, collapse = "|"))) %>%
     dplyr::mutate(
       # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
       link = stringr::str_glue("https://www.iqb-studio.de/#/a/{ws_id}/{unit_id}/preview"),
@@ -465,7 +464,7 @@ compute_staytime_tables <- function(fach,
       save = purrr::walk2(data, domain, function(data, domain) {
         tab <-
           data %>%
-          dplyr::distinct(link, dplyr::across(starts_with("unit")), SPF) %>%
+          dplyr::distinct(link, dplyr::across(dplyr::starts_with("unit")), SPF) %>%
           layout_staytime_tables(id = "unit-table")
 
         # Items
@@ -473,7 +472,7 @@ compute_staytime_tables <- function(fach,
           data %>%
           dplyr::arrange(unit_key, variable_page, item_id) %>%
           dplyr::mutate(variable_page = variable_page + 1) %>%
-          # dplyr::distinct(link, dplyr::across(starts_with("unit")), SPF) %>%
+          # dplyr::distinct(link, dplyr::across(dplyr::starts_with("unit")), SPF) %>%
           layout_staytime_tables(id = "item-table")
 
         save(tab, tab_item, file = stringr::str_glue(
@@ -483,8 +482,8 @@ compute_staytime_tables <- function(fach,
     )
 
   # dat_table %>%
-  #   filter(domain == "D5") %>%
-  #   # filter(unit_key %in% (1:17 %>% str_pad(width = 2, pad = "0") %>% str_c("D2_BT", .))) %>%
+  #   dplyr::filter(domain == "D5") %>%
+  #   # dplyr::filter(unit_key %in% (1:17 %>% str_pad(width = 2, pad = "0") %>% stringr::str_c("D2_BT", .))) %>%
   #   ggplot2::ggplot(ggplot2::aes(y = as.factor(item_id) %>% fct_rev(), x = page_median)) +
   #   ggplot2::geom_linerange(ggplot2::aes(xmin = page_median, xmax = page_q90),
   #                           alpha = .9, linewidth = 1.5,
@@ -511,12 +510,12 @@ compute_staytime_tables <- function(fach,
   # ### Extraktion fuer Janine und Pauline
   # pilot25_stim_times <-
   #   unit_page_logtimes %>%
-  #   rename(variable_page = page_id) %>%
-  #   anti_join(resp_page_logtimes) %>%
-  #   semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
+  #   dplyr::rename(variable_page = page_id) %>%
+  #   dplyr::anti_join(resp_page_logtimes) %>%
+  #   dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
   #                                   booklet_id, unit_key)) %>%
   #   dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
-  #   filter(variable_page == 0 & !is.na(page_time))
+  #   dplyr::filter(variable_page == 0 & !is.na(page_time))
   #
   # p25_times <-
   #   resp_page_logtimes %>%
@@ -593,7 +592,7 @@ layout_staytime_tables <- function(data,
   # unit_cols <- colUnit(data_table)
 
   columns_filter <-
-    columns %>% keep(imap_lgl(., function(x, i) i %in% names(data)))
+    columns %>% purrr::keep(purrr::imap_lgl(., function(x, i) i %in% names(data)))
 
   # if (subject == "dep") {
   #   diff_group <- c("itemP", "itemP_RS", "itemP_FS", "est", "se", "Geschätzte_Schwierigkeit")
@@ -1002,7 +1001,7 @@ display_dotplot <- function(data, design = NULL) {
       # tdiff <- data[[index, stringr::str_glue("unit_diff_{design}")]]
     }
 
-    # color <- case_when(
+    # color <- dplyr::case_when(
     #   tdiff > 0 ~ "#fb7185",
     #   tdiff < -60 ~ "#0ea5e9",
     #   .default = "#34d399")

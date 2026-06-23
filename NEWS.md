@@ -91,7 +91,6 @@
 * Made codebook preparation helpers robust to single-variable and single-code JSON structures.
 * Declared the `methods` dependency used by S4 class exports and constructors.
 * Corrected `WorkspaceTestcenter` slot documentation.
-* Reduced `R CMD check` diagnostics for startup messages, Rd files, imports, and data-masked column names.
 * Added a GitHub Actions workflow for Codecov coverage uploads.
 
 # eatPrepTBA 0.9.8.9012 [2026-06-02]
