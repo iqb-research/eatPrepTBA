@@ -1,0 +1,471 @@
+#' Prepare booklet specifications from a tabular block design
+#'
+#' @param booklets A tibble with one row per booklet. It must contain either
+#'   `booklet_id` or `booklet` and one or more `block_*` columns containing the
+#'   block ids in booklet order. `booklet_label`, `booklet_description`, and
+#'   `booklet_configuration` are optional.
+#' @param blocks A tibble with one row per block. It must contain `block` and
+#'   may contain `subject`, `domain`, `minutes`, `testlet_id`, `testlet_label`,
+#'   and `wrap`.
+#' @param units A tibble with one row per unit. It must contain `block` and
+#'   `unit_key`; `subject`, `domain`, `sequence`, `unit_alias`, `unit_label`,
+#'   and `unit_labelshort` are optional.
+#' @param restrictions An optional tibble with testlet restriction information.
+#'   It may contain `booklet_id`, `subject`, `domain`, `block`, `testlet_id`,
+#'   `testlet_label`, `minutes`, `leave`, `code`, `code_to_enter`,
+#'   `presentation`, `response`, and `wrap`.
+#' @param booklet_subject_fn Optional function that receives `booklet_id` and
+#'   returns a subject used to disambiguate blocks that exist for several
+#'   subjects.
+#' @param add_start_end Logical. Should `Start_page` and `End_page` units be
+#'   added to every booklet?
+#' @param booklet_filter Optional character vector of booklet ids to keep.
+#' @param wrap_blocks Logical. Should blocks be wrapped into testlets by
+#'   default?
+#' @param default_leave Optional default value for the `leave` attribute of
+#'   `TimeMax` restrictions.
+#' @param keep_leave_without_minutes Logical. Should `leave` be kept when no
+#'   `minutes` restriction is present?
+#'
+#' @return A tibble that can be passed to [generate_booklets()].
+#' @export
+prepare_booklets_from_block_design <- function(
+    booklets,
+    blocks,
+    units,
+    restrictions = NULL,
+    booklet_subject_fn = NULL,
+    add_start_end = TRUE,
+    booklet_filter = NULL,
+    wrap_blocks = TRUE,
+    default_leave = NULL,
+    keep_leave_without_minutes = FALSE
+) {
+  checkmate::assert_tibble(booklets)
+  checkmate::assert_tibble(blocks)
+  checkmate::assert_tibble(units)
+  checkmate::assert_tibble(restrictions, null.ok = TRUE)
+  checkmate::assert_function(booklet_subject_fn, null.ok = TRUE)
+  checkmate::assert_logical(add_start_end, len = 1)
+  checkmate::assert_character(booklet_filter, null.ok = TRUE)
+  checkmate::assert_logical(wrap_blocks, len = 1)
+  checkmate::assert_character(default_leave, len = 1, null.ok = TRUE)
+  checkmate::assert_logical(keep_leave_without_minutes, len = 1)
+
+  assert_cols(blocks, "block", "blocks")
+  assert_cols(units, c("block", "unit_key"), "units")
+
+  if (is.null(default_leave)) {
+    default_leave <- NA_character_
+  }
+
+  booklet_design <- standardise_booklet_block_design(booklets)
+  booklet_metadata <- booklet_design$booklet_metadata
+  booklet_design <- booklet_design$booklet_design
+
+  if (!is.null(booklet_filter)) {
+    booklet_design <- booklet_design %>%
+      dplyr::filter(.data$booklet_id %in% booklet_filter)
+    booklet_metadata <- booklet_metadata %>%
+      dplyr::filter(.data$booklet_id %in% booklet_filter)
+  }
+
+  if (!is.null(booklet_subject_fn)) {
+    booklet_design <- booklet_design %>%
+      dplyr::mutate(booklet_subject = booklet_subject_fn(.data$booklet_id))
+  } else {
+    booklet_design <- booklet_design %>%
+      dplyr::mutate(booklet_subject = NA_character_)
+  }
+
+  booklet_design <- booklet_design %>%
+    dplyr::add_count(.data$booklet_id, .data$block, name = "booklet_block_n") %>%
+    dplyr::group_by(.data$booklet_id, .data$block) %>%
+    dplyr::mutate(block_occurrence = dplyr::dense_rank(.data$block_pos)) %>%
+    dplyr::ungroup()
+
+  units <- standardise_block_units(units)
+  blocks <- standardise_blocks(blocks)
+  restrictions <- coerce_booklet_restrictions(restrictions)
+
+  block_lookup <- blocks %>%
+    dplyr::full_join(
+      units %>% dplyr::distinct(.data$subject, .data$domain, .data$block),
+      by = c("subject", "domain", "block")
+    ) %>%
+    dplyr::add_count(.data$block, name = "block_id_n")
+
+  block_restrictions <- restrictions %>%
+    dplyr::filter(is.na(.data$booklet_id) | .data$booklet_id == "") %>%
+    dplyr::select(
+      "subject", "domain", "block",
+      block_restr_testlet_id = "testlet_id",
+      block_restr_testlet_label = "testlet_label",
+      block_restr_minutes = "minutes",
+      block_restr_leave = "leave",
+      block_restr_code = "code",
+      block_restr_code_to_enter = "code_to_enter",
+      block_restr_presentation = "presentation",
+      block_restr_response = "response",
+      block_restr_wrap = "wrap"
+    )
+
+  booklet_restrictions <- restrictions %>%
+    dplyr::filter(!is.na(.data$booklet_id), .data$booklet_id != "") %>%
+    dplyr::select(
+      "booklet_id", "block",
+      booklet_restr_testlet_id = "testlet_id",
+      booklet_restr_testlet_label = "testlet_label",
+      booklet_restr_minutes = "minutes",
+      booklet_restr_leave = "leave",
+      booklet_restr_code = "code",
+      booklet_restr_code_to_enter = "code_to_enter",
+      booklet_restr_presentation = "presentation",
+      booklet_restr_response = "response",
+      booklet_restr_wrap = "wrap"
+    )
+
+  booklet_units <- booklet_design %>%
+    dplyr::left_join(block_lookup, by = "block", relationship = "many-to-many") %>%
+    dplyr::filter(
+      .data$block_id_n == 1L |
+        is.na(.data$booklet_subject) |
+        .data$subject == .data$booklet_subject
+    ) %>%
+    dplyr::left_join(
+      units,
+      by = c("subject", "domain", "block"),
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::left_join(
+      block_restrictions,
+      by = c("subject", "domain", "block"),
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::left_join(
+      booklet_restrictions,
+      by = c("booklet_id", "block"),
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::mutate(
+      minutes = dplyr::coalesce(
+        .data$minutes,
+        .data$block_restr_minutes,
+        .data$booklet_restr_minutes
+      ),
+      leave = dplyr::coalesce(
+        .data$booklet_restr_leave,
+        .data$block_restr_leave,
+        default_leave
+      ),
+      leave = dplyr::if_else(
+        is.na(.data$minutes) & !keep_leave_without_minutes,
+        NA_character_,
+        .data$leave
+      ),
+      code = dplyr::coalesce(.data$booklet_restr_code, .data$block_restr_code),
+      code_to_enter = dplyr::coalesce(
+        .data$booklet_restr_code_to_enter,
+        .data$block_restr_code_to_enter
+      ),
+      presentation = dplyr::coalesce(
+        .data$booklet_restr_presentation,
+        .data$block_restr_presentation
+      ),
+      response = dplyr::coalesce(.data$booklet_restr_response, .data$block_restr_response),
+      wrap = dplyr::coalesce(
+        .data$booklet_restr_wrap,
+        .data$block_restr_wrap,
+        wrap_blocks
+      ),
+      testlet_id = dplyr::coalesce(
+        .data$booklet_restr_testlet_id,
+        .data$block_restr_testlet_id,
+        .data$testlet_id,
+        .data$block
+      ),
+      testlet_id = dplyr::if_else(
+        .data$wrap & .data$booklet_block_n > 1L,
+        paste0(.data$testlet_id, "_", .data$block_pos),
+        .data$testlet_id
+      ),
+      testlet_label = dplyr::coalesce(
+        .data$booklet_restr_testlet_label,
+        .data$block_restr_testlet_label,
+        .data$testlet_label,
+        .data$block
+      ),
+      testlet_id = dplyr::if_else(.data$wrap, .data$testlet_id, NA_character_),
+      testlet_label = dplyr::if_else(.data$wrap, .data$testlet_label, NA_character_)
+    ) %>%
+    dplyr::filter(!is.na(.data$unit_key), .data$unit_key != "") %>%
+    dplyr::arrange(.data$booklet_id, .data$block_pos, .data$unit_order)
+
+  block_rows <- booklet_units %>%
+    dplyr::group_by(
+      .data$booklet_id,
+      .data$booklet_label,
+      .data$block_pos,
+      .data$block,
+      .data$testlet_id,
+      .data$testlet_label
+    ) %>%
+    dplyr::summarise(
+      testlet_restrictions = list(booklet_restriction_list(
+        code = .data$code,
+        code_to_enter = .data$code_to_enter,
+        minutes = .data$minutes,
+        leave = .data$leave,
+        presentation = .data$presentation,
+        response = .data$response
+      )),
+      units = list(dplyr::pick(dplyr::any_of(c(
+        "unit_key", "unit_alias", "unit_label", "unit_labelshort"
+      )))),
+      .groups = "drop"
+    )
+
+  if (add_start_end) {
+    edge_rows <- block_rows %>%
+      dplyr::distinct(.data$booklet_id, .data$booklet_label) %>%
+      tidyr::crossing(edge = c("start", "end")) %>%
+      dplyr::mutate(
+        block_pos = dplyr::if_else(.data$edge == "start", 0L, .Machine$integer.max),
+        block = dplyr::if_else(.data$edge == "start", "Start_page", "End_page"),
+        testlet_id = NA_character_,
+        testlet_label = NA_character_,
+        testlet_restrictions = list(list()),
+        units = purrr::map(.data$block, function(id) {
+          tibble::tibble(
+            unit_key = id,
+            unit_alias = id,
+            unit_label = id,
+            unit_labelshort = ""
+          )
+        })
+      ) %>%
+      dplyr::select(-"edge")
+
+    block_rows <- dplyr::bind_rows(block_rows, edge_rows)
+  }
+
+  block_rows %>%
+    dplyr::arrange(.data$booklet_id, .data$block_pos) %>%
+    dplyr::select(
+      "booklet_id",
+      "booklet_label",
+      "testlet_id",
+      "testlet_label",
+      "testlet_restrictions",
+      "units"
+    ) %>%
+    dplyr::group_by(.data$booklet_id, .data$booklet_label) %>%
+    tidyr::nest(booklet_units = c(
+      "testlet_id", "testlet_label", "testlet_restrictions", "units"
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(booklet_metadata, by = c("booklet_id", "booklet_label"))
+}
+
+standardise_booklet_block_design <- function(booklets) {
+  booklet_id_col <- dplyr::case_when(
+    "booklet_id" %in% names(booklets) ~ "booklet_id",
+    "booklet" %in% names(booklets) ~ "booklet",
+    TRUE ~ NA_character_
+  )
+
+  if (is.na(booklet_id_col)) {
+    stop(
+      "'booklets' must contain either 'booklet_id' or 'booklet'.",
+      call. = FALSE
+    )
+  }
+
+  block_cols <- names(booklets)[stringr::str_detect(names(booklets), "^block_")]
+  if (length(block_cols) == 0L) {
+    stop(
+      "'booklets' must contain one or more columns starting with 'block_'.",
+      call. = FALSE
+    )
+  }
+
+  booklets <- booklets %>%
+    add_missing_columns(list(booklet_label = NA_character_)) %>%
+    dplyr::mutate(
+      booklet_id = as.character(.data[[booklet_id_col]]),
+      booklet_label = dplyr::coalesce(
+        as.character(.data[["booklet_label"]]),
+        .data$booklet_id
+      )
+    )
+
+  metadata_cols <- c("booklet_description", "booklet_configuration")
+  booklet_metadata <- booklets %>%
+    dplyr::select("booklet_id", "booklet_label", dplyr::any_of(metadata_cols)) %>%
+    dplyr::distinct()
+
+  booklet_design <- booklets %>%
+    tidyr::pivot_longer(
+      dplyr::all_of(block_cols),
+      names_to = "block_column",
+      values_to = "block"
+    ) %>%
+    dplyr::filter(!is.na(.data$block), .data$block != "") %>%
+    dplyr::mutate(
+      block_pos = match(.data$block_column, block_cols),
+      block = as.character(.data$block)
+    ) %>%
+    dplyr::select("booklet_id", "booklet_label", "block_pos", "block")
+
+  list(
+    booklet_metadata = booklet_metadata,
+    booklet_design = booklet_design
+  )
+}
+
+standardise_blocks <- function(blocks) {
+  blocks <- add_missing_columns(
+    blocks,
+    list(
+      subject = NA_character_,
+      domain = NA_character_,
+      minutes = NA_real_,
+      testlet_id = NA_character_,
+      testlet_label = NA_character_,
+      wrap = NA
+    )
+  )
+
+  blocks %>%
+    dplyr::transmute(
+      subject = as.character(.data$subject),
+      domain = as.character(.data$domain),
+      block = as.character(.data$block),
+      minutes = as.numeric(.data$minutes),
+      testlet_id = as.character(.data$testlet_id),
+      testlet_label = as.character(.data$testlet_label),
+      wrap = as.logical(.data$wrap)
+    )
+}
+
+standardise_block_units <- function(units) {
+  units <- add_missing_columns(
+    units,
+    list(
+      subject = NA_character_,
+      domain = NA_character_,
+      unit_alias = NA_character_,
+      unit_label = NA_character_,
+      unit_labelshort = NA_character_,
+      sequence = NA_real_
+    )
+  )
+
+  units %>%
+    dplyr::filter(!is.na(.data$unit_key), .data$unit_key != "") %>%
+    dplyr::group_by(.data$subject, .data$domain, .data$block) %>%
+    dplyr::mutate(unit_row = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      subject = as.character(.data$subject),
+      domain = as.character(.data$domain),
+      block = as.character(.data$block),
+      unit_key = as.character(.data$unit_key),
+      unit_alias = dplyr::coalesce(
+        as.character(.data$unit_alias),
+        as.character(.data$unit_key)
+      ),
+      unit_label = dplyr::coalesce(
+        as.character(.data$unit_label),
+        as.character(.data$unit_key)
+      ),
+      unit_labelshort = dplyr::coalesce(
+        as.character(.data$unit_labelshort),
+        ""
+      ),
+      unit_order = dplyr::coalesce(as.numeric(.data$sequence), .data$unit_row)
+    )
+}
+
+empty_booklet_restrictions <- function() {
+  tibble::tibble(
+    booklet_id = character(),
+    subject = character(),
+    domain = character(),
+    block = character(),
+    testlet_id = character(),
+    testlet_label = character(),
+    minutes = numeric(),
+    leave = character(),
+    code = character(),
+    code_to_enter = character(),
+    presentation = character(),
+    response = character(),
+    wrap = logical()
+  )
+}
+
+coerce_booklet_restrictions <- function(restrictions = NULL) {
+  if (is.null(restrictions) || nrow(restrictions) == 0L) {
+    return(empty_booklet_restrictions())
+  }
+
+  restrictions <- add_missing_columns(
+    restrictions,
+    as.list(empty_booklet_restrictions()[NA_integer_, ])
+  )
+
+  restrictions %>%
+    dplyr::transmute(
+      booklet_id = as.character(.data$booklet_id),
+      subject = as.character(.data$subject),
+      domain = as.character(.data$domain),
+      block = as.character(.data$block),
+      testlet_id = as.character(.data$testlet_id),
+      testlet_label = as.character(.data$testlet_label),
+      minutes = as.numeric(.data$minutes),
+      leave = as.character(.data$leave),
+      code = as.character(.data$code),
+      code_to_enter = as.character(.data$code_to_enter),
+      presentation = as.character(.data$presentation),
+      response = as.character(.data$response),
+      wrap = as.logical(.data$wrap)
+    )
+}
+
+booklet_restriction_list <- function(code,
+                                     code_to_enter,
+                                     minutes,
+                                     leave,
+                                     presentation,
+                                     response) {
+  list(
+    code = first_present_booklet_value(code),
+    code_to_enter = first_present_booklet_value(code_to_enter),
+    minutes = first_present_booklet_value(minutes),
+    leave = first_present_booklet_value(leave),
+    presentation = first_present_booklet_value(presentation),
+    response = first_present_booklet_value(response)
+  ) %>%
+    purrr::compact()
+}
+
+first_present_booklet_value <- function(x) {
+  x <- x[!is.na(x)]
+  if (is.character(x)) {
+    x <- x[x != ""]
+  }
+
+  if (length(x) == 0L) {
+    NULL
+  } else {
+    x[[1]]
+  }
+}
+
+add_missing_columns <- function(x, defaults) {
+  for (col in setdiff(names(defaults), names(x))) {
+    x[[col]] <- defaults[[col]]
+  }
+  x
+}

@@ -7,7 +7,7 @@
 generate_booklets(booklets, app_version = "16.0.2", login = NULL)
 }
 \arguments{
-\item{booklets}{Must be a tibble with the columns \code{booklet_id}, \code{booklet_label}, and \code{booklet_units}.Optionally, the columns \code{booklet_description} (character) and \code{booklet_configuration} (list) can be added. The (list) column \code{booklet_units} is a nested tibble with columns \code{testlet_id}, \code{testlet_label}, and \code{units}. Optionally, it can contain the column \code{testlet_restrictions}. Finally, the (list) column \code{units} is again a nested tibble with columns \code{unit_key}, \code{unit_alias}, \code{unit_label}, and \code{unit_labelshort}.}
+\item{booklets}{Must be a tibble with the columns \code{booklet_id}, \code{booklet_label}, and \code{booklet_units}.Optionally, the columns \code{booklet_description} (character) and \code{booklet_configuration} (list) can be added. The (list) column \code{booklet_units} is a nested tibble with columns \code{testlet_id}, \code{testlet_label}, and \code{units}. Optionally, it can contain the columns \code{testlet_restrictions} and \code{testlets}. Finally, the (list) column \code{units} is again a nested tibble with columns \code{unit_key}, \code{unit_alias}, \code{unit_label}, and \code{unit_labelshort}. The optional \code{testlets} column can contain nested tibbles with the same structure as \code{booklet_units}.}
 
 \item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
 

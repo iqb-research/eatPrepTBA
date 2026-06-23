@@ -45,6 +45,36 @@ test_that("generate_booklets creates XML for nested booklet specifications", {
   expect_match(as.character(out$booklet_xml[[1]]), "Alias 2")
 })
 
+test_that("generate_booklets creates XML for recursively nested testlets", {
+  inner_testlets <- tibble::tibble(
+    testlet_id = "Inner",
+    testlet_label = "Inner testlet",
+    testlet_restrictions = list(list(minutes = 3, leave = "allowed")),
+    units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+  )
+
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(
+        testlet_id = "Outer",
+        testlet_label = "Outer testlet",
+        testlet_restrictions = list(list(minutes = 7, leave = "allowed")),
+        testlets = list(inner_testlets)
+      )
+    )
+  )
+
+  xml <- generate_booklets(booklets)$booklet_xml[[1]]
+
+  expect_length(xml2::xml_find_all(xml, ".//Units/Testlet[@id='Outer']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Outer']/Testlet[@id='Inner']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Inner']/Unit[@id='U1']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Outer']/Restrictions/TimeMax[@minutes='7']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Inner']/Restrictions/TimeMax[@minutes='3']"), 1)
+})
+
 test_that("generate_testtakers writes groups, logins, booklets, custom texts, and profiles", {
   testtakers <- tibble::tibble(
     group_id = "G1",

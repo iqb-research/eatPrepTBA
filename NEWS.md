@@ -1,3 +1,9 @@
+# eatPrepTBA 0.9.8.9019
+
+* Added `prepare_booklets_from_block_design()` to convert tabular booklet/block/unit designs into the nested tibble structure expected by `generate_booklets()`.
+* Extended `generate_booklets()` to support recursively nested testlets via an optional `testlets` list-column.
+* Added regression tests for block-design booklet preparation and recursive testlet XML generation.
+
 # eatPrepTBA 0.9.8.9018
 
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.

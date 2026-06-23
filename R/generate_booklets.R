@@ -1,6 +1,6 @@
 #' Generates booklet XMLs from booklet, testlet, and unit information
 #'
-#' @param booklets Must be a tibble with the columns `booklet_id`, `booklet_label`, and `booklet_units`.Optionally, the columns `booklet_description` (character) and `booklet_configuration` (list) can be added. The (list) column `booklet_units` is a nested tibble with columns `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain the column `testlet_restrictions`. Finally, the (list) column `units` is again a nested tibble with columns `unit_key`, `unit_alias`, `unit_label`, and `unit_labelshort`.
+#' @param booklets Must be a tibble with the columns `booklet_id`, `booklet_label`, and `booklet_units`.Optionally, the columns `booklet_description` (character) and `booklet_configuration` (list) can be added. The (list) column `booklet_units` is a nested tibble with columns `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain the columns `testlet_restrictions` and `testlets`. Finally, the (list) column `units` is again a nested tibble with columns `unit_key`, `unit_alias`, `unit_label`, and `unit_labelshort`. The optional `testlets` column can contain nested tibbles with the same structure as `booklet_units`.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
 #'
@@ -152,6 +152,10 @@ prepare_booklet_xml <- function(booklet_metadata, booklet_configuration, booklet
 }
 
 prepare_testlet_units <- function(units) {
+  if (is.null(units) || nrow(units) == 0L) {
+    return(list())
+  }
+
   units %>%
     dplyr::select(dplyr::any_of(c(
       "id" = "unit_key",
@@ -165,55 +169,70 @@ prepare_testlet_units <- function(units) {
 }
 
 prepare_booklet_units <- function(booklet_units) {
-  prepared_testlets <-
-    booklet_units %>%
-    dplyr::select(dplyr::any_of(c(
-      "id" = "testlet_id",
-      "label" = "testlet_label"
-    ))) %>%
-    as.list() %>%
-    purrr::list_transpose(simplify = FALSE)
+  prepare_booklet_nodes(booklet_units)
+}
 
-  prepared_units <-
-    booklet_units %>%
-    dplyr::pull(units) %>%
-    purrr::map(prepare_testlet_units)
-
-  if (tibble::has_name(booklet_units, "testlet_restrictions")) {
-    prepared_restrictions <-
-      booklet_units %>%
-      dplyr::pull(testlet_restrictions) %>%
-      purrr::map(prepare_testlet_restrictions)
-  } else {
-    prepared_restrictions <-
-      purrr::map(seq_along(prepared_testlets), function(x) NULL)
+prepare_booklet_nodes <- function(booklet_units) {
+  if (is.null(booklet_units) || nrow(booklet_units) == 0L) {
+    return(list())
   }
 
-  node_names <- c()
-  final_testlets <- vector("list", length = length(prepared_testlets))
-
-  for (i in seq_along(prepared_testlets)) {
-    # Only units (no testlet)
-    current_units <- prepared_units[[i]]
-    current_restrictions <- prepared_restrictions[[i]]
-
-    if (is.na(prepared_testlets[[i]]$id)) {
-      final_testlets[[i]] <- current_units
-
-    } else {
-      # Units nested within testlet
-      final_testlets[[i]] <-
-        c(prepared_testlets[[i]],
-          list(current_restrictions),
-          list(current_units)) %>%
-        # Workaround to remove restrictions if none apply
-        purrr::compact() %>%
-        list(Testlet = .)
-    }
-  }
-
-  final_testlets %>%
+  purrr::map(seq_len(nrow(booklet_units)), function(i) {
+    prepare_booklet_node(booklet_units[i, , drop = FALSE])
+  }) %>%
     purrr::list_c()
+}
+
+prepare_booklet_node <- function(booklet_unit) {
+  testlet_id <- get_booklet_row_value(booklet_unit, "testlet_id", NA_character_)
+  testlet_label <- get_booklet_row_value(booklet_unit, "testlet_label", NA_character_)
+  units <- get_booklet_row_value(booklet_unit, "units", NULL)
+  nested_testlets <- get_booklet_row_value(booklet_unit, "testlets", NULL)
+  restrictions <- get_booklet_row_value(booklet_unit, "testlet_restrictions", NULL)
+
+  current_units <- prepare_testlet_units(units)
+  current_testlets <- prepare_booklet_nodes(nested_testlets)
+  current_restrictions <- prepare_testlet_restrictions(restrictions)
+
+  if (is_missing_booklet_value(testlet_id)) {
+    return(c(current_units, current_testlets))
+  }
+
+  testlet_attributes <- list(
+    id = testlet_id,
+    label = if (is_missing_booklet_value(testlet_label)) NULL else testlet_label
+  ) %>%
+    purrr::compact()
+
+  child_groups <- list(current_restrictions, current_units, current_testlets) %>%
+    purrr::discard(is_empty_booklet_node_group)
+
+  c(testlet_attributes, child_groups) %>%
+    list(Testlet = .)
+}
+
+get_booklet_row_value <- function(booklet_unit, col, default = NULL) {
+  if (!tibble::has_name(booklet_unit, col)) {
+    return(default)
+  }
+
+  value <- booklet_unit[[col]]
+
+  if (length(value) == 0L) {
+    default
+  } else if (is.list(value)) {
+    value[[1]]
+  } else {
+    value[[1]]
+  }
+}
+
+is_missing_booklet_value <- function(x) {
+  is.null(x) || length(x) == 0L || is.na(x) || identical(x, "")
+}
+
+is_empty_booklet_node_group <- function(x) {
+  is.null(x) || length(x) == 0L
 }
 
 # For tests:
