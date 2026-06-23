@@ -139,7 +139,7 @@ compute_staytime_tables <- function(fach,
         unit_has_pages ~ page_time,
         .default = unit_time
       ),
-      page_id = dplyr::coalesce(page_id, 0)
+      page_id = dplyr::coalesce(.data$page_id, 0)
     )
   rm(log_times)
 
@@ -184,22 +184,22 @@ compute_staytime_tables <- function(fach,
         final_responses$code_type != "NO_CODING", ] %>%
     dplyr::mutate(
       design = dplyr::case_when(
-        str_detect(booklet_id, FS_marker) ~ "FS",
+        str_detect(.data$booklet_id, FS_marker) ~ "FS",
         .default = "RS"
       ),
-      booklet_id = stringr::str_to_upper(booklet_id)
+      booklet_id = stringr::str_to_upper(.data$booklet_id)
     )
   rm(final_responses)
 
   resp_pages <-
     final_resp %>%
-    dplyr::filter(!is.na(item_id)) %>%
+    dplyr::filter(!is.na(.data$item_id)) %>%
     dplyr::left_join(units_cs_corrected %>% dplyr::select(unit_key, variable_id, variable_page))
   rm(units_cs_corrected, final_resp)
 
   resp_page_logtimes <-
     resp_pages %>%
-    dplyr::left_join(unit_page_logtimes %>% dplyr::rename(variable_page = page_id))
+    dplyr::left_join(unit_page_logtimes %>% dplyr::rename(variable_page = .data$page_id))
   rm(resp_pages)
   if (!is.null(students_select)) {
     resp_page_logtimes <- resp_page_logtimes[resp_page_logtimes$IDSTUD %in% students_select, ]
@@ -207,11 +207,11 @@ compute_staytime_tables <- function(fach,
 
   stim_logs_quant <-
     unit_page_logtimes %>%
-    dplyr::rename(variable_page = page_id) %>%
+    dplyr::rename(variable_page = .data$page_id) %>%
     dplyr::anti_join(resp_page_logtimes) %>% # select leftover page logtimes not in resp_page_logtimes,
     # i. e. pages without item IDs
-    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
-                                              booklet_id, unit_key)) %>% # select only those use
+    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
+                                              .data$booklet_id, unit_key)) %>% # select only those use
     # combinations which appear in resp_page_logtimes
     dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
     dplyr::filter(variable_page == 0 & !is.na(page_time)) %>%
@@ -231,12 +231,12 @@ compute_staytime_tables <- function(fach,
 
   stim_logs_quant_design <-
     unit_page_logtimes %>%
-    dplyr::rename(variable_page = page_id) %>%
+    dplyr::rename(variable_page = .data$page_id) %>%
     dplyr::anti_join(resp_page_logtimes) %>%
-    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
-                                              booklet_id, unit_key)) %>%
-    dplyr::left_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
-                                              booklet_id, unit_key, design)) %>%
+    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
+                                              .data$booklet_id, unit_key)) %>%
+    dplyr::left_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
+                                              .data$booklet_id, unit_key, design)) %>%
     dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
     dplyr::filter(variable_page == 0 & !is.na(page_time))
 
@@ -277,8 +277,8 @@ compute_staytime_tables <- function(fach,
 
   resp_page_logtimes_page_quant <-
     resp_page_logtimes %>%
-    dplyr::distinct(login_code, unit_key, item_id, variable_page, page_time) %>%
-    dplyr::group_by(unit_key, item_id, variable_page) %>%
+    dplyr::distinct(.data$login_code, unit_key, .data$item_id, variable_page, page_time) %>%
+    dplyr::group_by(unit_key, .data$item_id, variable_page) %>%
     dplyr::summarise(
       page_n_valid = length(na.omit(page_time)),
       page_median = median(page_time, na.rm = TRUE) / 1000,
@@ -307,8 +307,8 @@ compute_staytime_tables <- function(fach,
 
   resp_page_logtimes_page_quant_design <-
     resp_page_logtimes %>%
-    dplyr::distinct(login_code, design, unit_key, item_id, variable_page, page_time) %>%
-    dplyr::group_by(design, unit_key, item_id, variable_page) %>%
+    dplyr::distinct(.data$login_code, design, unit_key, .data$item_id, variable_page, page_time) %>%
+    dplyr::group_by(design, unit_key, .data$item_id, variable_page) %>%
     dplyr::summarise(
       page_n_valid = length(na.omit(page_time)),
       page_median = median(page_time, na.rm = TRUE) / 1000,
@@ -323,7 +323,7 @@ compute_staytime_tables <- function(fach,
 
   resp_page_logtimes_unit_quant <-
     resp_page_logtimes %>%
-    dplyr::distinct(login_code, unit_key, unit_time) %>%
+    dplyr::distinct(.data$login_code, unit_key, unit_time) %>%
     dplyr::group_by(unit_key) %>%
     dplyr::summarise(
       unit_n_valid = length(na.omit(unit_time)),
@@ -334,7 +334,7 @@ compute_staytime_tables <- function(fach,
 
   resp_page_logtimes_unit_quant_design <-
     resp_page_logtimes %>%
-    dplyr::distinct(login_code, design, unit_key, unit_time) %>%
+    dplyr::distinct(.data$login_code, design, unit_key, unit_time) %>%
     dplyr::group_by(design, unit_key) %>%
     dplyr::summarise(
       unit_n_valid = length(na.omit(unit_time)),
@@ -355,9 +355,9 @@ compute_staytime_tables <- function(fach,
 
   unit_meta <-
     unit_meta %>%
-    dplyr::select(ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata) %>%
+    dplyr::select(ws_id, unit_id, unit_key, unit_label, unit_metadata, .data$item_metadata) %>%
     tidyr::unnest(unit_metadata) %>%
-    tidyr::unnest(item_metadata) %>%
+    tidyr::unnest(.data$item_metadata) %>%
     dplyr::select(dplyr::matches(stringr::str_c(select_cols, collapse = "|"))) %>%
     dplyr::mutate(
       # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
@@ -367,11 +367,11 @@ compute_staytime_tables <- function(fach,
 
   meta_logs <-
     unit_meta %>%
-    dplyr::distinct(unit_key, unit_label, Aufgabenzeit, link) %>%
+    dplyr::distinct(unit_key, unit_label, .data$Aufgabenzeit, .data$link) %>%
     dplyr::mutate(
-      unit_estimated = lubridate::ms(Aufgabenzeit) %>% lubridate::period_to_seconds(),
+      unit_estimated = lubridate::ms(.data$Aufgabenzeit) %>% lubridate::period_to_seconds(),
     ) %>%
-    dplyr::select(-Aufgabenzeit)
+    dplyr::select(-.data$Aufgabenzeit)
   rm(unit_meta)
 
   resp_page_logtimes_unit_quant_meta <-
@@ -397,7 +397,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes_page_quant_design,
       stim_logs_quant_design
     ) %>%
-    dplyr::arrange(unit_key, variable_page, item_id) %>%
+    dplyr::arrange(unit_key, variable_page, .data$item_id) %>%
     dplyr::left_join(
       resp_page_logtimes_unit_quant_meta_design
     )
@@ -410,7 +410,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes_page_quant,
       stim_logs_quant
     ) %>%
-    dplyr::arrange(unit_key, variable_page, item_id) %>%
+    dplyr::arrange(unit_key, variable_page, .data$item_id) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta) %>%
     dplyr::left_join(
       p25_all_quant_design
@@ -420,8 +420,8 @@ compute_staytime_tables <- function(fach,
   dat_table <-
     p25_all_quant %>%
     dplyr::select(
-      domain,
-      link,
+      .data$domain,
+      .data$link,
       unit_key,
       unit_label,
       unit_estimated,
@@ -440,7 +440,7 @@ compute_staytime_tables <- function(fach,
       unit_diff_FS,
       unit_q95_FS,
       unit_diff95_FS,
-      item_id,
+      .data$item_id,
       variable_page,
       page_median,
       page_q90,
@@ -453,38 +453,38 @@ compute_staytime_tables <- function(fach,
       page_q95_FS,
     ) %>%
     dplyr::mutate(
-      item_id = ifelse(item_id != "Stimulus", stringr::str_glue("{unit_key}_{item_id}"), item_id),
+      item_id = ifelse(.data$item_id != "Stimulus", stringr::str_glue("{unit_key}_{.data$item_id}"), .data$item_id),
       SPF = ifelse(!is.na(unit_median_FS), "ja", "nein")
     )
 
   # Unit-Tabelle
   dat_table %>%
-    tidyr::nest(data = -domain) %>% #.$data %>% .[[1]] -> data
+    tidyr::nest(data = -.data$domain) %>% #.$data %>% .[[1]] -> data
     dplyr::mutate(
-      save = purrr::walk2(data, domain, function(data, domain) {
+      save = purrr::walk2(.data$data, .data$domain, function(data, domain) {
         tab <-
           data %>%
-          dplyr::distinct(link, dplyr::across(dplyr::starts_with("unit")), SPF) %>%
-          layout_staytime_tables(id = "unit-table")
+          dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
+          layout_staytime_tables(.data$id = "unit-table")
 
         # Items
         tab_item <-
           data %>%
-          dplyr::arrange(unit_key, variable_page, item_id) %>%
+          dplyr::arrange(unit_key, variable_page, .data$item_id) %>%
           dplyr::mutate(variable_page = variable_page + 1) %>%
-          # dplyr::distinct(link, dplyr::across(dplyr::starts_with("unit")), SPF) %>%
-          layout_staytime_tables(id = "item-table")
+          # dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
+          layout_staytime_tables(.data$id = "item-table")
 
         save(tab, tab_item, file = stringr::str_glue(
-          paste(c(output_path, "tab_{domain}.RData"), collapse="")))
+          paste(c(output_path, "tab_{.data$domain}.RData"), collapse="")))
 
       }, .progress = TRUE)
     )
 
   # dat_table %>%
-  #   dplyr::filter(domain == "D5") %>%
+  #   dplyr::filter(.data$domain == "D5") %>%
   #   # dplyr::filter(unit_key %in% (1:17 %>% str_pad(width = 2, pad = "0") %>% stringr::str_c("D2_BT", .))) %>%
-  #   ggplot2::ggplot(ggplot2::aes(y = as.factor(item_id) %>% fct_rev(), x = page_median)) +
+  #   ggplot2::ggplot(ggplot2::aes(y = as.factor(.data$item_id) %>% fct_rev(), x = page_median)) +
   #   ggplot2::geom_linerange(ggplot2::aes(xmin = page_median, xmax = page_q90),
   #                           alpha = .9, linewidth = 1.5,
   #                           color = "deepskyblue",) +
@@ -510,10 +510,10 @@ compute_staytime_tables <- function(fach,
   # ### Extraktion fuer Janine und Pauline
   # pilot25_stim_times <-
   #   unit_page_logtimes %>%
-  #   dplyr::rename(variable_page = page_id) %>%
+  #   dplyr::rename(variable_page = .data$page_id) %>%
   #   dplyr::anti_join(resp_page_logtimes) %>%
-  #   dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(group_id, login_name, login_code,
-  #                                   booklet_id, unit_key)) %>%
+  #   dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
+  #                                   .data$booklet_id, unit_key)) %>%
   #   dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
   #   dplyr::filter(variable_page == 0 & !is.na(page_time))
   #
@@ -526,7 +526,7 @@ compute_staytime_tables <- function(fach,
   #     domain = unit_key %>% stringr::str_extract(paste(c("^", fach, "[A-Z]"), collapse=""))
   #   ) %>%
   #   dplyr::select(
-  #     login_name, login_code,
+  #     .data$login_name, .data$login_code,
   #     unit_key, variable_id, variable_page,
   #     unit_time, unit_n_start, unit_has_pages,
   #     page_time, page_n_start, item_time
@@ -585,7 +585,7 @@ layout_staytime_tables <- function(data,
 
   columns <- c(
     unit_cols,
-    if (id == "item-table") colPage,
+    if (.data$id == "item-table") colPage,
     colNoShow
   )
 
@@ -620,7 +620,7 @@ layout_staytime_tables <- function(data,
   # )
 
   group_item <- NULL
-  if (id == "item-table") {
+  if (.data$id == "item-table") {
     group_item <-
       list(
         reactable::colGroup(name = "Item (Global)", columns = c("page_median", "page_q90", "page_q95")),
@@ -644,7 +644,7 @@ layout_staytime_tables <- function(data,
         group_item
       ),
       columns = columns_filter,
-      elementId = id,
+      elementId = .data$id,
       searchable = searchable,
       filterable = filterable,
       sortable = sortable,
@@ -686,7 +686,7 @@ layout_staytime_tables <- function(data,
                      "unit_diff_FS"
   )
 
-  if (id == "item-table") {
+  if (.data$id == "item-table") {
     filter_design <- c(
       filter_design,
       "page_median_RS",
@@ -706,30 +706,30 @@ layout_staytime_tables <- function(data,
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
       #   download_button(download = download,
-      #                   id = id,
+      #                   id = .data$id,
       #                   columns = download_columns),
       # ),
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
-      #   generate_checkbox(label = "Zeige Item-Metadaten",
+      #   generate_checkbox(.data$Label = "Zeige Item-Metadaten",
       #                     checked = FALSE,
-      #                     id = id,
+      #                     id = .data$id,
       #                     columns = show_meta),
       # ),
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
-      #   generate_checkbox(label = "Zeige alle Kennwerte",
+      #   generate_checkbox(.data$Label = "Zeige alle Kennwerte",
       #                     checked = FALSE,
-      #                     id = id,
+      #                     id = .data$id,
       #                     columns = show_parameters),
       # ),
       htmltools::div(
         style = "display: inline-block; margin-right: 10px;",
-        generate_checkbox(label = "Zeige Teildesign (SPF)",
+        generate_checkbox(.data$Label = "Zeige Teildesign (SPF)",
                           checked = FALSE,
-                          id = id,
+                          id = .data$id,
                           columns = show_design,
-                          filter_column = list(list(id = "SPF", value = "ja"))
+                          filter_column = list(list(.data$id = "SPF", value = "ja"))
         ),
       ),
       table
@@ -742,7 +742,7 @@ layout_staytime_tables <- function(data,
 #     return(NULL)
 #   }
 #   columns_json <- jsonlite::toJSON(columns)
-#   callback <- glue::glue("Reactable.downloadDataCSV('{id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
+#   callback <- glue::glue("Reactable.downloadDataCSV('{.data$id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
 #   htmltools::browsable(htmltools::tags$button(shiny::icon("download"), "Herunterladen", onclick = callback))
 # }
 
@@ -768,7 +768,7 @@ layout_staytime_tables <- function(data,
 
 # filter_input_slider <- function(id, min = NULL, max = NULL, step = .001) {
 #   function(values, name) {
-#     oninput <- stringr::str_glue("Reactable.setFilter('{id}', '{name}', this.value)")
+#     oninput <- stringr::str_glue("Reactable.setFilter('{.data$id}', '{name}', this.value)")
 #
 #     min_val <- ifelse(is.null(min), min(values, na.rm = TRUE), min)
 #     max_val <- ifelse(is.null(max), max(values, na.rm = TRUE), max)
@@ -1037,23 +1037,23 @@ generate_checkbox <- function(label, checked = NULL, id = "item-table", columns,
   if (!is.null(filter_column)) {
     filter_code <- glue::glue("
     if (!show) {{
-      Reactable.setAllFilters(id, {jsonlite::toJSON(filter_column, auto_unbox = TRUE)});
+      Reactable.setAllFilters(.data$id, {jsonlite::toJSON(filter_column, auto_unbox = TRUE)});
     }}else {{
-      Reactable.setAllFilters(id, []);
+      Reactable.setAllFilters(.data$id, []);
     }}")
   }
 
   js_code <- glue::glue("((e) => {{
     const show = !e.target.checked;
-    const id = '{id}';
-    console.log(Reactable.getState(id));
+    const id = '{.data$id}';
+    console.log(Reactable.getState(.data$id));
     const cols = {jsonlite::toJSON(columns, auto_unbox = TRUE)};
-    cols.map(col => Reactable.toggleHideColumn(id, col, show));
+    cols.map(col => Reactable.toggleHideColumn(.data$id, col, show));
     {filter_code}
     }})(event)")
 
   htmltools::tags$input(
-    label,
+    .data$Label,
     type = "checkbox",
     checked = if (is.null(checked) || !checked) NULL else checked,
     onChange = htmltools::HTML(js_code)
@@ -1061,12 +1061,12 @@ generate_checkbox <- function(label, checked = NULL, id = "item-table", columns,
 }
 
 sort_function <- htmlwidgets::JS("function(rowInfo, column, state) {
-  const {id} = column;
+  const {.data$id} = column;
   const firstSorted = state.sorted[0]
   const validIds = ['domain', 'unit_key', 'unit_median', 'unit_label'];
   if (!firstSorted || validIds.includes(firstSorted.id)) {
     const prevRow = state.pageRows[rowInfo.viewIndex - 1]
-    if (prevRow && rowInfo.values[id] === prevRow[id]) {
+    if (prevRow && rowInfo.values[.data$id] === prevRow[.data$id]) {
       return { visibility: 'hidden' }
     }
   }

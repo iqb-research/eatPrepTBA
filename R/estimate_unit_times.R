@@ -108,23 +108,23 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     logs %>%
     dplyr::filter(
       # Delete duplicate page identifiers as these would contaminate page time estimation
-      !log_entry %>% stringr::str_detect("(CURRENT_PAGE_NR|PAGE_COUNT)"),
+      !.data$log_entry %>% stringr::str_detect("(CURRENT_PAGE_NR|PAGE_COUNT)"),
       # This is only a constant message stream that is not interaction-based
-      !log_entry %>% stringr::str_detect("TESTLETS_TIMELEFT"),
-      !is.na(booklet_id)
+      !.data$log_entry %>% stringr::str_detect("TESTLETS_TIMELEFT"),
+      !is.na(.data$booklet_id)
     ) %>%
     dplyr::mutate(ts = as.numeric(ts))
   
   # Parse LOADCOMPLETE rows and extract browser, version and device
   dev_logs <- all_logs %>%
-    dplyr::filter(stringr::str_detect(log_entry, "LOADCOMPLETE")) 
+    dplyr::filter(stringr::str_detect(.data$log_entry, "LOADCOMPLETE")) 
   
   if (nrow(dev_logs)==0) {
     warning("No LOADCOMPLETE logs (which contain device and browser information) found in the data.")
   } else {
     dev_logs <- dev_logs %>%
       dplyr::mutate(
-        load_payload = stringr::str_remove(log_entry, "^LOADCOMPLETE\\s*[:\\-]?\\s*")
+        load_payload = stringr::str_remove(.data$log_entry, "^LOADCOMPLETE\\s*[:\\-]?\\s*")
       ) %>%
       dplyr::mutate(
         load_payload = stringr::str_replace_all(load_payload, '""', '\\\\"')
@@ -183,14 +183,14 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(
       unit_ident = dplyr::case_when(
         # For legacy reasons
-        stringr::str_detect(log_entry, "CURRENT_UNIT_ID") ~
-          stringr::str_extract(log_entry, "\"(.+)\"", group = TRUE),
+        stringr::str_detect(.data$log_entry, "CURRENT_UNIT_ID") ~
+          stringr::str_extract(.data$log_entry, "\"(.+)\"", group = TRUE),
         .default = unit_ident
       ),
       is_max_ts = ts == max(ts)
     ) %>%
     tidyr::fill(unit_ident, .direction = "downup") %>%
-    dplyr::filter((!is.na(unit_ident) & unit_ident != "") | is_max_ts) %>%
+    dplyr::filter((!is.na(unit_ident) & unit_ident != "") | .data$is_max_ts) %>%
     dplyr::ungroup()
 
   all_ts <-
@@ -198,25 +198,25 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(
       ts_name = dplyr::case_when(
         # For the previous unit
-        stringr::str_detect(log_entry, "CURRENT_UNIT_ID") ~ "unit_current_ts",
-        stringr::str_detect(log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
-        stringr::str_detect(log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
-        stringr::str_detect(log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
-        log_entry == "PLAYER = PAUSED" ~ "n_paused",
-        log_entry == "FOCUS : \"HAS_NOT\"" ~ "focus_lost_ts",
-        log_entry == "FOCUS : \"HAS\"" ~ "focus_regained_ts",
+        stringr::str_detect(.data$log_entry, "CURRENT_UNIT_ID") ~ "unit_current_ts",
+        stringr::str_detect(.data$log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
+        stringr::str_detect(.data$log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
+        stringr::str_detect(.data$log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
+        .data$log_entry == "PLAYER = PAUSED" ~ "n_paused",
+        .data$log_entry == "FOCUS : \"HAS_NOT\"" ~ "focus_lost_ts",
+        .data$log_entry == "FOCUS : \"HAS\"" ~ "focus_regained_ts",
         .default = NA_character_
       ),
       page_id = dplyr::case_when(
         # For legacy reasons
-        log_entry == "CURRENT_PAGE_ID" ~ 0L,
-        ts_name == "page_start_ts" ~ log_entry %>% stringr::str_extract("\\d+") %>% as.integer(),
+        .data$log_entry == "CURRENT_PAGE_ID" ~ 0L,
+        ts_name == "page_start_ts" ~ .data$log_entry %>% stringr::str_extract("\\d+") %>% as.integer(),
         .default = NA_integer_
       )
     ) %>%
     dplyr::mutate(
       ts_name = dplyr::case_when(
-        is_max_ts ~ "booklet_end_ts",
+        .data$is_max_ts ~ "booklet_end_ts",
         .default = ts_name
       )
     )
@@ -230,8 +230,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::filter(
       ts_name == "unit_start_ts" | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
     )  %>%
-    dplyr::mutate(playercode = dplyr::case_when(log_entry == "PLAYER = LOADING" ~ 0,
-                                                log_entry == "PLAYER = RUNNING" ~ 1,
+    dplyr::mutate(playercode = dplyr::case_when(.data$log_entry == "PLAYER = LOADING" ~ 0,
+                                                .data$log_entry == "PLAYER = RUNNING" ~ 1,
                                                 .default = 999),
                   lag_unit_equal = dplyr::case_when(unit_ident == dplyr::lag(unit_ident) ~ 1,
                                                     unit_ident != dplyr::lag(unit_ident) ~ 0,
@@ -258,13 +258,13 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     unit_logs_prep %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
     dplyr::summarise( # Adds up all loading attempts from various unit plays
-      n_failed_loadings = sum(failed_loading),
+      n_failed_loadings = sum(.data$failed_loading),
       .groups = "drop"
     )
 
   print("Berechne Unit-Bearbeitungs- und Ladezeiten")
   unit_logs_prep <- unit_logs_prep %>%
-    dplyr::filter(duplicate_loading == FALSE) %>%
+    dplyr::filter(.data$duplicate_loading == FALSE) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::mutate(
@@ -350,9 +350,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::mutate(
       auto_block_switch = dplyr::case_when(
         (ts_name == "page_start_ts" &
-           stringr::str_detect(dplyr::lag(log_entry), "PLAYER = LOADING") &
-           dplyr::lag(auto_block_switch)) ~ TRUE,
-        .default = auto_block_switch
+           stringr::str_detect(dplyr::lag(.data$log_entry), "PLAYER = LOADING") &
+           dplyr::lag(.data$auto_block_switch)) ~ TRUE,
+        .default = .data$auto_block_switch
       ))
   } else { # dummy variable in case subjects could switch blocks themselves
   focus_events_combined <-
@@ -369,32 +369,32 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       event_type = dplyr::case_when(
         ts_name == "focus_lost_ts" ~ "LOST",
         ts_name == "focus_regained_ts" ~ "REGAINED",
-        (ts_name == "unit_load_ts" & !auto_block_switch) ~ "REGAINED",
-        (ts_name == "page_start_ts" & !auto_block_switch) ~ "REGAINED",
+        (ts_name == "unit_load_ts" & !.data$auto_block_switch) ~ "REGAINED",
+        (ts_name == "page_start_ts" & !.data$auto_block_switch) ~ "REGAINED",
         .default = NA_character_
       ),
       focus_event_ts = ts
     ) %>%
-    dplyr::filter(!is.na(event_type) | ts_name == "booklet_end_ts") %>%
+    dplyr::filter(!is.na(.data$event_type) | ts_name == "booklet_end_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
-    dplyr::arrange("focus_event_ts", by_group=TRUE) %>%
+    dplyr::arrange(.data$focus_event_ts, by_group=TRUE) %>%
     dplyr::mutate(
-      focus_next_ts = dplyr::lead(focus_event_ts),
-      next_event_type = dplyr::lead(event_type),
-      prev_event_type = dplyr::lag(event_type),
+      focus_next_ts = dplyr::lead(.data$focus_event_ts),
+      next_event_type = dplyr::lead(.data$event_type),
+      prev_event_type = dplyr::lag(.data$event_type),
       # Flag for lost focus events not followed by regain before another loss
       focus_event_unfollowed = dplyr::case_when(
-        event_type == "LOST" & next_event_type == "LOST" ~ TRUE,
+        .data$event_type == "LOST" & next_event_type == "LOST" ~ TRUE,
         .default = FALSE
       ),
       # Compute time during which focus was lost
       focus_lost_duration = dplyr::case_when(
-        !focus_event_unfollowed ~ focus_next_ts - focus_event_ts,
+        !focus_event_unfollowed ~ focus_next_ts - .data$focus_event_ts,
         .default = NA
       ),
       # Flag for regained focus events not preceded by loss (or preceded by another regain) LEGACY
       focus_event_unpreceded = dplyr::case_when(
-        event_type == "REGAINED" & (is.na(prev_event_type) | prev_event_type == "REGAINED") ~ TRUE,
+        .data$event_type == "REGAINED" & (is.na(prev_event_type) | prev_event_type == "REGAINED") ~ TRUE,
         .default = FALSE
       )
     ) %>%
@@ -442,8 +442,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         # used as endpoint of last page
       ) %>%
       # The first page is not logged before completion...
-      tidyr::fill(page_id, .direction = "up") %>%
-      dplyr::filter(!is.na(page_id)) %>%
+      tidyr::fill(.data$page_id, .direction = "up") %>%
+      dplyr::filter(!is.na(.data$page_id)) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit, "page_id")))) %>%
       dplyr::mutate(
         page_start_i = seq_along(page_time)
@@ -536,9 +536,9 @@ estimate_audio_video_plays <- function(response_df) {
   audiomask_resp <- stringr::str_detect(response_df$responses, "audio")
   audio_resp_rows <- response_df[audiomask_resp, ]
   parsed_audios <- audio_resp_rows %>%
-    dplyr::filter(!is.na(responses)) %>%
+    dplyr::filter(!is.na(.data$Responses)) %>%
     dplyr::mutate(
-      parsed_col = purrr::map(responses, function(cell) {
+      parsed_col = purrr::map(.data$Responses, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
@@ -547,16 +547,16 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    subset(select = c(group_id, login_name, login_code, booklet_id, unit_key, page_no, parsed_col)) %>%
+    subset(select = c(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, unit_key, page_no, parsed_col)) %>%
     tidyr::unnest(parsed_col) %>%
-    dplyr::filter(stringr::str_detect(id, "audio"))
+    dplyr::filter(stringr::str_detect(.data$id, "audio"))
   
   videomask_resp <- stringr::str_detect(response_df$responses, "video")
   video_resp_rows <- response_df[videomask_resp, ]
   parsed_videos <- video_resp_rows %>%
-    dplyr::filter(!is.na(responses)) %>%
+    dplyr::filter(!is.na(.data$Responses)) %>%
     dplyr::mutate(
-      parsed_col = purrr::map(responses, function(cell) {
+      parsed_col = purrr::map(.data$Responses, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
@@ -565,9 +565,9 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    subset(select = c(group_id, login_name, login_code, booklet_id, unit_key, page_no, parsed_col)) %>%
+    subset(select = c(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, unit_key, page_no, parsed_col)) %>%
     tidyr::unnest(parsed_col) %>%
-    dplyr::filter(stringr::str_detect(id, "video"))
+    dplyr::filter(stringr::str_detect(.data$id, "video"))
   
   all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))
   all_parsed$media_unit_ids <- paste(all_parsed$unit_key, all_parsed$id)
