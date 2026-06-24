@@ -108,12 +108,15 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   all_logs <-
     logs %>%
     dplyr::filter(
+      # Delete duplicate page identifiers as these would contaminate page time estimation
       !.data$log_entry %>% stringr::str_detect("(CURRENT_PAGE_NR|PAGE_COUNT)"),
+      # This is only a constant message stream that is not interaction-based
       !.data$log_entry %>% stringr::str_detect("TESTLETS_TIMELEFT"),
       !is.na(.data$booklet_id)
     ) %>%
     dplyr::mutate(ts = as.numeric(.data$ts))
 
+  # Parse LOADCOMPLETE rows and extract browser, version and device
   dev_logs <- all_logs %>%
     dplyr::filter(stringr::str_detect(.data$log_entry, "LOADCOMPLETE"))
 
@@ -130,6 +133,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       dplyr::mutate(
         parsed_col = purrr::map(load_payload, function(cell) {
         safe_limit <- 0
+        # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
           cell <- jsonlite::fromJSON(cell)
           safe_limit <- safe_limit + 1
@@ -173,10 +177,12 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
 
   all_logs <- all_logs %>%
     dplyr::arrange(dplyr::across(dplyr::all_of(c(groups_booklet, "ts")))) %>%
+    # Unusable timestamps
     dplyr::filter(.data$ts != 0) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::mutate(
       unit_ident = dplyr::case_when(
+        # For legacy reasons
         stringr::str_detect(.data$log_entry, "CURRENT_UNIT_ID") ~
           stringr::str_extract(.data$log_entry, "\"(.+)\"", group = TRUE),
         .default = .data$unit_ident
@@ -191,6 +197,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     all_logs %>%
     dplyr::mutate(
       ts_name = dplyr::case_when(
+        # For the previous unit
         stringr::str_detect(.data$log_entry, "CURRENT_UNIT_ID") ~ "unit_current_ts",
         stringr::str_detect(.data$log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
         stringr::str_detect(.data$log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
@@ -201,6 +208,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         .default = NA_character_
       ),
       page_id = dplyr::case_when(
+        # For legacy reasons
         .data$log_entry == "CURRENT_PAGE_ID" ~ 0L,
         .data$ts_name == "page_start_ts" ~ .data$log_entry %>% stringr::str_extract("\\d+") %>% as.integer(),
         .default = NA_integer_
@@ -231,6 +239,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("ts", by_group=TRUE)
 
+  # Nach wiederholten Ladeversuchen, und Unit-Starts ohne vorheriges Laden suchen
   unit_logs_prep <- unit_logs_prep %>%
     dplyr::mutate(
       failed_loading = dplyr::case_when(.data$playercode == 0 & (dplyr::lead(.data$playercode) != 1 |
@@ -248,7 +257,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   mult_loadings <-
     unit_logs_prep %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
-    dplyr::summarise(
+    dplyr::summarise( # Adds up all loading attempts from various unit plays
       n_failed_loadings = sum(.data$failed_loading),
       .groups = "drop"
     )
@@ -260,16 +269,18 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::arrange("ts", by_group=TRUE) %>%
     dplyr::mutate(
       ts_next = dplyr::lead(.data$ts),
-      unit_time = .data$ts_next - .data$ts,
+      unit_time = .data$ts_next - .data$ts, # Unit time hier definiert als Zeitspanne von Unit RUNNING
+      # bis zur naechsten Aktion innerhalb des Booklets
       ts_prev = dplyr::lag(.data$ts),
-      unit_loadtime = .data$ts - .data$ts_prev
+      unit_loadtime = .data$ts - .data$ts_prev # Unit Loadtime hier definiert als Zeitspanne von
+      # PLAYER=LOADING bis zu PLAYER=RUNNING (erfolglose Ladeversuche inklusive)
     ) %>%
     dplyr::mutate(
       unit_loadtime = dplyr::case_when(
         .data$run_no_load == TRUE ~ NA, .default = .data$unit_loadtime
-      ),
+      ), # Ladezeiten loeschen, wenn vor RUNNING kein LOADING kam
       ts_prev = dplyr::case_when(
-        .data$run_no_load == TRUE ~ NA, .default = .data$ts_prev
+        .data$run_no_load == TRUE ~ NA, .default = .data$ts_prev # Dasselbe fuer ts_prev
       )) %>%
     dplyr::filter(.data$ts_name =="unit_start_ts") %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
@@ -278,6 +289,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       unit_start_i = seq_along(.data$unit_time)
     )
 
+  # Multiple Unit plays
   unit_logs_starts <-
     unit_logs_prep %>%
     dplyr::select(dplyr::all_of(c(groups_unit,
@@ -292,6 +304,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       unit_playbacks = c("unit_start_i", "unit_time_i", "unit_end_time_i", "unit_start_time_i",
                       "unit_loadtime_i", "unit_loadstart_i", "run_no_load_i"))
 
+  # Bring stats together
   unit_logs <-
     unit_logs_prep %>%
     dplyr::summarise(
@@ -315,6 +328,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                 .default = .data$unit_loadtime)
     )
 
+  # Extract and combine focus lost and regained events
   print("Berechne Focus-Events")
 
   focus_events_combined <-
@@ -325,7 +339,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::arrange("ts", by_group=TRUE)
 
-  if (!block_self_switch) {
+  if (!block_self_switch) { # if blocks could not be switched actively by subjects
   focus_events_combined <-
     focus_events_combined %>%
     dplyr::mutate(
@@ -340,7 +354,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
            dplyr::lag(.data$auto_block_switch)) ~ TRUE,
         .default = .data$auto_block_switch
       ))
-  } else {
+  } else { # dummy variable in case subjects could switch blocks themselves
   focus_events_combined <-
     focus_events_combined %>%
     dplyr::mutate(
@@ -348,6 +362,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       )
   }
 
+  # Process each unit's focus events
   focus_events_nested <-
     focus_events_combined %>%
     dplyr::mutate(
@@ -367,14 +382,17 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       focus_next_ts = dplyr::lead(.data$focus_event_ts),
       next_event_type = dplyr::lead(.data$event_type),
       prev_event_type = dplyr::lag(.data$event_type),
+      # Flag for lost focus events not followed by regain before another loss
       focus_event_unfollowed = dplyr::case_when(
         .data$event_type == "LOST" & .data$next_event_type == "LOST" ~ TRUE,
         .default = FALSE
       ),
+      # Compute time during which focus was lost
       focus_lost_duration = dplyr::case_when(
         !.data$focus_event_unfollowed ~ .data$focus_next_ts - .data$focus_event_ts,
         .default = NA
       ),
+      # Flag for regained focus events not preceded by loss (or preceded by another regain) LEGACY
       focus_event_unpreceded = dplyr::case_when(
         .data$event_type == "REGAINED" & (is.na(.data$prev_event_type) | .data$prev_event_type == "REGAINED") ~ TRUE,
         .default = FALSE
@@ -389,6 +407,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
                                  "focus_event_unfollowed", "focus_lost_duration")) %>%
     dplyr::ungroup()
 
+  # Add combined focus events if available
   if (nrow(focus_events_nested) > 0) {
     unit_logs <- unit_logs %>%
       dplyr::left_join(
@@ -399,6 +418,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     unit_logs$focus_events <- NA
   }
 
+  # Page times
   if (any(!is.na(all_ts$page_id))) {
     print("Berechne Seiten-Bearbeitungszeiten")
     unit_page_logs_prep <-
@@ -418,8 +438,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit)))) %>%
       dplyr::filter(
-        .data$ts_name != "unit_current_ts" & .data$ts_name != "unit_load_ts"
+        .data$ts_name != "unit_current_ts" & .data$ts_name != "unit_load_ts" # These are only
+        # used as endpoint of last page
       ) %>%
+      # The first page is not logged before completion...
       tidyr::fill(.data$page_id, .direction = "up") %>%
       dplyr::filter(!is.na(.data$page_id)) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit, "page_id")))) %>%
@@ -427,6 +449,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         page_start_i = seq_along(.data$page_time)
       )
 
+    # Separate Unit start and stay times
     unit_page_logs_start <-
       unit_page_logs_prep %>%
       dplyr::select(dplyr::all_of(c(groups_unit,
@@ -517,6 +540,7 @@ estimate_audio_video_plays <- function(response_df) {
     dplyr::mutate(
       parsed_col = purrr::map(.data$Responses, function(cell) {
         safe_limit <- 0
+        # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
           cell <- jsonlite::fromJSON(cell)
           safe_limit <- safe_limit + 1
@@ -534,6 +558,7 @@ estimate_audio_video_plays <- function(response_df) {
     dplyr::mutate(
       parsed_col = purrr::map(.data$Responses, function(cell) {
         safe_limit <- 0
+        # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
           cell <- jsonlite::fromJSON(cell)
           safe_limit <- safe_limit + 1
