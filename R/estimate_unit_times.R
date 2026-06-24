@@ -128,10 +128,10 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         load_payload = stringr::str_remove(.data$log_entry, "^LOADCOMPLETE\\s*[:\\-]?\\s*")
       ) %>%
       dplyr::mutate(
-        load_payload = stringr::str_replace_all(load_payload, '""', '\\\\"')
+        load_payload = stringr::str_replace_all(.data$load_payload, '""', '\\\\"')
       ) %>%
       dplyr::mutate(
-        parsed_col = purrr::map(load_payload, function(cell) {
+        parsed_col = purrr::map(.data$load_payload, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
@@ -140,8 +140,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         }
         return(cell)
       })) %>%
-      tidyr::unnest_wider(parsed_col) %>%
-      dplyr::select(-load_payload, -screenSizeWidth, -screenSizeHeight, -loadTime)
+      tidyr::unnest_wider(.data$parsed_col) %>%
+      dplyr::select(-.data$load_payload, -.data$screenSizeWidth, -.data$screenSizeHeight, -.data$loadTime)
 
     if (sum(is.na(dev_logs$browserName)) > 0 || sum(dev_logs$browserName == "NULL", na.rm = TRUE) > 0) {
       warning("Not all LOADCOMPLETE logs successfully parsed from json.")}
@@ -548,7 +548,7 @@ estimate_audio_video_plays <- function(response_df) {
         return(cell)
       })) %>%
     dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
-    tidyr::unnest(parsed_col) %>%
+    tidyr::unnest(.data$parsed_col) %>%
     dplyr::filter(stringr::str_detect(.data$id, "audio"))
 
   videomask_resp <- stringr::str_detect(response_df$responses, "video")
@@ -566,7 +566,7 @@ estimate_audio_video_plays <- function(response_df) {
         return(cell)
       })) %>%
     dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
-    tidyr::unnest(parsed_col) %>%
+    tidyr::unnest(.data$parsed_col) %>%
     dplyr::filter(stringr::str_detect(.data$id, "video"))
 
   all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))

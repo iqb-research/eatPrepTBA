@@ -412,9 +412,8 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta) %>%
-    dplyr::left_join(
-      p25_all_quant_design
-    )
+    dplyr::left_join(p25_all_quant_design)
+  
   rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, p25_all_quant_design)
 
   dat_table <-
