@@ -143,16 +143,22 @@ compute_staytime_tables <- function(fach,
     )
   rm(log_times)
 
+  # units_cs umformen: irrelevante Units rausschmeißen
   units_cs <-
     units_cs[which(units_cs$unit_key %in% unit_domains$unit_key), ]
 
+  # Unit-Details auspacken
   units_cs <-
     units_cs %>%
     tidyr::unnest(unit_codes, keep_empty = TRUE)
 
+  # Korrektur fuer die Markieritems
   units_cs_corrected <-
     units_cs %>%
     dplyr::mutate(
+      # variable_temp = dplyr::case_when(
+      #   grepl("^[0-9]+$", variable_label) ~ as.integer(variable_label),
+      #   .default = NA),
       variable_temp = tryCatch({readr::parse_integer(.data$variable_label)},
                                warning = function(w) {
                                  NA
@@ -164,6 +170,7 @@ compute_staytime_tables <- function(fach,
     )
   rm(units_cs)
 
+  # Umformen: irrelevante Units rausschmeißen
   final_responses <-
     final_responses[which(final_responses$unit_key %in% unit_domains$unit_key), ] %>%
     dplyr::left_join(unit_domains, by="unit_key")
@@ -201,9 +208,11 @@ compute_staytime_tables <- function(fach,
   stim_logs_quant <-
     unit_page_logtimes %>%
     dplyr::rename(variable_page = .data$page_id) %>%
-    dplyr::anti_join(resp_page_logtimes) %>%
+    dplyr::anti_join(resp_page_logtimes) %>% # select leftover page logtimes not in resp_page_logtimes,
+    # i. e. pages without item IDs
     dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
-                                              .data$booklet_id, .data$unit_key)) %>%
+                                              .data$booklet_id, .data$unit_key)) %>% # select only those use
+    # combinations which appear in resp_page_logtimes
     dplyr::mutate(variable_id = ifelse(.data$variable_page == 0, "Stimulus", NA_character_)) %>%
     dplyr::filter(.data$variable_page == 0 & !is.na(.data$page_time)) %>%
     dplyr::group_by(.data$unit_key, item_id = .data$variable_id, .data$variable_page) %>%
@@ -215,6 +224,7 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(
+      # Nur Seiten, die mindestens 11 mal bearbeitet wurden
       .data$page_n_valid > 10
     ) %>%
     dplyr::left_join(unit_domains, by="unit_key")
@@ -337,6 +347,7 @@ compute_staytime_tables <- function(fach,
                                        unit_median, unit_q90,
                                        unit_q95))
 
+  # Irrelevante Units rausschmeißen:
   unit_meta <- unit_meta[which(unit_meta$unit_key %in% unit_domains$unit_key), ]
 
   select_cols <- c("ws_id", "unit_id", "unit_key", "unit_label",
@@ -349,6 +360,7 @@ compute_staytime_tables <- function(fach,
     tidyr::unnest(.data$item_metadata) %>%
     dplyr::select(dplyr::matches(stringr::str_c(select_cols, collapse = "|"))) %>%
     dplyr::mutate(
+      # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
       link = stringr::str_glue("https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview"),
       link_legacy = stringr::str_glue("https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview")
     )
@@ -445,8 +457,9 @@ compute_staytime_tables <- function(fach,
       SPF = ifelse(!is.na(.data$unit_median_FS), "ja", "nein")
     )
 
+  # Unit-Tabelle
   dat_table %>%
-    tidyr::nest(data = -.data$domain) %>%
+    tidyr::nest(data = -.data$domain) %>% #.$data %>% .[[1]] -> data
     dplyr::mutate(
       save = purrr::walk2(.data$data, .data$domain, function(data, domain) {
         tab <-
@@ -454,10 +467,12 @@ compute_staytime_tables <- function(fach,
           dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
           layout_staytime_tables(id = "unit-table")
 
+        # Items
         tab_item <-
           data %>%
           dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
           dplyr::mutate(variable_page = .data$variable_page + 1) %>%
+          # dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
           layout_staytime_tables(id = "item-table")
 
         save(tab, tab_item, file = stringr::str_glue(
@@ -465,7 +480,65 @@ compute_staytime_tables <- function(fach,
 
       }, .progress = TRUE)
     )
+
+  # dat_table %>%
+  #   dplyr::filter(.data$domain == "D5") %>%
+  #   # dplyr::filter(unit_key %in% (1:17 %>% str_pad(width = 2, pad = "0") %>% stringr::str_c("D2_BT", .))) %>%
+  #   ggplot2::ggplot(ggplot2::aes(y = as.factor(.data$item_id) %>% fct_rev(), x = page_median)) +
+  #   ggplot2::geom_linerange(ggplot2::aes(xmin = page_median, xmax = page_q90),
+  #                           alpha = .9, linewidth = 1.5,
+  #                           color = "deepskyblue",) +
+  #   ggplot2::geom_linerange(ggplot2::aes(xmin = page_q90, xmax = page_q95),
+  #                           alpha = .9, linewidth = 1.5,
+  #                           color = "#bae6fd",) +
+  #   ggplot2::geom_point(size = 2, shape = 21,
+  #                       stroke = 1,
+  #                       color = "deepskyblue",
+  #                       fill = "white") +
+  #   ggplot2::labs(x = "Median (IQR) Verweildauer (s)", y = "Seite") +
+  #   ggplot2::scale_x_continuous(breaks = seq(0, 60 * 10, by = 60),
+  #                               limits = c(0, 60 * 10)) +
+  #   # ggplot2::scale_x_continuous(breaks = seq(0, 300, by = 10), limits = c(0, 240)) +
+  #   ggplot2::facet_wrap(~ unit_key, scales = "free") +
+  #   ggplot2::theme_bw() +
+  #   ggplot2::theme(
+  #     title = ggplot2::element_text(face = "bold")
+  #   )
+  #
+  # ggsave("figures/D5.svg", width = 6000, height = 4000, units = "px")
+
+  # ### Extraktion fuer Janine und Pauline
+  # pilot25_stim_times <-
+  #   unit_page_logtimes %>%
+  #   dplyr::rename(variable_page = .data$page_id) %>%
+  #   dplyr::anti_join(resp_page_logtimes) %>%
+  #   dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
+  #                                   .data$booklet_id, unit_key)) %>%
+  #   dplyr::mutate(variable_id = ifelse(variable_page == 0, "Stimulus", NA_character_)) %>%
+  #   dplyr::filter(variable_page == 0 & !is.na(page_time))
+  #
+  # p25_times <-
+  #   resp_page_logtimes %>%
+  #   dplyr::bind_rows(
+  #     pilot25_stim_times
+  #   ) %>%
+  #   dplyr::mutate(
+  #     domain = unit_key %>% stringr::str_extract(paste(c("^", fach, "[A-Z]"), collapse=""))
+  #   ) %>%
+  #   dplyr::select(
+  #     .data$login_name, .data$login_code,
+  #     unit_key, variable_id, variable_page,
+  #     unit_time, unit_n_start, unit_has_pages,
+  #     page_time, page_n_start, item_time
+  #   ) %>%
+  #   dplyr::arrange(
+  #     unit_key, variable_page
+  #   )
+  #
+  # save(p25_times, file = paste(c(data_path, "p25_times_", fach, ".RData"), collapse=""))
 }
+
+
 
 
 #' Sets and layouts quantile tables of stay times
@@ -516,8 +589,35 @@ layout_staytime_tables <- function(data,
     colNoShow
   )
 
+  # unit_cols <- colUnit(data_table)
+
   columns_filter <-
     columns %>% purrr::keep(purrr::imap_lgl(., function(x, i) i %in% names(data)))
+
+  # if (subject == "dep") {
+  #   diff_group <- c("itemP", "itemP_RS", "itemP_FS", "est", "se", "Geschätzte_Schwierigkeit")
+  #
+  #   download_columns <- c("link_legacy", "item", "Nvalid", "Nvalid_RS", "Nvalid_FS",
+  #                         "itemP", "itemP_RS", "itemP_FS", "itemDiscrim", "est", "se",
+  #                         "infit", "outfit", "Itemformat", "Geschätzte_Schwierigkeit", "Anforderungsbereich",
+  #                         "Bildungsstandard", "SPF", "q3_n",
+  #                         "flag")
+  # } else {
+  #   diff_group <- c("itemP", "itemP_RS", "itemP_FS", "est__g", "est", "se__g", "se", "Geschätzte_Schwierigkeit")
+  #
+  #   download_columns <- c("link_legacy", "item", "Nvalid", "Nvalid_RS", "Nvalid_FS",
+  #                         "itemP", "itemP_RS", "itemP_FS", "itemDiscrim",
+  #                         "est", "se", "est__g", "se__g",
+  #                         "infit", "outfit", "infit__g", "outfit__g",
+  #                         "Itemformat", "Geschätzte_Schwierigkeit", "Anforderungsbereich",
+  #                         "Bildungsstandard", "SPF", "q3_n",
+  #                         "flag")
+  # }
+
+  # diff_group <- intersect(
+  #   names(data),
+  #   diff_group
+  # )
 
   group_item <- NULL
   if (id == "item-table") {
@@ -551,8 +651,30 @@ layout_staytime_tables <- function(data,
       showPageSizeOptions = TRUE,
       defaultPageSize = 10,
       pageSizeOptions = c(10, 50, 100, 900),
-      style = list("fontFamily" = "Open Sans", width = "100%")
+      style = list("fontFamily" = "Open Sans", width = "100%")#,
+      #      language = reactable_language_settings
     )
+
+  # if (views) {
+  #   filter_parameters <- c("outfit",
+  #                          "se",
+  #                          "outfit__g",
+  #                          "se__g")
+  #
+  #   show_parameters <- intersect(filter_parameters, names(data))
+  #
+  #   filter_meta <- c("Geschätzte_Schwierigkeit",
+  #                    "Anforderungsbereich",
+  #                    "Bildungsstandard",
+  #                    "SPF",
+  #                    "innovation",
+  #                    "unit_label")
+  #
+  #   if (subject == "dep") {
+  #     filter_meta <- c(filter_meta, "innovation_unit")
+  #   }
+  #
+  #   show_meta <- intersect(filter_meta, names(data))
 
   filter_design <- c("unit_median_RS",
                      "unit_q90_RS",
@@ -578,8 +700,29 @@ layout_staytime_tables <- function(data,
 
   show_design <- intersect(filter_design, names(data))
 
+  # Darstellung mit Checkboxen
   htmltools::browsable(
     htmltools::div(
+      # htmltools::div(
+      #   style = "display: inline-block; margin-right: 10px;",
+      #   download_button(download = download,
+      #                   id = .data$id,
+      #                   columns = download_columns),
+      # ),
+      # htmltools::div(
+      #   style = "display: inline-block; margin-right: 10px;",
+      #   generate_checkbox(.data$Label = "Zeige Item-Metadaten",
+      #                     checked = FALSE,
+      #                     id = .data$id,
+      #                     columns = show_meta),
+      # ),
+      # htmltools::div(
+      #   style = "display: inline-block; margin-right: 10px;",
+      #   generate_checkbox(.data$Label = "Zeige alle Kennwerte",
+      #                     checked = FALSE,
+      #                     id = .data$id,
+      #                     columns = show_parameters),
+      # ),
       htmltools::div(
         style = "display: inline-block; margin-right: 10px;",
         generate_checkbox(label = "Zeige Teildesign (SPF)",
@@ -594,6 +737,105 @@ layout_staytime_tables <- function(data,
   )
 }
 
+# download_button <- function(id, columns, download) {
+#   if (is.null(download)) {
+#     return(NULL)
+#   }
+#   columns_json <- jsonlite::toJSON(columns)
+#   callback <- glue::glue("Reactable.downloadDataCSV('{.data$id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
+#   htmltools::browsable(htmltools::tags$button(shiny::icon("download"), "Herunterladen", onclick = callback))
+# }
+
+# # Filterfunktionen (allgemein)
+# filter_multiple <- htmlwidgets::JS("function(rows, columnId, filterValue) {
+#   if (typeof filterValue === 'string') {
+#     // Split comma-separated values, trim spaces, and convert to lowercase
+#     filterValue = filterValue.split(',').map(value => value.trim().toLowerCase());
+#   }
+#
+#   // Proceed with filtering rows based on case-insensitive partial matches
+#   return rows.filter(row => {
+#     const cellValue = String(row.values[columnId]).toLowerCase();
+#     return filterValue.some(filterText => cellValue.includes(filterText));
+#   });
+# }")
+
+# filter_min <- htmlwidgets::JS("function(rows, columnId, filterValue) {
+#         return rows.filter(function(row) {
+#           return isNaN(filterValue) || row.values[columnId] >= Number(filterValue)
+#         })
+#       }")
+
+# filter_input_slider <- function(id, min = NULL, max = NULL, step = .001) {
+#   function(values, name) {
+#     oninput <- stringr::str_glue("Reactable.setFilter('{.data$id}', '{name}', this.value)")
+#
+#     min_val <- ifelse(is.null(min), min(values, na.rm = TRUE), min)
+#     max_val <- ifelse(is.null(max), max(values, na.rm = TRUE), max)
+#
+#     htmltools::div(
+#       style = htmltools::css(
+#         display = "flex",
+#         alignItems = "center",
+#         justifyContent = "center",
+#         height = "100%"
+#       ),
+#       htmltools::tags$input(
+#         style = htmltools::css(
+#           width = "90%"
+#         ),
+#         type = "range",
+#         min = min_val,
+#         max = max_val,
+#         step = step,
+#         value = ifelse(length(values) == 0, min, min_val),
+#         oninput = oninput,
+#         onchange = oninput, # For IE11 support
+#         "aria-label" = stringr::str_glue("Filter by minimum {name}")
+#       ),
+#
+#     )
+#   }
+# }
+
+# # Links
+# display_linkset <- function(value, index) {
+#   if (!is.na(value)) {
+#     link_icon_old <- shiny::icon("box-archive", lib = "font-awesome")
+#     #
+#     # a(
+#     #   link_icon_old, target = "_blank", href = value,
+#     #   style = "color: #a8a29e;",
+#     #   onmouseover = "this.style.color='#d6d3d1'",
+#     #   onmouseout = "this.style.color='#a8a29e'"
+#     # )
+#   }
+# }
+
+# display_badge <- function(data, digits = 2, na = "-") {
+#   function(value, index, name) {
+#     if (is.na(value)) {
+#       return(na)
+#     }
+#
+#     print_value <- printnum(value, digits = digits, gt1 = TRUE)
+#
+#     badge <- status_badge(color = data[[index, stringr::str_glue("color_{name}")]])
+#     badge_tool <- with_tooltip(badge, data[[index, stringr::str_glue("tooltip_{name}")]])
+#
+#     shiny::tagList(badge_tool, print_value)
+#   }
+# }
+
+# display_q3 <- function(data, id) {
+#   function(value, index, name) {
+#     if (length(has) > 0) {
+#     } else {
+#       htmltools::div(value)
+#     }
+#   }
+# }
+
 to_stamp <- function(x) {
   if (is.na(x)) {
     return("-")
@@ -602,14 +844,17 @@ to_stamp <- function(x) {
   sign_char <- ifelse(x < 0, "-", "")
   abs_x <- abs(x)
 
+  # Convert absolute value to period
   p <- abs_x %>%
     round() %>%
     as.integer() %>%
     lubridate::seconds_to_period()
 
+  # Format as MM:SS
   time_str <- sprintf("%02d:%02d", lubridate::minute(p),
                       lubridate::second(p))
 
+  # Combine sign and time
   paste0(sign_char, time_str)
 }
 
@@ -651,6 +896,8 @@ colUnit <- function(data) {
       cell = to_stamp,
       style = sort_function
     ),
+
+    # Globale Werte
     unit_median = reactable::colDef(
       name = "Median",
       cell = display_dotplot(data),
@@ -667,6 +914,8 @@ colUnit <- function(data) {
       cell = to_stamp,
       style = sort_function
     ),
+
+    # Regelschulwerte
     unit_diff_RS = reactable::colDef(
       name = "Differenz Q90",
       cell = to_stamp,
@@ -698,6 +947,8 @@ colUnit <- function(data) {
       show = FALSE,
       style = sort_function
     ),
+
+    # Förderschulwerte
     unit_diff_FS = reactable::colDef(
       name = "Differenz Q90",
       cell = to_stamp,
@@ -743,14 +994,23 @@ display_dotplot <- function(data, design = NULL) {
     if (is.null(design)) {
       q90 <- data[[index, "unit_q90"]]
       q95 <- data[[index, "unit_q95"]]
+      # tdiff <- data[[index, "unit_diff"]]
     } else {
       q90 <- data[[index, stringr::str_glue("unit_q90_{design}")]]
       q95 <- data[[index, stringr::str_glue("unit_q95_{design}")]]
+      # tdiff <- data[[index, stringr::str_glue("unit_diff_{design}")]]
     }
+
+    # color <- dplyr::case_when(
+    #   tdiff > 0 ~ "#fb7185",
+    #   tdiff < -60 ~ "#0ea5e9",
+    #   .default = "#34d399")
 
     htmltools::div(
       style = list(display = "flex"),
+
       htmltools::div(print_value, style = list(flex = "0 0 40px")),
+
       eatWidget::range_chart(
         est = prior,
         est_min = q90,
