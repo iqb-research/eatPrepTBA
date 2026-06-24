@@ -637,9 +637,9 @@ layout_staytime_tables <- function(data,
           reactable::colGroup(name = "Unit (Global)", columns = c("unit_median", "unit_q90",
                                                                   "unit_q95", "unit_diff", "unit_diff95")),
           reactable::colGroup(name = "Unit (Regel)", columns = c("unit_median_RS", "unit_q90_RS",
-                                                                 "unit_q95_RS", "unit_diff_RS", "unit_diff95_RS")),
+                                                                  "unit_q95_RS", "unit_diff_RS", "unit_diff95_RS")),
           reactable::colGroup(name = "Unit (SPF)", columns = c("unit_median_FS", "unit_q90_FS",
-                                                               "unit_q95_FS", "unit_diff_FS", "unit_diff95_FS"))
+                                                                "unit_q95_FS", "unit_diff_FS", "unit_diff95_FS"))
         ),
         group_item
       ),
@@ -706,21 +706,21 @@ layout_staytime_tables <- function(data,
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
       #   download_button(download = download,
-      #                   id = .data$id,
+      #                   id = id,
       #                   columns = download_columns),
       # ),
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
-      #   generate_checkbox(.data$Label = "Zeige Item-Metadaten",
+      #   generate_checkbox(label = "Zeige Item-Metadaten",
       #                     checked = FALSE,
-      #                     id = .data$id,
+      #                     id = id,
       #                     columns = show_meta),
       # ),
       # htmltools::div(
       #   style = "display: inline-block; margin-right: 10px;",
-      #   generate_checkbox(.data$Label = "Zeige alle Kennwerte",
+      #   generate_checkbox(label = "Zeige alle Kennwerte",
       #                     checked = FALSE,
-      #                     id = .data$id,
+      #                     id = id,
       #                     columns = show_parameters),
       # ),
       htmltools::div(
@@ -742,7 +742,7 @@ layout_staytime_tables <- function(data,
 #     return(NULL)
 #   }
 #   columns_json <- jsonlite::toJSON(columns)
-#   callback <- glue::glue("Reactable.downloadDataCSV('{.data$id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
+#   callback <- glue::glue("Reactable.downloadDataCSV('{id}', '{download}.csv', {{columnIds: {columns_json}, sep: ';', dec: ','}})")
 #   htmltools::browsable(htmltools::tags$button(shiny::icon("download"), "Herunterladen", onclick = callback))
 # }
 
@@ -768,7 +768,7 @@ layout_staytime_tables <- function(data,
 
 # filter_input_slider <- function(id, min = NULL, max = NULL, step = .001) {
 #   function(values, name) {
-#     oninput <- stringr::str_glue("Reactable.setFilter('{.data$id}', '{name}', this.value)")
+#     oninput <- stringr::str_glue("Reactable.setFilter('{id}', '{name}', this.value)")
 #
 #     min_val <- ifelse(is.null(min), min(values, na.rm = TRUE), min)
 #     max_val <- ifelse(is.null(max), max(values, na.rm = TRUE), max)
