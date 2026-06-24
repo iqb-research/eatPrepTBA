@@ -141,7 +141,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         return(cell)
       })) %>%
       tidyr::unnest_wider(parsed_col) %>%
-      subset(select = -c(load_payload, screenSizeWidth, screenSizeHeight, loadTime))
+      dplyr::select(-load_payload, -screenSizeWidth, -screenSizeHeight, -loadTime)
 
     if (sum(is.na(dev_logs$browserName)) > 0 || sum(dev_logs$browserName == "NULL", na.rm = TRUE) > 0) {
       warning("Not all LOADCOMPLETE logs successfully parsed from json.")}
