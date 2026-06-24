@@ -143,9 +143,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       tidyr::unnest_wider(parsed_col) %>%
       subset(select = -c(load_payload, screenSizeWidth, screenSizeHeight, loadTime))
 
-    if (sum(is.na(dev_logs$browserName)) > 0 |
-        sum(is.null(dev_logs$browserName)) > 0 |
-        sum(dev_logs$browserName=="NULL") > 0 ) {
+    if (sum(is.na(dev_logs$browserName)) > 0 || sum(dev_logs$browserName == "NULL", na.rm = TRUE) > 0) {
       warning("Not all LOADCOMPLETE logs successfully parsed from json.")}
     }
 
@@ -484,7 +482,9 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         by = groups_unit
       ) %>%
       dplyr::mutate(
-        unit_has_pages = purrr::map_lgl(.data$unit_page_logs, function(x) !is.null(x))
+        unit_has_pages = purrr::map_lgl(
+          .data$unit_page_logs,
+          function(x) !is.null(x) && nrow(x) > 0)
       )
 
   } else {
@@ -536,9 +536,9 @@ estimate_audio_video_plays <- function(response_df) {
   audiomask_resp <- stringr::str_detect(response_df$responses, "audio")
   audio_resp_rows <- response_df[audiomask_resp, ]
   parsed_audios <- audio_resp_rows %>%
-    dplyr::filter(!is.na(.data$Responses)) %>%
+    dplyr::filter(!is.na(.data$responses)) %>%
     dplyr::mutate(
-      parsed_col = purrr::map(.data$Responses, function(cell) {
+      parsed_col = purrr::map(.data$responses, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
@@ -547,16 +547,16 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    subset(select = c(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, unit_key, page_no, parsed_col)) %>%
+    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
     tidyr::unnest(parsed_col) %>%
     dplyr::filter(stringr::str_detect(.data$id, "audio"))
 
   videomask_resp <- stringr::str_detect(response_df$responses, "video")
   video_resp_rows <- response_df[videomask_resp, ]
   parsed_videos <- video_resp_rows %>%
-    dplyr::filter(!is.na(.data$Responses)) %>%
+    dplyr::filter(!is.na(.data$responses)) %>%
     dplyr::mutate(
-      parsed_col = purrr::map(.data$Responses, function(cell) {
+      parsed_col = purrr::map(.data$responses, function(cell) {
         safe_limit <- 0
         # Apply fromJSON up to 5 times
         while (is.character(cell) && safe_limit < 5) {
@@ -565,7 +565,7 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    subset(select = c(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, unit_key, page_no, parsed_col)) %>%
+    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
     tidyr::unnest(parsed_col) %>%
     dplyr::filter(stringr::str_detect(.data$id, "video"))
 
