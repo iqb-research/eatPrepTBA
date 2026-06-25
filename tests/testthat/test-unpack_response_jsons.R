@@ -182,3 +182,14 @@ test_that("prepare_unpacked_codes can keep uncoded rows and derive fallback vari
   expect_equal(coded$code_status, coded$response_status)
   expect_true("code_type" %in% names(coded))
 })
+test_that("unpack_response_jsons uses immediate persistent progress", {
+  expect_false(unpack_response_json_progress(FALSE))
+
+  progress <- unpack_response_json_progress(TRUE)
+
+  expect_equal(progress$type, "custom")
+  expect_equal(progress$show_after, 0)
+  expect_false(progress$clear)
+  expect_match(progress$format, "Unpacking response JSON payloads")
+  expect_match(progress$format_done, "Unpacked")
+})

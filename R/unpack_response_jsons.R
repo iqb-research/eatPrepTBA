@@ -90,7 +90,7 @@ unpack_response_jsons <- function(responses,
         response_json,
         parse_response_json_cell,
         keep_empty = keep_empty,
-        .progress = if (progress) "Unpacking response JSONs" else FALSE
+        .progress = unpack_response_json_progress(progress)
       )
     ) %>%
     dplyr::select(-response_json) %>%
@@ -180,6 +180,23 @@ complete_unpacked_code_type <- function(out, code_type) {
 
   out$code_type <- dplyr::coalesce(as.character(out$code_type), rep(code_type, nrow(out)))
   out
+}
+
+unpack_response_json_progress <- function(progress) {
+  if (!progress) {
+    return(FALSE)
+  }
+
+  list(
+    type = "custom",
+    show_after = 0,
+    format = paste(
+      "Unpacking response JSON payloads ({cli::pb_current}/{cli::pb_total}):",
+      "{cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}"
+    ),
+    format_done = "Unpacked {cli::pb_total} response JSON payload{?s} in {cli::pb_elapsed}.",
+    clear = FALSE
+  )
 }
 
 detect_response_json_cols <- function(responses, sample_size = 20L) {
