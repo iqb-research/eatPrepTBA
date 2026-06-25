@@ -9,6 +9,8 @@
 #'   all non-JSON and non-timestamp columns are kept.
 #' @param keep_empty Logical. Whether missing, empty, and `[]` payloads should
 #'   be kept as rows with missing response identifiers.
+#' @param progress Logical. Whether to show a progress bar while parsing JSON
+#'   payloads.
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
@@ -28,9 +30,11 @@
 unpack_response_jsons <- function(responses,
                                   response_cols = NULL,
                                   id_cols = NULL,
-                                  keep_empty = FALSE) {
+                                  keep_empty = FALSE,
+                                  progress = TRUE) {
   checkmate::assert_data_frame(responses)
   checkmate::assert_logical(keep_empty, len = 1)
+  checkmate::assert_logical(progress, len = 1)
   responses <- tibble::as_tibble(responses)
 
   if (is.null(response_cols)) {
@@ -82,8 +86,12 @@ unpack_response_jsons <- function(responses,
     dplyr::mutate(
       response_name = response_json_base(response_column),
       question_index = response_question_index(response_name),
-      parsed = purrr::map(response_json, parse_response_json_cell,
-                          keep_empty = keep_empty)
+      parsed = purrr::map(
+        response_json,
+        parse_response_json_cell,
+        keep_empty = keep_empty,
+        .progress = if (progress) "Unpacking response JSONs" else FALSE
+      )
     ) %>%
     dplyr::select(-response_json) %>%
     tidyr::unnest(parsed) %>%
@@ -101,13 +109,19 @@ unpack_response_jsons <- function(responses,
 #'   `response_id`.
 #' @param keep_uncoded Logical. Whether rows without `code_id` and `code_score`
 #'   should be retained.
+#' @param unnest_value Logical. Whether to unnest the `value` list-column for
+#'   compatibility with `code_responses(..., prepare = TRUE)`.
+#' @param code_type Character. Default `code_type` for prepared rows when the
+#'   unpacked data do not already contain `code_type`.
 #'
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
 #' This helper converts unpacked code-bearing response records into the same core
-#' column shape returned by `code_responses()`: `variable_id`, `value`,
-#' `code_id`, `code_score`, and `code_status`.
+#' column shape returned by `code_responses(..., prepare = TRUE)`: `variable_id`,
+#' `value`, `code_id`, `code_score`, `code_status`, and `code_type`. By default,
+#' `value` is unnested so prepared rows can be bound with prepared
+#' `code_responses()` output before calling `complete_design()`.
 #'
 #' @return A tibble.
 #'
@@ -115,10 +129,14 @@ unpack_response_jsons <- function(responses,
 prepare_unpacked_codes <- function(unpacked,
                                    response_id = "value",
                                    variable_id_from = c("subform", "response_name", "response_id"),
-                                   keep_uncoded = FALSE) {
+                                   keep_uncoded = FALSE,
+                                   unnest_value = TRUE,
+                                   code_type = NA_character_) {
   checkmate::assert_data_frame(unpacked)
   checkmate::assert_character(response_id, min.len = 1, any.missing = FALSE)
   checkmate::assert_logical(keep_uncoded, len = 1)
+  checkmate::assert_logical(unnest_value, len = 1)
+  checkmate::assert_character(code_type, len = 1, any.missing = TRUE)
   variable_id_from <- match.arg(variable_id_from)
   unpacked <- tibble::as_tibble(unpacked)
 
@@ -136,17 +154,32 @@ prepare_unpacked_codes <- function(unpacked,
 
   out$variable_id <- derive_unpacked_variable_id(out, variable_id_from)
   out$code_status <- out$response_status
+  out <- complete_unpacked_code_type(out, code_type)
+
+  if (unnest_value) {
+    out <- tidyr::unnest(out, value, keep_empty = TRUE)
+  }
 
   code_cols <- c(
     "response_row", "unit_key", "unit_alias", "group_id", "login_name",
     "login_code", "booklet_id", "source", "server", "file",
     "response_column", "response_name", "response_ts", "question_index",
     "subform", "variable_id", "value", "code_id", "code_score",
-    "code_status", "response_id", "response_status"
+    "code_status", "code_type", "response_id", "response_status"
   )
 
   out %>%
     dplyr::select(dplyr::any_of(code_cols), dplyr::everything())
+}
+
+complete_unpacked_code_type <- function(out, code_type) {
+  if (!"code_type" %in% names(out)) {
+    out$code_type <- rep(code_type, nrow(out))
+    return(out)
+  }
+
+  out$code_type <- dplyr::coalesce(as.character(out$code_type), rep(code_type, nrow(out)))
+  out
 }
 
 detect_response_json_cols <- function(responses, sample_size = 20L) {

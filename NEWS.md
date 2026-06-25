@@ -1,7 +1,7 @@
 # eatPrepTBA 0.9.8.9018
 
-* Added `unpack_response_jsons()` for auto-detecting and unpacking response JSON columns distributed across wide response tables, including matching `*_ts` timestamp columns.
-* Added `prepare_unpacked_codes()` to convert code-bearing unpacked slots into the core `code_responses()` output shape.
+* Added `unpack_response_jsons()` for auto-detecting and unpacking response JSON columns distributed across wide response tables, including matching `*_ts` timestamp columns and showing progress while JSON payloads are parsed.
+* Added `prepare_unpacked_codes()` to convert code-bearing unpacked slots into the core `code_responses(..., prepare = TRUE)` output shape, including `code_type` and unnested `value` output for direct binding before `complete_design()`.
 * These helpers are particularly useful for BKT-like question-slot preparation, where coded responses are stored across `question_*_content` columns rather than in one `coded` column.
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
 * Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.

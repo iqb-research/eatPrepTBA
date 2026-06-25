@@ -8,7 +8,8 @@ unpack_response_jsons(
   responses,
   response_cols = NULL,
   id_cols = NULL,
-  keep_empty = FALSE
+  keep_empty = FALSE,
+  progress = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ all non-JSON and non-timestamp columns are kept.}
 
 \item{keep_empty}{Logical. Whether missing, empty, and \verb{[]} payloads should
 be kept as rows with missing response identifiers.}
+
+\item{progress}{Logical. Whether to show a progress bar while parsing JSON
+payloads.}
 }
 \value{
 A tibble with the identifier columns, response slot metadata, and the

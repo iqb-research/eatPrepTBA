@@ -32,7 +32,7 @@ test_that("unpack_response_jsons auto-detects wide response JSON columns", {
     geometry_variables = c("[]", "[]")
   )
 
-  out <- unpack_response_jsons(responses)
+  out <- unpack_response_jsons(responses, progress = FALSE)
 
   expect_s3_class(out, "tbl_df")
   expect_equal(nrow(out), 4)
@@ -63,7 +63,7 @@ test_that("unpack_response_jsons accepts explicit response columns", {
     responses_ts = 2000
   )
 
-  out <- unpack_response_jsons(responses, response_cols = "question_0_content")
+  out <- unpack_response_jsons(responses, response_cols = "question_0_content", progress = FALSE)
 
   expect_equal(nrow(out), 1)
   expect_equal(out$response_column, "question_0_content")
@@ -91,7 +91,7 @@ test_that("prepare_unpacked_codes creates code_responses-like columns", {
 
   out <-
     responses %>%
-    unpack_response_jsons() %>%
+    unpack_response_jsons(progress = FALSE) %>%
     prepare_unpacked_codes()
 
   expect_equal(nrow(out), 1)
@@ -100,6 +100,28 @@ test_that("prepare_unpacked_codes creates code_responses-like columns", {
   expect_equal(out$code_id, 1L)
   expect_equal(out$code_score, 1)
   expect_equal(out$value[[1]], 4L)
+  expect_true("code_type" %in% names(out))
+  expect_true(is.na(out$code_type))
+
+  coded_standard <- tibble::tibble(
+    unit_key = "U2",
+    unit_alias = "U2_ALIAS",
+    group_id = "G1",
+    login_name = "L2",
+    login_code = "C2",
+    booklet_id = "B1",
+    variable_id = "0",
+    value = 4L,
+    code_id = 1L,
+    code_score = 1,
+    code_status = "CODING_COMPLETE",
+    code_type = "FULL_CREDIT"
+  )
+
+  coded_all <- dplyr::bind_rows(coded_standard, out)
+
+  expect_equal(nrow(coded_all), 2)
+  expect_true(all(c("code_type", "value") %in% names(coded_all)))
 })
 test_that("unpack_response_jsons handles empty and malformed payloads", {
   responses <- tibble::tibble(
@@ -108,7 +130,7 @@ test_that("unpack_response_jsons handles empty and malformed payloads", {
     payload = c(NA_character_, "[]", "{not-json")
   )
 
-  empty <- unpack_response_jsons(responses)
+  empty <- unpack_response_jsons(responses, progress = FALSE)
 
   expect_s3_class(empty, "tbl_df")
   expect_equal(nrow(empty), 0)
@@ -121,7 +143,8 @@ test_that("unpack_response_jsons handles empty and malformed payloads", {
     responses,
     response_cols = "payload",
     id_cols = "unit_key",
-    keep_empty = TRUE
+    keep_empty = TRUE,
+    progress = FALSE
   )
 
   expect_equal(nrow(out), 3)
@@ -157,4 +180,5 @@ test_that("prepare_unpacked_codes can keep uncoded rows and derive fallback vari
   expect_equal(nrow(coded), 3)
   expect_equal(coded$variable_id, c("question_0", "question_0", "sums"))
   expect_equal(coded$code_status, coded$response_status)
+  expect_true("code_type" %in% names(coded))
 })

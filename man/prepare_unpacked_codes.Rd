@@ -8,7 +8,9 @@ prepare_unpacked_codes(
   unpacked,
   response_id = "value",
   variable_id_from = c("subform", "response_name", "response_id"),
-  keep_uncoded = FALSE
+  keep_uncoded = FALSE,
+  unnest_value = TRUE,
+  code_type = NA_character_
 )
 }
 \arguments{
@@ -24,6 +26,12 @@ Defaults to \code{subform}, with fallback to \code{response_name} and then
 
 \item{keep_uncoded}{Logical. Whether rows without \code{code_id} and \code{code_score}
 should be retained.}
+
+\item{unnest_value}{Logical. Whether to unnest the \code{value} list-column for
+compatibility with \code{code_responses(..., prepare = TRUE)}.}
+
+\item{code_type}{Character. Default \code{code_type} for prepared rows when the
+unpacked data do not already contain \code{code_type}.}
 }
 \value{
 A tibble.
@@ -32,6 +40,8 @@ A tibble.
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
 This helper converts unpacked code-bearing response records into the same core
-column shape returned by \code{code_responses()}: \code{variable_id}, \code{value},
-\code{code_id}, \code{code_score}, and \code{code_status}.
+column shape returned by \code{code_responses(..., prepare = TRUE)}: \code{variable_id},
+\code{value}, \code{code_id}, \code{code_score}, \code{code_status}, and \code{code_type}. By default,
+\code{value} is unnested so prepared rows can be bound with prepared
+\code{code_responses()} output before calling \code{complete_design()}.
 }
