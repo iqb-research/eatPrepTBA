@@ -101,3 +101,60 @@ test_that("prepare_unpacked_codes creates code_responses-like columns", {
   expect_equal(out$code_score, 1)
   expect_equal(out$value[[1]], 4L)
 })
+test_that("unpack_response_jsons handles empty and malformed payloads", {
+  responses <- tibble::tibble(
+    unit_key = c("U1", "U2", "U3"),
+    other = c("keep", "keep", "keep"),
+    payload = c(NA_character_, "[]", "{not-json")
+  )
+
+  empty <- unpack_response_jsons(responses)
+
+  expect_s3_class(empty, "tbl_df")
+  expect_equal(nrow(empty), 0)
+  expect_true(all(c(
+    "response_row", "unit_key", "other", "payload", "response_id",
+    "response_status", "value", "code_id", "code_score"
+  ) %in% names(empty)))
+
+  out <- unpack_response_jsons(
+    responses,
+    response_cols = "payload",
+    id_cols = "unit_key",
+    keep_empty = TRUE
+  )
+
+  expect_equal(nrow(out), 3)
+  expect_equal(out$unit_key, c("U1", "U2", "U3"))
+  expect_true(".parse_error" %in% names(out))
+  expect_match(out$.parse_error[3], "lexical error")
+  expect_true(all(is.na(out$response_ts)))
+})
+
+test_that("prepare_unpacked_codes can keep uncoded rows and derive fallback variable ids", {
+  unpacked <- tibble::tibble(
+    response_row = 1:3,
+    unit_key = "U1",
+    response_column = c("question_0_content", "question_0_content", "sums_content"),
+    response_name = c("question_0", "question_0", "sums"),
+    response_ts = c(1000, 1000, 1100),
+    question_index = c(0L, 0L, NA_integer_),
+    response_id = c("value", "value", "total_correct"),
+    response_status = c("CODING_COMPLETE", "VALUE_CHANGED", "VALUE_CHANGED"),
+    value = list(1L, 2L, 3L),
+    subform = c(NA_character_, "explicit", NA_character_),
+    code_id = c(1L, NA_integer_, NA_integer_),
+    code_score = c(1, NA_real_, NA_real_)
+  )
+
+  coded <- prepare_unpacked_codes(
+    unpacked,
+    response_id = c("value", "total_correct"),
+    variable_id_from = "response_name",
+    keep_uncoded = TRUE
+  )
+
+  expect_equal(nrow(coded), 3)
+  expect_equal(coded$variable_id, c("question_0", "question_0", "sums"))
+  expect_equal(coded$code_status, coded$response_status)
+})
