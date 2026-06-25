@@ -7,14 +7,38 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+library(dplyr)
 ```
 
-# How eatPrepTBA communicates with IQB Studio and IQB Testcenter APIs
+```{css, echo=FALSE}
+.side-by-side {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.side-by-side > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.side-by-side pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 800px) {
+  .side-by-side {
+    flex-direction: column;
+  }
+}
+```
 
 eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests happen with use of the R package `httr2`. eatPrepTBA wraps this in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that eatPrepTBA users do not need to write `httr2` code directly.
 
@@ -91,9 +115,9 @@ Since the response type is JSON, the same request can be reproduced in R with `h
 
 The result returned by `httr2::resp_body_json()` is an R list created from the JSON response of the Studio API. In this example, each top-level list element represents one unit in the selected workspace. Each unit contains several fields, such as the unit id, key, name, metadata, variables, timestamps, and information about comments.
 
-```{r echo = false, eval=FALSE}
+```{r echo = FALSE, eval=FALSE}
 # Anonymize result
-httr2_result <- purrr::map(httr2_result, \(x) { x[grepl("User$", names(x))] <- "Max Mustermann"; x[grepl("Changed|At$", names(x))] <- "2001-01-01T00:00:00.000Z"; x })
+httr2_result <- purrr::map(httr2_result, \(x) { x[grepl("User$", names(x))] <- "Max Mustermann"; x })
 # This is used once for the creation of an example result list...
 httr2_result %>% readr::write_rds("../inst/extdata/example_httr2_result.rds")
 ```
@@ -106,7 +130,7 @@ httr2_result <- readr::read_rds(system.file("extdata", "example_httr2_result.rds
 ```{r}
 httr2_result[1]
 ```
-transforms these nested lists into data frames or tibbles, so that the results are less nested, more consistent, and easier to use with common R workflows.
+eatPrepTBA transforms these nested lists into data frames or tibbles, so that the results are less nested, more consistent, and easier to use with common R workflows.
 
 ```{r}
 httr2_result %>% 
@@ -188,22 +212,153 @@ properties
 
 For example, we can extract some unit-level metadata for the unit `145615` in workspace `1300`.
 
-```{r}
+:::: {.side-by-side}
+
+::: {}
+
+```{r kompetenzbereich}
 # Kompetenzbereich
 properties$metadata$profiles[[1]]$entries[[1]]$label[[1]]$value
 properties$metadata$profiles[[1]]$entries[[1]]$valueAsText[[1]]$value
 ```
-```{r}
+
+```{r quellenangaben}
 # Quellenangaben
 properties$metadata$profiles[[1]]$entries[[5]]$label[[1]]$value
 properties$metadata$profiles[[1]]$entries[[5]]$valueAsText[[1]]$value
 ```
-```{r, out.width="100%", echo = FALSE}
+
+:::
+
+::: {}
+
+```{r metadata-screenshot, out.width="100%", echo=FALSE}
 knitr::include_graphics("images/manually_extract_metadata_example.png")
 ```
 
+:::
+
+::::
 
 
+
+## Retrieving a coding scheme
+
+The coding scheme of a unit can also be retrieved. In the browser developer tools, the corresponding request may already appear when opening or refreshing a unit, even if the **Kodierung** tab has not been selected manually.
+
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Browser_Developer_Tools_scheme.png")
+```
+
+The `httr2` workflow is almost identical to the metadata request: we need the workspace id, the unit id, the access token, and the app version. Only the final part of the request path changes from `properties` to `scheme`: 
+
+```text
+/api/workspaces/{workspace_id}/units/{unit_id}/scheme
+```
+
+```{r get-unit-scheme, eval=FALSE}
+workspace_id <- 1300
+unit_id <- 145615
+
+scheme_response <- httr2::request("https://www.iqb-studio.de/api/") |>
+  httr2::req_url_path_append(
+    "workspaces", workspace_id,
+    "units", unit_id,
+    "scheme"
+  ) |>
+  httr2::req_auth_bearer_token(access_token) |>
+  httr2::req_headers(
+    "App-Version" = "17.0.1"
+  ) |>
+  httr2::req_perform() |>
+  httr2::resp_body_json()
+```
+
+The response from the API contains the coding scheme. In some cases, the scheme is not returned as a directly nested R list. Instead, it is stored as a JSON-formatted string inside the response. 
+
+```{r eval=FALSE}
+scheme_string <- scheme_response$scheme
+```
+
+```{r eval = FALSE, echo = FALSE}
+# execute once locally
+readr::write_file(scheme_string, "../inst/extdata/example_scheme_string.json")
+```
+
+```{r echo = FALSE}
+scheme_string <- readr::read_file(system.file("extdata",
+                                              "example_scheme_string.json",
+                                              package = "eatPrepTBA"))
+```
+
+```{r eval = FALSE}
+scheme_string
+```
+
+```{r echo = FALSE}
+cat(substr(scheme_string, 1, 200), "...\n")
+```
+
+If the coding scheme should be inspected or processed as an R object, the JSON string can be parsed with `jsonlite::parse_json()`:
+
+```{r parse-scheme}
+scheme_list <- jsonlite::parse_json(scheme_string)
+```
+
+The result is then an R list. This makes it easier to inspect individual parts of the coding scheme with R.
+
+```{r inspect-parsed-scheme}
+str(scheme_list, max.level = 2)
+```
+
+The parsed list can also be converted back to JSON. When doing this, `auto_unbox = TRUE` is used so
+that single values are written as JSON scalars instead of arrays of length one. This is important because the Studio API scheme format expects values such as `"id": "01a"` rather than `"id": ["01a"]`.
+
+```{r}
+scheme_json <- jsonlite::toJSON(
+  scheme_list,
+  auto_unbox = TRUE,
+  pretty = TRUE
+)
+```
+
+:::: {.side-by-side}
+
+::: {}
+
+```{r scheme-json-preview, echo=FALSE}
+scheme_lines <- strsplit(scheme_json, "\n")[[1]]
+
+cat(
+  c(head(scheme_lines, 20), "..."),
+  sep = "\n"
+)
+```
+
+:::
+
+::: {}
+
+```{r scheme-screenshot, out.width="100%", echo=FALSE}
+knitr::include_graphics("images/Example_Kodierschema.png")
+```
+
+:::
+
+::::
+
+The JSON representation can then be written to a file:
+
+```{r write-scheme-json, eval=FALSE}
+jsonlite::write_json(
+  scheme_list,
+  "scheme.json",
+  auto_unbox = TRUE,
+  pretty = TRUE
+)
+```
+
+In summary, not every response is immediately available as a conveniently nested R object. Sometimes the API returns JSON inside a string. In those cases, eatPrepTBA parses the string before the coding scheme can be handled like a regular R list.
 
 
 
