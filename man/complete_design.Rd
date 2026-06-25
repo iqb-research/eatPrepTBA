@@ -28,7 +28,6 @@ complete_design(
 \item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
 
 \item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a booklet? Defaults to \code{FALSE}.}
-
 }
 \value{
 A tibble.

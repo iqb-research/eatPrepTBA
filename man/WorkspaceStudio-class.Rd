@@ -14,7 +14,7 @@ A class extending the Login class with additional information for the IQB Studio
 
 \item{\code{ws_label}}{Label of the workspace.}
 
-\item{\code{login}}{\link[=LoginStudio-class]{LoginStudio}. Login information for the IQB Studio.}
+\item{\code{login}}{\linkS4class{LoginStudio}. Login information for the IQB Studio.}
 
 \item{\code{wsg_id}}{ID of the workspace group the current workspace belongs to. See URL to identify the workspace group id.}
 

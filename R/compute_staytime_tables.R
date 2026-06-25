@@ -3,21 +3,26 @@
 #' Author: Philipp Franikowski, restructured by Lea Musiolek
 #'
 #' @param fach String. Letter denoting the school subject in question.
-#' @param log_times Data frame. Log data with stay times for one school subject. Result of pulling
+#' @param log_times Data frame. Log data with stay times. Result of pulling
 #' log data with eatPrepTBA::get_logs() and then using eatPrepTBA::estimate_unit_times().
-#' If necessary, data for the subject in question needs to be selected.
+#' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_domains Data frame. Three string variables: subject (should equal fach),
-#' domain ('<fach><Kompetenz>'), unit_key. Should contain each relevant unit_key once.
-#' Important for assigning subject and domain to each unit key down the line. Can be generated
-#' from the blocks.xlsx used for generating the tests.
-#' @param final_responses Data frame. Contains the item-wise and respondent-wise responses,
+#' domain ('<fach><Kompetenz>'), unit_key. Should contain each relevant unit_key once, and no others.
+#' Important for assigning the right subject and domain to each unit key down the line, and selecting 
+#' only the units that are relevant for the current table. 
+#' Can be generated from the blocks.xlsx used for generating the test booklets, using the 
+#' generate_unit_domains() function in this file.
+#' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
 #' ideally corrected for switches etc. Relevant variables: id_used, code_type,
 #' code_id, variable_source_type, booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
 #' unit_key, variable_page
+#' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param units_cs Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
 #' Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
+#' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_meta Data frame. Unit-wise metadata, exported directly from IQB Studio.
 #' Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit
+#' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param students_select Vector of strings. If necessary, contains the IDSTUDs of students to
 #' include in the analysis. Otherwise, NULL
 #' @param FS_marker String. If this string appears in final_responses$booklet_id, then the respective
@@ -74,7 +79,8 @@
 #'
 #' unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
 #' units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
-#' final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #final results file
+#' final_responses <- readRDS(paste(c(data_path, "responses_xyz.rds"), 
+#' collapse="")) #final results file
 #'
 #' log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # output
 #' # of estimate_unit_times()
@@ -1095,3 +1101,32 @@ colNoShow <-
   no_show_list %>%
   purrr::map(function(x) reactable::colDef(show = FALSE)) %>%
   purrr::set_names(no_show_list)
+
+
+#' Generates and saves simple unit_domain dfs
+#'
+#' Lea Musiolek
+#'
+#' @param block_file_path String. Path to "blocks.xslx" file used in generating the
+#' testing booklets. Has to contain "subject", "domain" and "unit_key" columns.
+#' @param out_path String. Path to directory to save unit_domain files in.
+#'
+#' @return Data frames, one for each subject contained in the block file.
+#' Three string variables per df: subject, domain ('<fach><Kompetenz>'), unit_key. 
+#' Contains each unit_key once.
+#'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#'
+generate_unit_domains <- function(block_file_path,
+                                  out_path) {
+  block_df <- readxl::read_excel(block_file_path, sheet="units")
+  block_df <- block_df %>%
+    dplyr::select("subject", "domain", "unit_key")
+  subjects <- unique(block_df$subject)
+  for (subj in subjects) {
+    subj_df <- block_df[which(block_df$subject==subj),]
+    subj_df %>% 
+      readr::write_rds(paste(c(out_path, "unit_domains_", subj, ".rds"), collapse=""))
+  }
+}

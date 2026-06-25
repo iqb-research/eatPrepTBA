@@ -40,7 +40,7 @@ download_codebook(
 )
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to download codebook via the API.}
+\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to download codebook via the API.}
 
 \item{path}{Character. Path of the directory for the codebook files to be downloaded to. The default filename is determined by the id and the label of the IQB Studio workspace.}
 

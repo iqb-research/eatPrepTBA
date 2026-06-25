@@ -18,7 +18,7 @@ download_units(
 )
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to download files via the API.}
+\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to download files via the API.}
 
 \item{path}{Character. Path for the zip files of the workspaces to be downloaded.}
 

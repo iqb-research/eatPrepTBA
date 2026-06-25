@@ -19,25 +19,30 @@ compute_staytime_tables(
 \arguments{
 \item{fach}{String. Letter denoting the school subject in question.}
 
-\item{log_times}{Data frame. Log data with stay times for one school subject. Result of pulling
+\item{log_times}{Data frame. Log data with stay times. Result of pulling
 log data with eatPrepTBA::get_logs() and then using eatPrepTBA::estimate_unit_times().
-If necessary, data for the subject in question needs to be selected.}
+Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{unit_domains}{Data frame. Three string variables: subject (should equal fach),
-domain ('\if{html}{\out{<fach>}}\if{html}{\out{<Kompetenz>}}'), unit_key. Should contain each relevant unit_key once.
-Important for assigning subject and domain to each unit key down the line. Can be generated
-from the blocks.xlsx used for generating the tests.}
+domain ('\if{html}{\out{<fach>}}\if{html}{\out{<Kompetenz>}}'), unit_key. Should contain each relevant unit_key once, and no others.
+Important for assigning the right subject and domain to each unit key down the line, and selecting
+only the units that are relevant for the current table.
+Can be generated from the blocks.xlsx used for generating the test booklets, using the
+generate_unit_domains() function in this file.}
 
-\item{final_responses}{Data frame. Contains the item-wise and respondent-wise responses,
+\item{final_responses}{Data frame. Contains the item-wise and respondent-wise coded responses,
 ideally corrected for switches etc. Relevant variables: id_used, code_type,
 code_id, variable_source_type, booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
-unit_key, variable_page}
+unit_key, variable_page
+Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{units_cs}{Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
-Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id}
+Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
+Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{unit_meta}{Data frame. Unit-wise metadata, exported directly from IQB Studio.
-Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit}
+Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit
+Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{students_select}{Vector of strings. If necessary, contains the IDSTUDs of students to
 include in the analysis. Otherwise, NULL}
@@ -100,7 +105,8 @@ output_path <- "..."
 
 unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
 units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
-final_responses <- readRDS(paste(c(data_path, "pilot??_f.rds"), collapse="")) #final results file
+final_responses <- readRDS(paste(c(data_path, "responses_xyz.rds"), 
+collapse="")) #final results file
 
 log_times <- readRDS(paste(c(prep_path, "log_times_", fach, ".rds"), collapse="")) # output
 # of estimate_unit_times()
