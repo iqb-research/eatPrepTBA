@@ -100,9 +100,6 @@ settings <- function(workspace,
   checkmate::assert_character(unit_key, len = 1, null.ok = TRUE)
   checkmate::assert_character(unit_name, len = 1, null.ok = TRUE)
   checkmate::assert_character(description, len = 1, null.ok = TRUE)
-  #checkmate::assert_character(player, len = 1, null.ok = TRUE)
-  checkmate::assert_character(editor, len = 1, null.ok = TRUE)
-  checkmate::assert_character(schemer, len = 1, null.ok = TRUE)
   checkmate::assert_character(group_name, len = 1, null.ok = TRUE)
   if(!is.null(state) && !(is.numeric(state) | is.character(state))) stop(paste0("'state' must be either of type 'character' or 'numeric', not ", typeof(state)))
 

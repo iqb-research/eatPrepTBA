@@ -127,7 +127,7 @@ compute_staytime_tables <- function(fach,
   checkmate::assert_data_frame(units_cs)
   assert_cols(units_cs, units_cs_cols, "units_cs")
 
-  unit_meta_cols <- c("ws_id", "unit_id", "unit_key", "unit_label", "unit_metadata", "item_metadata", "Aufgabenzeit")
+  unit_meta_cols <- c("ws_id", "unit_id", "unit_key", "unit_label", "unit_metadata", "item_metadata")
   checkmate::assert_data_frame(unit_meta)
   assert_cols(unit_meta, unit_meta_cols, "unit_meta")
 
@@ -359,6 +359,7 @@ compute_staytime_tables <- function(fach,
     unnest(unit_metadata) %>%
     unnest(item_metadata) %>%
     dplyr::select(matches(str_c(select_cols, collapse = "|"))) %>%
+    assert_cols("Aufgabenzeit", "unit_meta after unnesting metadata") %>%
     dplyr::mutate(
       # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
       link = stringr::str_glue("https://www.iqb-studio.de/#/a/{ws_id}/{unit_id}/preview"),

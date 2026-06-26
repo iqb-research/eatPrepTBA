@@ -504,8 +504,8 @@ test_that("change and comment wrappers build settings and use run_safe", {
     unit_name = NULL,
     description = NULL,
     player = 2.10,
-    editor = NULL,
-    schemer = NULL,
+    editor = 3.2,
+    schemer = 2.5,
     group_name = NULL,
     state = NULL
   ))

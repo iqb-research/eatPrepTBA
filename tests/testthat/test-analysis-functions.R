@@ -481,6 +481,31 @@ test_that("compute_staytime_tables reports missing required columns for invalid 
   )
 })
 
+test_that("compute_staytime_tables validates Aufgabenzeit after metadata expansion", {
+  unit_meta <- tibble::tibble(
+    ws_id = 1,
+    unit_id = 1,
+    unit_key = "U1",
+    unit_label = "Unit 1",
+    unit_metadata = list(tibble::tibble(Aufgabenzeit = "01:00")),
+    item_metadata = list(tibble::tibble(item_id = "I1", variable_id = "V1"))
+  )
+
+  expanded_meta <-
+    unit_meta %>%
+    dplyr::select(ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata) %>%
+    tidyr::unnest(unit_metadata) %>%
+    tidyr::unnest(item_metadata) %>%
+    dplyr::select(dplyr::matches(stringr::str_c(
+      c("ws_id", "unit_id", "unit_key", "unit_label", "item_id", "variable_id", "Aufgabenzeit"),
+      collapse = "|"
+    )))
+
+  expect_no_error(
+    eatPrepTBA:::assert_cols(expanded_meta, "Aufgabenzeit", "unit_meta after unnesting metadata")
+  )
+})
+
 test_that("test_coding_scheme returns the available check list", {
   old_reporter <- testthat::get_reporter()
   on.exit(testthat::set_reporter(old_reporter), add = TRUE)

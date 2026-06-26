@@ -66,23 +66,6 @@ assert_existing_files <- function(files, arg = "files") {
   invisible(files)
 }
 
-# Additional validation helpers
-assert_login_object <- function(login, arg = "login") {
-  checkmate::assert_string(arg)
-
-  if (!inherits(login, "Login")) {
-    stop(
-      paste0(
-        "'", arg, "' must be a Login object (LoginStudio or LoginTestcenter), ",
-        "but got class: ", paste(class(login), collapse = ", "), "."
-      ),
-      call. = FALSE
-    )
-  }
-
-  invisible(login)
-}
-
 assert_url <- function(url, arg = "url") {
   checkmate::assert_string(url, min.chars = 1)
   checkmate::assert_string(arg)
