@@ -1,5 +1,14 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9020
+
+- Added and refined input validation across API helpers, XML generation,
+  stay-time table preparation, response coding inputs, and shared
+  validation helpers.
+- Kept response-coding edge cases compatible with current behavior,
+  including ordinary data-frame inputs, missing response payload rows,
+  and structured empty coded outputs.
+
 ## eatPrepTBA 0.9.8.9019
 
 - Added
