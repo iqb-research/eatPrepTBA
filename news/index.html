@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9018</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9019</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,16 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9019" id="eatpreptba-0989019">eatPrepTBA 0.9.8.9019<a class="anchor" aria-label="anchor" href="#eatpreptba-0989019"></a></h2>
+<ul><li>Added <code><a href="../reference/unpack_response_jsons.html">unpack_response_jsons()</a></code> for auto-detecting and unpacking response JSON columns distributed across wide response tables, including matching <code>*_ts</code> timestamp columns and showing progress while JSON payloads are parsed.</li>
+<li>Added <code><a href="../reference/prepare_unpacked_codes.html">prepare_unpacked_codes()</a></code> to convert code-bearing unpacked slots into the core <code>code_responses(..., prepare = TRUE)</code> output shape, including <code>code_type</code> and unnested <code>value</code> output for direct binding before <code><a href="../reference/complete_design.html">complete_design()</a></code>.</li>
+<li>These helpers are particularly useful for BKT-like question-slot preparation, where coded responses are stored across <code>question_*_content</code> columns rather than in one <code>coded</code> column.</li>
+<li>Made the <code><a href="../reference/unpack_response_jsons.html">unpack_response_jsons()</a></code> progress indicator visible immediately and persistent during long JSON parsing runs.</li>
+<li>Added <code>keep_empty_rows = TRUE</code> as the default for <code><a href="../reference/unpack_response_jsons.html">unpack_response_jsons()</a></code>, preserving one empty output row for source rows that do not produce unpacked JSON records, and renamed the payload-level empty-cell argument to <code>keep_empty_payloads</code>.</li>
+<li>Relaxed <code><a href="../reference/code_responses.html">code_responses()</a></code> input validation so ordinary data frames are accepted and normalised internally to tibbles.</li>
+<li>Extended <code>prepare_unpacked_codes(keep_uncoded = TRUE)</code> to preserve source rows that have no target response record, so identifiers such as <code>unit_key</code> survive BKT-like preparation.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9018" id="eatpreptba-0989018">eatPrepTBA 0.9.8.9018<a class="anchor" aria-label="anchor" href="#eatpreptba-0989018"></a></h2>
 <ul><li>Fixed <code><a href="../reference/read_booklet.html">read_booklet()</a></code> for booklet XMLs where <code>Unit</code> elements already carry <code>testlet_id</code> or <code>testlet_label</code> attributes, avoiding duplicate-column failures while preserving testlet information.</li>

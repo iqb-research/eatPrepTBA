@@ -28,15 +28,15 @@ code_responses(
 
 - responses:
 
-  Tibble. Response data retrieved from the IQB Testcenter with setting
-  the argument `prepare = FALSE` for
+  Data frame. Response data retrieved from the IQB Testcenter with
+  setting the argument `prepare = FALSE` for
   [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   or
   [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
 - units:
 
-  Tibble. Unit data retrieved from the IQB Studio with
+  Data frame. Unit data retrieved from the IQB Studio with
   [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 
 - prepare:
@@ -52,12 +52,12 @@ code_responses(
 
 - codes_manual:
 
-  Tibble (optional). Data frame holding the manual codes. Defaults to
-  `NULL` and does only automatic coding.
+  Data frame (optional). Data frame holding the manual codes. Defaults
+  to `NULL` and does only automatic coding.
 
 - missings:
 
-  Tibble (optional). Provide missing meta data with `code_id`,
+  Data frame (optional). Provide missing meta data with `code_id`,
   `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and
   uses default scheme.
 

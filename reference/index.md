@@ -149,6 +149,10 @@ Functions to check units, prepare material for administration and coding
 
 - [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
   : Code unit responses with coding schemes
+- [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
+  **\[experimental\]** : Unpack response JSON columns
+- [`prepare_unpacked_codes()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_unpacked_codes.md)
+  **\[experimental\]** : Prepare unpacked response codes
 - [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   : Complete design with coded responses
 - [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)

@@ -1,5 +1,38 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9019
+
+- Added
+  [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
+  for auto-detecting and unpacking response JSON columns distributed
+  across wide response tables, including matching `*_ts` timestamp
+  columns and showing progress while JSON payloads are parsed.
+- Added
+  [`prepare_unpacked_codes()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_unpacked_codes.md)
+  to convert code-bearing unpacked slots into the core
+  `code_responses(..., prepare = TRUE)` output shape, including
+  `code_type` and unnested `value` output for direct binding before
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md).
+- These helpers are particularly useful for BKT-like question-slot
+  preparation, where coded responses are stored across
+  `question_*_content` columns rather than in one `coded` column.
+- Made the
+  [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
+  progress indicator visible immediately and persistent during long JSON
+  parsing runs.
+- Added `keep_empty_rows = TRUE` as the default for
+  [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md),
+  preserving one empty output row for source rows that do not produce
+  unpacked JSON records, and renamed the payload-level empty-cell
+  argument to `keep_empty_payloads`.
+- Relaxed
+  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+  input validation so ordinary data frames are accepted and normalised
+  internally to tibbles.
+- Extended `prepare_unpacked_codes(keep_uncoded = TRUE)` to preserve
+  source rows that have no target response record, so identifiers such
+  as `unit_key` survive BKT-like preparation.
+
 ## eatPrepTBA 0.9.8.9018
 
 - Fixed
