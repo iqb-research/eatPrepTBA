@@ -1,11 +1,11 @@
 Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assessment (TBA)
-Version: 0.9.8.9017
-Date: 2026-06-11
+Version: 0.9.8.9019
+Date: 2026-06-26
 Authors@R: 
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut"),
            comment = c(ORCID = "0000-0002-2109-7388")),
-    person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("cre", "ctb"), comment = c(ORCID = "0000-0001-6688-1267")),
+    person(given = "Karoline", family ="Sachse", email = "karoline.sachse@iqb.hu-berlin.de", role = c("cre", "aut"), comment = c(ORCID = "0000-0001-6688-1267")),
     person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585")),
     person(given = "Kristoph", family ="Schumann", email = "kristoph.schumann@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-9502-6083")),
     person(given = "Lea", family = "Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807")),
@@ -14,8 +14,8 @@ Authors@R:
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
-    Moreover, provides some routines for preparing and blending data from these different
-    resources.
+    Moreover, provides routines for preparing, unpacking, and blending data from these
+    different resources, including response JSONs distributed across question-slot columns.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

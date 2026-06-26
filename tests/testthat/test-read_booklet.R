@@ -40,3 +40,26 @@ test_that("read_booklet keeps testlet attributes for nested units", {
   expect_equal(booklet$unit_key, "UNIT_1")
   expect_equal(booklet$unit_label, "Unit 1")
 })
+
+test_that("read_booklet handles pre-existing testlet attributes on units", {
+  booklet_xml <- xml2::read_xml(
+    "<Booklet>
+      <Metadata>
+        <Id>BOOKLET_1</Id><Label>Booklet 1</Label>
+      </Metadata>
+      <Units>
+        <Unit id='UNIT_1' label='Unit 1' testlet_id='' testlet_label='' />
+        <Testlet id='TESTLET_1' label='Testlet 1'>
+          <Unit id='UNIT_2' label='Unit 2' testlet_id='' testlet_label='' />
+        </Testlet>
+      </Units>
+    </Booklet>"
+  )
+
+  booklet <- read_booklet(booklet_xml)
+
+  expect_equal(booklet$testlet_id, c(NA_character_, "TESTLET_1"))
+  expect_equal(booklet$testlet_label, c(NA_character_, "Testlet 1"))
+  expect_equal(booklet$unit_key, c("UNIT_1", "UNIT_2"))
+  expect_equal(booklet$unit_label, c("Unit 1", "Unit 2"))
+})

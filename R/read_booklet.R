@@ -46,7 +46,8 @@ read_booklet <- function(booklet_xml) {
           node %>%
           rvest::html_elements("Unit") %>%
           rvest::html_attrs() %>%
-          dplyr::bind_rows()
+          dplyr::bind_rows() %>%
+          dplyr::select(-dplyr::any_of(c("testlet_id", "testlet_label")))
 
         testlet_attrs %>%
           dplyr::mutate(
@@ -58,9 +59,25 @@ read_booklet <- function(booklet_xml) {
           rvest::html_attrs() %>%
           dplyr::bind_rows()
 
+        testlet_id <- if (tibble::has_name(testlet_units, "testlet_id")) {
+          testlet_units$testlet_id
+        } else {
+          NA_character_
+        }
+
+        testlet_label <- if (tibble::has_name(testlet_units, "testlet_label")) {
+          testlet_units$testlet_label
+        } else {
+          NA_character_
+        }
+
+        testlet_units <-
+          testlet_units %>%
+          dplyr::select(-dplyr::any_of(c("testlet_id", "testlet_label")))
+
         tibble::tibble(
-          testlet_id = NA_character_,
-          testlet_label = NA_character_,
+          testlet_id = testlet_id,
+          testlet_label = testlet_label,
           testlet_units = list(testlet_units)
         )
       }
@@ -82,6 +99,10 @@ read_booklet <- function(booklet_xml) {
       .
     } %>%
     dplyr::mutate(
+      dplyr::across(
+        dplyr::any_of(c("id", "label", "testlet_id", "testlet_label")),
+        function(x) dplyr::na_if(x, "")
+      ),
       testlet_id = dplyr::coalesce(testlet_id, id),
       testlet_label = dplyr::coalesce(testlet_label, label)
     ) %>%
