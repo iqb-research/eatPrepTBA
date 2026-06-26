@@ -26,10 +26,12 @@ complete_design <- function(coded,
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_logical(recode_omissions_to_not_reached, len = 1)
 
-  checkmate::assert_tibble(coded)
   checkmate::assert_tibble(design)
   identifiers <- intersect(names(design), identifiers)
+  design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
+  assert_cols(design, design_cols, "design")
 
+  checkmate::assert_tibble(coded)
   coded_cols <- c(identifiers, "unit_key", "unit_alias", "variable_id", "booklet_id", "code_status", "value", "code_id", "code_type", "code_score")
   assert_cols(coded, coded_cols, "coded")
 
@@ -40,9 +42,6 @@ complete_design <- function(coded,
     c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
   }
   assert_cols(units, units_cols, "units")
-
-  design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
-  assert_cols(design, design_cols, "design")
 
   checkmate::assert_tibble(missings, null.ok = TRUE)
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")

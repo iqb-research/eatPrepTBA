@@ -465,6 +465,37 @@ test_that("layout helpers format durations and build reactable metadata", {
   expect_s3_class(eatPrepTBA:::generate_checkbox("Show", id = "tbl", columns = "unit_q90"), "shiny.tag")
 })
 
+test_that("layout_staytime_tables renders prepared unit stay-time tables", {
+  data <- tibble::tibble(
+    link = "https://example/",
+    unit_key = "U1",
+    unit_label = "Unit 1",
+    unit_estimated = 60,
+    unit_median = 50,
+    unit_q90 = 70,
+    unit_q95 = 80,
+    unit_diff = 10,
+    unit_diff95 = 20,
+    unit_median_RS = 50,
+    unit_q90_RS = 70,
+    unit_q95_RS = 80,
+    unit_diff_RS = 10,
+    unit_diff95_RS = 20,
+    unit_median_FS = NA_real_,
+    unit_q90_FS = NA_real_,
+    unit_q95_FS = NA_real_,
+    unit_diff_FS = NA_real_,
+    unit_diff95_FS = NA_real_,
+    SPF = "nein"
+  )
+
+  expect_s3_class(
+    suppressWarnings(eatPrepTBA:::layout_staytime_tables(data)),
+    "shiny.tag"
+  )
+  expect_error(eatPrepTBA:::layout_staytime_tables(data, id = 1), "character")
+})
+
 test_that("compute_staytime_tables reports missing required columns for invalid inputs", {
   expect_error(
     compute_staytime_tables(
@@ -478,6 +509,31 @@ test_that("compute_staytime_tables reports missing required columns for invalid 
       FS_marker = "S",
       output_path = tempdir()
     )
+  )
+})
+
+test_that("compute_staytime_tables validates Aufgabenzeit after metadata expansion", {
+  unit_meta <- tibble::tibble(
+    ws_id = 1,
+    unit_id = 1,
+    unit_key = "U1",
+    unit_label = "Unit 1",
+    unit_metadata = list(tibble::tibble(Aufgabenzeit = "01:00")),
+    item_metadata = list(tibble::tibble(item_id = "I1", variable_id = "V1"))
+  )
+
+  expanded_meta <-
+    unit_meta %>%
+    dplyr::select(ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata) %>%
+    tidyr::unnest(unit_metadata) %>%
+    tidyr::unnest(item_metadata) %>%
+    dplyr::select(dplyr::matches(stringr::str_c(
+      c("ws_id", "unit_id", "unit_key", "unit_label", "item_id", "variable_id", "Aufgabenzeit"),
+      collapse = "|"
+    )))
+
+  expect_no_error(
+    eatPrepTBA:::assert_cols(expanded_meta, "Aufgabenzeit", "unit_meta after unnesting metadata")
   )
 })
 

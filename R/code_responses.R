@@ -47,7 +47,6 @@ code_responses <- function(responses,
     assert_cols(missings, missings_cols, "missings")
   }
 
-
   if (is.null(missings)) {
     missings <-
       tibble::tribble(

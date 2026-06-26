@@ -22,7 +22,6 @@ read_responses <- function(files,
                            diagnostics = c("compact", "full", "none")) {
   cli_setting()
   assert_existing_files(files)
-
   diagnostics <- match.arg(diagnostics)
 
   responses_raw <- read_response_files(files)

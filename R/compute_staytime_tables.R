@@ -106,6 +106,31 @@ compute_staytime_tables <- function(fach,
                                     students_select,
                                     FS_marker,
                                     output_path) {
+  # input validation
+  checkmate::assert_character(fach, len =1)
+  checkmate::assert_character(FS_marker, len =1)
+  checkmate::assert_character(output_path, len =1)
+  checkmate::assert_character(students_select, null.ok = TRUE)
+  checkmate::assert_data_frame(log_times)
+
+  unit_domains_cols <- c("unit_key", "subject", "domain")
+  checkmate::assert_data_frame(unit_domains)
+  assert_cols(unit_domains, unit_domains_cols, "unit_domains")
+
+  final_responses_cols <- c("id_used", "code_type", "code_id", "variable_source_type",
+                            "booklet_id", "item_id", "IDSTUD", "group_id", "login_name",
+                            "login_code", "unit_key", "variable_page")
+  checkmate::assert_data_frame(final_responses)
+  assert_cols(final_responses, final_responses_cols, "final_responses")
+
+  units_cs_cols <- c("unit_key", "unit_codes", "variable_label", "variable_page", "variable_id")
+  checkmate::assert_data_frame(units_cs)
+  assert_cols(units_cs, units_cs_cols, "units_cs")
+
+  unit_meta_cols <- c("ws_id", "unit_id", "unit_key", "unit_label", "unit_metadata", "item_metadata")
+  checkmate::assert_data_frame(unit_meta)
+  assert_cols(unit_meta, unit_meta_cols, "unit_meta")
+
   unit_page_logtimes <-
     log_times %>%
     unnest(unit_page_logs, keep_empty = TRUE) %>%
@@ -334,6 +359,7 @@ compute_staytime_tables <- function(fach,
     unnest(unit_metadata) %>%
     unnest(item_metadata) %>%
     dplyr::select(matches(str_c(select_cols, collapse = "|"))) %>%
+    assert_cols("Aufgabenzeit", "unit_meta after unnesting metadata") %>%
     dplyr::mutate(
       # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
       link = stringr::str_glue("https://www.iqb-studio.de/#/a/{ws_id}/{unit_id}/preview"),
@@ -547,6 +573,14 @@ layout_staytime_tables <- function(data,
                                    sortable = TRUE,
                                    views = TRUE,
                                    download = NULL) {
+  # input validation
+  checkmate::assert_character(id, len = 1)
+  checkmate::assert_character(subject, len = 1)
+  checkmate::assert_logical(filterable, len = 1)
+  checkmate::assert_logical(searchable, len = 1)
+  checkmate::assert_logical(sortable, len = 1)
+  checkmate::assert_logical(views, len = 1)
+  checkmate::assert_character(download, len = 1, null.ok = TRUE)
 
   unit_cols <- colUnit(data)
 
