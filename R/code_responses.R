@@ -1,11 +1,11 @@
 #' Code unit responses with coding schemes
 #'
-#' @param responses Tibble. Response data retrieved from the IQB Testcenter with setting the argument `prepare = FALSE` for [get_responses()] or [read_responses()].
-#' @param units Tibble. Unit data retrieved from the IQB Studio with [get_units()].
+#' @param responses Data frame. Response data retrieved from the IQB Testcenter with setting the argument `prepare = FALSE` for [get_responses()] or [read_responses()].
+#' @param units Data frame. Unit data retrieved from the IQB Studio with [get_units()].
 #' @param prepare Logical. Whether to unpack the coding results and to add information from the coding schemes.
-#' @param codes_manual Tibble (optional). Data frame holding the manual codes. Defaults to `NULL` and does only automatic coding.
+#' @param codes_manual Data frame (optional). Data frame holding the manual codes. Defaults to `NULL` and does only automatic coding.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
+#' @param missings Data frame (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
 #'
 #' @description
 #' This function automatically codes responses by using the `eatAutoCode`
@@ -27,18 +27,25 @@ code_responses <- function(responses,
   cli_setting()
   # input validation
   responses_cols <- c("unit_key", "group_id", "login_code", "login_name", "booklet_id")
-  checkmate::assert_tibble(responses)
+  checkmate::assert_data_frame(responses)
+  responses <- tibble::as_tibble(responses)
   assert_cols(responses, responses_cols, "responses")
   units_cols <- c("ws_id", "ws_label", "unit_key", "unit_id", "unit_label", "coding_scheme", "unit_variables")
   checkmate::assert_logical(prepare, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
 
   codes_manual_cols <- c("group_id", "booklet_id", "login_code", "login_name", "variable_id", "unit_key", "code_id")
-  checkmate::assert_tibble(codes_manual, null.ok = TRUE)
-  if(!is.null(codes_manual)) assert_cols(codes_manual, codes_manual_cols, "codes_manual")
+  checkmate::assert_data_frame(codes_manual, null.ok = TRUE)
+  if (!is.null(codes_manual)) {
+    codes_manual <- tibble::as_tibble(codes_manual)
+    assert_cols(codes_manual, codes_manual_cols, "codes_manual")
+  }
   missings_cols <- c("code_id", "code_status", "code_score", "code_type")
-  checkmate::assert_tibble(missings, null.ok = TRUE)
-  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
+  checkmate::assert_data_frame(missings, null.ok = TRUE)
+  if (!is.null(missings)) {
+    missings <- tibble::as_tibble(missings)
+    assert_cols(missings, missings_cols, "missings")
+  }
 
 
   if (is.null(missings)) {
@@ -87,7 +94,8 @@ code_responses <- function(responses,
     return(empty_coded_responses(responses, prepare = prepare))
   }
 
-  checkmate::assert_tibble(units)
+  checkmate::assert_data_frame(units)
+  units <- tibble::as_tibble(units)
   assert_cols(units, units_cols, "units")
 
   units_prep <-
