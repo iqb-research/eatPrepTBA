@@ -70,6 +70,44 @@ test_that("unpack_response_jsons accepts explicit response columns", {
   expect_equal(out$response_ts, 1000)
 })
 
+
+test_that("unpack_response_jsons keeps source rows without records by default", {
+  responses <- tibble::tibble(
+    unit_key = c("U1", "U2"),
+    question_0_content = c(
+      paste0(
+        "[",
+        "{\"id\":\"value\",\"status\":\"CODING_COMPLETE\",\"value\":4,",
+        "\"subform\":\"0\",\"code\":1,\"score\":1}",
+        "]"
+      ),
+      NA_character_
+    ),
+    question_0_ts = c(1000, NA)
+  )
+
+  out <- unpack_response_jsons(
+    responses,
+    response_cols = "question_0_content",
+    progress = FALSE
+  )
+
+  expect_equal(nrow(out), 2)
+  expect_equal(out$response_row, c(1L, 2L))
+  expect_equal(out$unit_key, c("U1", "U2"))
+  expect_equal(out$response_id, c("value", NA_character_))
+  expect_true(is.na(out$response_column[2]))
+
+  dropped <- unpack_response_jsons(
+    responses,
+    response_cols = "question_0_content",
+    keep_empty_rows = FALSE,
+    progress = FALSE
+  )
+
+  expect_equal(nrow(dropped), 1)
+  expect_equal(dropped$unit_key, "U1")
+})
 test_that("prepare_unpacked_codes creates code_responses-like columns", {
   responses <- tibble::tibble(
     unit_key = "U1",
@@ -133,11 +171,21 @@ test_that("unpack_response_jsons handles empty and malformed payloads", {
   empty <- unpack_response_jsons(responses, progress = FALSE)
 
   expect_s3_class(empty, "tbl_df")
-  expect_equal(nrow(empty), 0)
+  expect_equal(nrow(empty), 3)
+  expect_equal(empty$unit_key, c("U1", "U2", "U3"))
+  expect_true(all(is.na(empty$response_id)))
   expect_true(all(c(
     "response_row", "unit_key", "other", "payload", "response_id",
     "response_status", "value", "code_id", "code_score"
   ) %in% names(empty)))
+
+  dropped <- unpack_response_jsons(
+    responses,
+    progress = FALSE,
+    keep_empty_rows = FALSE
+  )
+
+  expect_equal(nrow(dropped), 0)
 
   out <- unpack_response_jsons(
     responses,

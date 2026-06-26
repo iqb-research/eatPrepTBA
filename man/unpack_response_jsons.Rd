@@ -9,6 +9,7 @@ unpack_response_jsons(
   response_cols = NULL,
   id_cols = NULL,
   keep_empty = FALSE,
+  keep_empty_rows = TRUE,
   progress = TRUE
 )
 }
@@ -25,6 +26,10 @@ all non-JSON and non-timestamp columns are kept.}
 
 \item{keep_empty}{Logical. Whether missing, empty, and \verb{[]} payloads should
 be kept as rows with missing response identifiers.}
+
+\item{keep_empty_rows}{Logical. Whether source rows that do not produce any
+unpacked JSON records should be kept as one row with missing response
+fields.}
 
 \item{progress}{Logical. Whether to show a progress bar while parsing JSON
 payloads.}

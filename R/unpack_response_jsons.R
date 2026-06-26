@@ -9,6 +9,9 @@
 #'   all non-JSON and non-timestamp columns are kept.
 #' @param keep_empty Logical. Whether missing, empty, and `[]` payloads should
 #'   be kept as rows with missing response identifiers.
+#' @param keep_empty_rows Logical. Whether source rows that do not produce any
+#'   unpacked JSON records should be kept as one row with missing response
+#'   fields.
 #' @param progress Logical. Whether to show a progress bar while parsing JSON
 #'   payloads.
 #'
@@ -31,9 +34,11 @@ unpack_response_jsons <- function(responses,
                                   response_cols = NULL,
                                   id_cols = NULL,
                                   keep_empty = FALSE,
+                                  keep_empty_rows = TRUE,
                                   progress = TRUE) {
   checkmate::assert_data_frame(responses)
   checkmate::assert_logical(keep_empty, len = 1)
+  checkmate::assert_logical(keep_empty_rows, len = 1)
   checkmate::assert_logical(progress, len = 1)
   responses <- tibble::as_tibble(responses)
 
@@ -53,13 +58,17 @@ unpack_response_jsons <- function(responses,
     assert_cols(responses, id_cols, "responses")
   }
 
-  if (length(response_cols) == 0L) {
-    return(empty_unpacked_response_jsons(responses, id_cols))
-  }
-
   responses_indexed <-
     responses %>%
     dplyr::mutate(response_row = dplyr::row_number())
+
+  if (length(response_cols) == 0L) {
+    if (keep_empty_rows) {
+      return(empty_unpacked_response_rows(responses_indexed, id_cols))
+    }
+
+    return(empty_unpacked_response_jsons(responses, id_cols))
+  }
 
   json_long <-
     responses_indexed %>%
@@ -75,7 +84,8 @@ unpack_response_jsons <- function(responses,
 
   ts_long <- response_json_ts_long(responses_indexed, response_cols, timestamp_cols)
 
-  json_long %>%
+  unpacked <-
+    json_long %>%
     dplyr::left_join(
       ts_long,
       by = dplyr::join_by("response_row", "response_column")
@@ -96,6 +106,12 @@ unpack_response_jsons <- function(responses,
     dplyr::select(-response_json) %>%
     tidyr::unnest(parsed) %>%
     standardize_unpacked_response_jsons(id_cols)
+
+  if (keep_empty_rows) {
+    unpacked <- add_empty_unpacked_response_rows(unpacked, responses_indexed, id_cols)
+  }
+
+  unpacked
 }
 
 #' Prepare unpacked response codes
@@ -302,17 +318,35 @@ standardize_unpacked_response_jsons <- function(unpacked, id_cols) {
 
 empty_unpacked_response_jsons <- function(responses, id_cols) {
   out <- responses[0, id_cols, drop = FALSE]
-  out$response_row <- integer()
-  out$response_column <- character()
-  out$response_name <- character()
-  out$response_ts <- numeric()
-  out$question_index <- integer()
-  out$response_id <- character()
-  out$response_status <- character()
-  out$value <- list()
-  out$subform <- character()
-  out$code_id <- integer()
-  out$code_score <- numeric()
+  empty_unpacked_response_schema(out, id_cols)
+}
+
+empty_unpacked_response_rows <- function(responses_indexed, id_cols, response_rows = NULL) {
+  if (is.null(response_rows)) {
+    response_rows <- responses_indexed$response_row
+  }
+
+  out <-
+    responses_indexed[responses_indexed$response_row %in% response_rows,
+                      unique(c("response_row", id_cols)),
+                      drop = FALSE]
+
+  empty_unpacked_response_schema(out, id_cols)
+}
+
+empty_unpacked_response_schema <- function(out, id_cols = character()) {
+  n <- nrow(out)
+
+  out$response_column <- rep(NA_character_, n)
+  out$response_name <- rep(NA_character_, n)
+  out$response_ts <- rep(NA_real_, n)
+  out$question_index <- rep(NA_integer_, n)
+  out$response_id <- rep(NA_character_, n)
+  out$response_status <- rep(NA_character_, n)
+  out$value <- rep(list(NA), n)
+  out$subform <- rep(NA_character_, n)
+  out$code_id <- rep(NA_integer_, n)
+  out$code_score <- rep(NA_real_, n)
 
   out %>%
     dplyr::select(
@@ -320,8 +354,22 @@ empty_unpacked_response_jsons <- function(responses, id_cols) {
         "response_row", id_cols, "response_column", "response_name",
         "response_ts", "question_index", "response_id", "response_status",
         "value", "subform", "code_id", "code_score"
-      ))
+      )),
+      dplyr::everything()
     )
+}
+
+add_empty_unpacked_response_rows <- function(unpacked, responses_indexed, id_cols) {
+  missing_rows <- setdiff(responses_indexed$response_row, unpacked$response_row)
+
+  if (length(missing_rows) == 0L) {
+    return(unpacked)
+  }
+
+  empty_rows <- empty_unpacked_response_rows(responses_indexed, id_cols, missing_rows)
+
+  dplyr::bind_rows(unpacked, empty_rows) %>%
+    dplyr::arrange(response_row)
 }
 
 response_json_ts_long <- function(responses, response_cols, timestamp_cols) {
