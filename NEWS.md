@@ -4,7 +4,7 @@
 * Added `prepare_unpacked_codes()` to convert code-bearing unpacked slots into the core `code_responses(..., prepare = TRUE)` output shape, including `code_type` and unnested `value` output for direct binding before `complete_design()`.
 * These helpers are particularly useful for BKT-like question-slot preparation, where coded responses are stored across `question_*_content` columns rather than in one `coded` column.
 * Made the `unpack_response_jsons()` progress indicator visible immediately and persistent during long JSON parsing runs.
-* Added `keep_empty_rows = TRUE` as the default for `unpack_response_jsons()`, preserving one empty output row for source rows that do not produce unpacked JSON records.
+* Added `keep_empty_rows = TRUE` as the default for `unpack_response_jsons()`, preserving one empty output row for source rows that do not produce unpacked JSON records, and renamed the payload-level empty-cell argument to `keep_empty_payloads`.
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
 * Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
 

@@ -191,7 +191,7 @@ test_that("unpack_response_jsons handles empty and malformed payloads", {
     responses,
     response_cols = "payload",
     id_cols = "unit_key",
-    keep_empty = TRUE,
+    keep_empty_payloads = TRUE,
     progress = FALSE
   )
 

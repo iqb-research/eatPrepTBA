@@ -8,7 +8,7 @@ unpack_response_jsons(
   responses,
   response_cols = NULL,
   id_cols = NULL,
-  keep_empty = FALSE,
+  keep_empty_payloads = FALSE,
   keep_empty_rows = TRUE,
   progress = TRUE
 )
@@ -24,7 +24,7 @@ record fields such as \code{id}, \code{status}, \code{value}, \code{subform}, \c
 \item{id_cols}{Character vector. Columns to keep as identifiers. If \code{NULL},
 all non-JSON and non-timestamp columns are kept.}
 
-\item{keep_empty}{Logical. Whether missing, empty, and \verb{[]} payloads should
+\item{keep_empty_payloads}{Logical. Whether missing, empty, and \verb{[]} payloads should
 be kept as rows with missing response identifiers.}
 
 \item{keep_empty_rows}{Logical. Whether source rows that do not produce any

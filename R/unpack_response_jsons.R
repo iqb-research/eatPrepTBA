@@ -7,7 +7,7 @@
 #'   `score`.
 #' @param id_cols Character vector. Columns to keep as identifiers. If `NULL`,
 #'   all non-JSON and non-timestamp columns are kept.
-#' @param keep_empty Logical. Whether missing, empty, and `[]` payloads should
+#' @param keep_empty_payloads Logical. Whether missing, empty, and `[]` payloads should
 #'   be kept as rows with missing response identifiers.
 #' @param keep_empty_rows Logical. Whether source rows that do not produce any
 #'   unpacked JSON records should be kept as one row with missing response
@@ -33,11 +33,11 @@
 unpack_response_jsons <- function(responses,
                                   response_cols = NULL,
                                   id_cols = NULL,
-                                  keep_empty = FALSE,
+                                  keep_empty_payloads = FALSE,
                                   keep_empty_rows = TRUE,
                                   progress = TRUE) {
   checkmate::assert_data_frame(responses)
-  checkmate::assert_logical(keep_empty, len = 1)
+  checkmate::assert_logical(keep_empty_payloads, len = 1)
   checkmate::assert_logical(keep_empty_rows, len = 1)
   checkmate::assert_logical(progress, len = 1)
   responses <- tibble::as_tibble(responses)
@@ -91,7 +91,7 @@ unpack_response_jsons <- function(responses,
       by = dplyr::join_by("response_row", "response_column")
     ) %>%
     dplyr::filter(
-      keep_empty | response_json_is_non_empty(response_json)
+      keep_empty_payloads | response_json_is_non_empty(response_json)
     ) %>%
     dplyr::mutate(
       response_name = response_json_base(response_column),
@@ -99,7 +99,7 @@ unpack_response_jsons <- function(responses,
       parsed = purrr::map(
         response_json,
         parse_response_json_cell,
-        keep_empty = keep_empty,
+        keep_empty_payloads = keep_empty_payloads,
         .progress = unpack_response_json_progress(progress)
       )
     ) %>%
@@ -262,9 +262,9 @@ response_json_fields <- function(parsed) {
   unique(unlist(purrr::map(parsed, names), use.names = FALSE))
 }
 
-parse_response_json_cell <- function(json, keep_empty = FALSE) {
+parse_response_json_cell <- function(json, keep_empty_payloads = FALSE) {
   if (!response_json_is_non_empty(json)) {
-    if (keep_empty) {
+    if (keep_empty_payloads) {
       return(tibble::tibble(id = NA_character_))
     }
 
