@@ -230,6 +230,45 @@ test_that("prepare_unpacked_codes can keep uncoded rows and derive fallback vari
   expect_equal(coded$code_status, coded$response_status)
   expect_true("code_type" %in% names(coded))
 })
+test_that("prepare_unpacked_codes keeps source rows without target response ids", {
+  responses <- tibble::tibble(
+    unit_key = c("U1", "U2", "U3"),
+    group_id = "G1",
+    login_name = c("L1", "L2", "L3"),
+    login_code = c("C1", "C2", "C3"),
+    booklet_id = "B1",
+    question_0_content = c(
+      paste0(
+        "[",
+        "{\"id\":\"value\",\"status\":\"CODING_COMPLETE\",\"value\":4,",
+        "\"subform\":\"0\",\"code\":1,\"score\":1}",
+        "]"
+      ),
+      NA_character_,
+      "[{\"id\":\"time\",\"status\":\"VALUE_CHANGED\",\"value\":3146,\"subform\":\"0\"}]"
+    ),
+    question_0_ts = c(1000, NA, 2000)
+  )
+
+  unpacked <- unpack_response_jsons(
+    responses,
+    response_cols = "question_0_content",
+    keep_empty_rows = TRUE,
+    progress = FALSE
+  )
+
+  coded <- prepare_unpacked_codes(unpacked, keep_uncoded = TRUE)
+
+  expect_equal(coded$unit_key, c("U1", "U2", "U3"))
+  expect_equal(coded$response_id, c("value", NA_character_, NA_character_))
+  expect_equal(coded$code_id, c(1L, NA_integer_, NA_integer_))
+  expect_true(all(is.na(coded$variable_id[2:3])))
+
+  dropped <- prepare_unpacked_codes(unpacked)
+
+  expect_equal(nrow(dropped), 1)
+  expect_equal(dropped$unit_key, "U1")
+})
 test_that("unpack_response_jsons uses immediate persistent progress", {
   expect_false(unpack_response_json_progress(FALSE))
 

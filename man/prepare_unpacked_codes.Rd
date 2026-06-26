@@ -24,8 +24,9 @@ slots.}
 Defaults to \code{subform}, with fallback to \code{response_name} and then
 \code{response_id}.}
 
-\item{keep_uncoded}{Logical. Whether rows without \code{code_id} and \code{code_score}
-should be retained.}
+\item{keep_uncoded}{Logical. Whether target response rows without \code{code_id}
+and \code{code_score}, and source rows without target response records, should
+be retained.}
 
 \item{unnest_value}{Logical. Whether to unnest the \code{value} list-column for
 compatibility with \code{code_responses(..., prepare = TRUE)}.}

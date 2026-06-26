@@ -123,8 +123,9 @@ unpack_response_jsons <- function(responses,
 #' @param variable_id_from Character. Source used to derive `variable_id`.
 #'   Defaults to `subform`, with fallback to `response_name` and then
 #'   `response_id`.
-#' @param keep_uncoded Logical. Whether rows without `code_id` and `code_score`
-#'   should be retained.
+#' @param keep_uncoded Logical. Whether target response rows without `code_id`
+#'   and `code_score`, and source rows without target response records, should
+#'   be retained.
 #' @param unnest_value Logical. Whether to unnest the `value` list-column for
 #'   compatibility with `code_responses(..., prepare = TRUE)`.
 #' @param code_type Character. Default `code_type` for prepared rows when the
@@ -162,9 +163,13 @@ prepare_unpacked_codes <- function(unpacked,
     "unpacked"
   )
 
-  out <- unpacked[unpacked$response_id %in% response_id, , drop = FALSE]
+  has_target_response <- unpacked$response_id %in% response_id
+  has_target_response[is.na(has_target_response)] <- FALSE
+  out <- unpacked[has_target_response, , drop = FALSE]
 
-  if (!keep_uncoded) {
+  if (keep_uncoded) {
+    out <- add_uncoded_unpacked_source_rows(out, unpacked, has_target_response)
+  } else {
     out <- out[!is.na(out$code_id) | !is.na(out$code_score), , drop = FALSE]
   }
 
@@ -196,6 +201,62 @@ complete_unpacked_code_type <- function(out, code_type) {
 
   out$code_type <- dplyr::coalesce(as.character(out$code_type), rep(code_type, nrow(out)))
   out
+}
+
+add_uncoded_unpacked_source_rows <- function(out, unpacked, has_target_response) {
+  if (!"response_row" %in% names(unpacked)) {
+    return(out)
+  }
+
+  missing_response_rows <- setdiff(
+    unique(unpacked$response_row),
+    unique(unpacked$response_row[has_target_response])
+  )
+
+  if (length(missing_response_rows) == 0L) {
+    return(out)
+  }
+
+  source_rows <- unpacked[
+    match(missing_response_rows, unpacked$response_row),
+    ,
+    drop = FALSE
+  ]
+  source_rows <- reset_unpacked_code_fields(source_rows)
+
+  dplyr::bind_rows(out, source_rows) %>%
+    dplyr::arrange(response_row)
+}
+
+reset_unpacked_code_fields <- function(rows) {
+  n <- nrow(rows)
+
+  for (col in c("response_column", "response_name", "response_status", "subform", "response_id")) {
+    if (col %in% names(rows)) {
+      rows[[col]] <- rep(NA_character_, n)
+    }
+  }
+
+  if ("response_ts" %in% names(rows)) {
+    rows$response_ts <- rep(NA_real_, n)
+  }
+  if ("question_index" %in% names(rows)) {
+    rows$question_index <- rep(NA_integer_, n)
+  }
+  if ("value" %in% names(rows)) {
+    rows$value <- rep(list(NA), n)
+  }
+  if ("code_id" %in% names(rows)) {
+    rows$code_id <- rep(NA_integer_, n)
+  }
+  if ("code_score" %in% names(rows)) {
+    rows$code_score <- rep(NA_real_, n)
+  }
+  if ("code_type" %in% names(rows)) {
+    rows$code_type <- rep(NA_character_, n)
+  }
+
+  rows
 }
 
 unpack_response_json_progress <- function(progress) {

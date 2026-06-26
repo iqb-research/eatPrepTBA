@@ -6,6 +6,7 @@
 * Made the `unpack_response_jsons()` progress indicator visible immediately and persistent during long JSON parsing runs.
 * Added `keep_empty_rows = TRUE` as the default for `unpack_response_jsons()`, preserving one empty output row for source rows that do not produce unpacked JSON records, and renamed the payload-level empty-cell argument to `keep_empty_payloads`.
 * Relaxed `code_responses()` input validation so ordinary data frames are accepted and normalised internally to tibbles.
+* Extended `prepare_unpacked_codes(keep_uncoded = TRUE)` to preserve source rows that have no target response record, so identifiers such as `unit_key` survive BKT-like preparation.
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
 * Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
 
