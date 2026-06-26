@@ -98,7 +98,11 @@ units %>% readr::write_rds("inst/extdata/example_units.rds")
 
 ```{r echo = FALSE}
 # ...that can be used in the vignette without needing to log into the Studio
-units <- readr::read_rds(system.file("extdata", "example_units.rds", package = "eatPrepTBA"))
+example_units <- system.file("extdata", "example_units.rds", package = "eatPrepTBA")
+if (identical(example_units, "")) {
+  example_units <- file.path("..", "inst", "extdata", "example_units.rds")
+}
+units <- readr::read_rds(example_units)
 ```
 
 `get_units()` returns a tibble with one row per unit and several metadata columns, including nested list-columns.

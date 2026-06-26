@@ -1,7 +1,7 @@
 Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assessment (TBA)
-Version: 0.9.8.9018
-Date: 2026-06-16
+Version: 0.9.8.9019
+Date: 2026-06-26
 Authors@R: 
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut"),
            comment = c(ORCID = "0000-0002-2109-7388")),
@@ -14,8 +14,8 @@ Authors@R:
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
 Description: 
     Provides wrapper functions to interact with the IQB Studio and the IQB Testcenter APIs. 
-    Moreover, provides some routines for preparing and blending data from these different
-    resources.
+    Moreover, provides routines for preparing, unpacking, and blending data from these
+    different resources, including response JSONs distributed across question-slot columns.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

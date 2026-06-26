@@ -18,7 +18,7 @@ test_that("compute_sizes totals dependencies for units, booklets, and testtakers
   expect_equal(out$total_size[out$type == "Testtakers"], 3)
 })
 
-test_that("code_responses delegates unit coding and returns normalized columns", {
+test_that("code_responses accepts data frames and returns normalized columns", {
   testthat::local_mocked_bindings(
     code_responses_array = function(coding_scheme, unit_responses) {
       tibble::tibble(
@@ -42,7 +42,11 @@ test_that("code_responses delegates unit coding and returns normalized columns",
   )
   units <- minimal_units()
 
-  out <- code_responses(responses, units, prepare = FALSE)
+  out <- code_responses(
+    as.data.frame(responses),
+    as.data.frame(units),
+    prepare = FALSE
+  )
 
   expect_equal(out$unit_key, "U1")
   expect_equal(out$variable_id, "V1")
