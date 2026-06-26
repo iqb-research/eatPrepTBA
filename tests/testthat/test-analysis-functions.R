@@ -465,6 +465,37 @@ test_that("layout helpers format durations and build reactable metadata", {
   expect_s3_class(eatPrepTBA:::generate_checkbox("Show", id = "tbl", columns = "unit_q90"), "shiny.tag")
 })
 
+test_that("layout_staytime_tables renders prepared unit stay-time tables", {
+  data <- tibble::tibble(
+    link = "https://example/",
+    unit_key = "U1",
+    unit_label = "Unit 1",
+    unit_estimated = 60,
+    unit_median = 50,
+    unit_q90 = 70,
+    unit_q95 = 80,
+    unit_diff = 10,
+    unit_diff95 = 20,
+    unit_median_RS = 50,
+    unit_q90_RS = 70,
+    unit_q95_RS = 80,
+    unit_diff_RS = 10,
+    unit_diff95_RS = 20,
+    unit_median_FS = NA_real_,
+    unit_q90_FS = NA_real_,
+    unit_q95_FS = NA_real_,
+    unit_diff_FS = NA_real_,
+    unit_diff95_FS = NA_real_,
+    SPF = "nein"
+  )
+
+  expect_s3_class(
+    suppressWarnings(eatPrepTBA:::layout_staytime_tables(data)),
+    "shiny.tag"
+  )
+  expect_error(eatPrepTBA:::layout_staytime_tables(data, id = 1), "character")
+})
+
 test_that("compute_staytime_tables reports missing required columns for invalid inputs", {
   expect_error(
     compute_staytime_tables(
