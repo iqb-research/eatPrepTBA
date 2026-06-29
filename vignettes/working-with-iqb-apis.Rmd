@@ -42,9 +42,23 @@ library(dplyr)
 
 eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests happen with use of the R package `httr2`. eatPrepTBA wraps this in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that eatPrepTBA users do not need to write `httr2` code directly.
 
+## HTTP requests
 
+eatPrepTBA communicates with IQB Studio and IQB Testcenter through HTTP requests. An HTTP request is a message sent from a client to a server. In this context, the client can be the browser or R, and the server is the IQB Studio or IQB Testcenter API. The server processes the request and sends back an HTTP response.
 
-## Basic request workflow
+Different types of requests are described by HTTP methods. The most relevant methods for eatPrepTBA are `GET`, `POST`, and `PATCH`.
+
+- A `GET` request retrieves existing information from the API. For example, when eatPrepTBA retrieves the list of units in a workspace, unit properties, metadata, or a coding scheme, it sends a `GET` request. A `GET` request should not change anything on the server.  
+
+- A `POST` request sends data to the API in order to create something new. For example, posting a comment creates a new comment in Studio. Since the comment did not exist before, this is a `POST` request.  
+
+- A `PATCH` request changes something that already exists. For example, changing the short name of a unit or changing the editor version modifies an existing unit. This is different from `POST`, because no new object is created; instead, an existing object is updated.  
+
+```{r , out.width="100%", echo=FALSE}
+knitr::include_graphics("images/HTTP_Methods.png")
+```
+
+## Browser developer tools
 
 To inspect the API requests sent by IQB Studio, open the browser developer tools. The developer tools make it possible to inspect the requests that are sent from the browser to the server.
 
@@ -60,7 +74,7 @@ After opening the developer tools, switch to the **Network** tab. In German brow
 knitr::include_graphics("images/Browser_Developer_Tools.png")
 ```
 
-In the `Authorization` header, the access token used for the request token appears in the form `Bearer <access-token>`. You will need it for further requests via httr2.
+In the `Authorization` header, the access token used for the request appears in the form `Bearer <access-token>`. You will need it for further requests via httr2.
 
 ```{r eval = FALSE}
 access_token <- "eyJhbGciOiJIUzI1NiI..."
@@ -87,8 +101,6 @@ The following example shows the basic structure of a request to the IQB Studio A
 It retrieves the list of units from one workspace.
 
 ```{r first-studio-request, eval=FALSE}
-library(httr2)
-
 httr2_result <- httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::req_url_path_append("workspaces", 1300, "units") %>%
   httr2::req_url_query(
@@ -127,9 +139,26 @@ httr2_result %>% readr::write_rds("../inst/extdata/example_httr2_result.rds")
 httr2_result <- readr::read_rds(system.file("extdata", "example_httr2_result.rds", package = "eatPrepTBA"))
 ```
 
-```{r}
+:::: {.side-by-side}
+
+::: {}
+
+```{r first-httr2-result}
 httr2_result[1]
 ```
+
+:::
+
+::: {}
+
+```{r studio-unit-overview, out.width="100%", echo=FALSE}
+knitr::include_graphics("images/Studio_Unit_Overview_unannotated.png")
+```
+
+:::
+
+::::
+
 eatPrepTBA transforms these nested lists into data frames or tibbles, so that the results are less nested, more consistent, and easier to use with common R workflows.
 
 ```{r}
@@ -339,7 +368,7 @@ cat(
 
 ::: {}
 
-```{r scheme-screenshot, out.width="100%", echo=FALSE}
+```{r, out.width="100%", echo=FALSE}
 knitr::include_graphics("images/Example_Kodierschema.png")
 ```
 
@@ -361,5 +390,8 @@ jsonlite::write_json(
 In summary, not every response is immediately available as a conveniently nested R object. Sometimes the API returns JSON inside a string. In those cases, eatPrepTBA parses the string before the coding scheme can be handled like a regular R list.
 
 
+## Creating new data with POST requests
+
+## Changing existing data with PATCH requests
 
 
