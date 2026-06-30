@@ -46,6 +46,6 @@ several columns, for example \code{question_0_content}, \code{sums_content}, or
 \code{responses}. Matching timestamp columns are detected by replacing a
 \verb{_content} suffix with \verb{_ts}, for example \code{question_0_content} is matched to
 \code{question_0_ts}. This is particularly useful for BKT-like question-slot
-preparation where coded responses are distributed across \code{question_*_content}
+preparation where coded responses are distributed across \verb{question_*_content}
 columns instead of one \code{coded} column.
 }

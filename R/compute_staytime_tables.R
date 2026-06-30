@@ -42,6 +42,8 @@
 #' and one for special needs schools (FS), and that the booklets with FS design can be identified
 #' with certainty by a string which appears as a substring of final_responses$booklet_id entries.
 #' This string is passed to the function as the argument FS_marker.
+#' ALSO: For the function to work properly, the working directory needs to be set to the location of
+#' the script you are running it from before running. See example.
 #'
 #' @details
 #' The resulting saved tibble can be incorporated into a Quarto document using
@@ -88,6 +90,7 @@
 #' # with one row per unit, columns for unit_key, school subject as letter, and testing domain
 #' # (subject and competence type) as 2-letter combination
 #'
+#' setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set wd to current directory
 #' eatPrepTBA::compute_staytime_tables(fach,
 #'                                     log_times,
 #'                                     unit_domains,
@@ -129,13 +132,6 @@ compute_staytime_tables <- function(fach,
   checkmate::assert_data_frame(final_responses)
   assert_cols(final_responses, final_responses_cols, "final_responses")
 
-  units_cs_cols <- c("unit_key", "unit_codes", "variable_label", "variable_page", "variable_id")
-  checkmate::assert_data_frame(units_cs)
-  assert_cols(units_cs, units_cs_cols, "units_cs")
-
-  unit_meta_cols <- c("ws_id", "unit_id", "unit_key", "unit_label", "unit_metadata", "item_metadata")
-  checkmate::assert_data_frame(unit_meta)
-  assert_cols(unit_meta, unit_meta_cols, "unit_meta")
 
   unit_page_logtimes <-
     log_times %>%
@@ -157,6 +153,10 @@ compute_staytime_tables <- function(fach,
   units_cs <-
     units_cs %>%
     tidyr::unnest(unit_codes, keep_empty = TRUE)
+  
+  units_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
+  checkmate::assert_data_frame(units_cs)
+  assert_cols(units_cs, units_cs_cols, "units_cs")
 
   # Korrektur fuer die Markieritems
   units_cs_corrected <-
@@ -370,6 +370,10 @@ compute_staytime_tables <- function(fach,
       link = stringr::str_glue("https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview"),
       link_legacy = stringr::str_glue("https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview")
     )
+  
+  unit_meta_cols <- c("ws_id", "unit_id", "unit_key", "unit_label", "Aufgabenzeit")
+  checkmate::assert_data_frame(unit_meta)
+  assert_cols(unit_meta, unit_meta_cols, "unit_meta")
 
   meta_logs <-
     unit_meta %>%

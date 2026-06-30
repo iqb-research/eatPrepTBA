@@ -66,6 +66,8 @@ IMPORTANT: The function assumes that there is one study design for regular schoo
 and one for special needs schools (FS), and that the booklets with FS design can be identified
 with certainty by a string which appears as a substring of final_responses$booklet_id entries.
 This string is passed to the function as the argument FS_marker.
+ALSO: For the function to work properly, the working directory needs to be set to the location of
+the script you are running it from before running. See example.
 }
 \details{
 Author: Philipp Franikowski, restructured by Lea Musiolek
@@ -114,6 +116,7 @@ unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), colla
 # with one row per unit, columns for unit_key, school subject as letter, and testing domain
 # (subject and competence type) as 2-letter combination
 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set wd to current directory
 eatPrepTBA::compute_staytime_tables(fach,
                                     log_times,
                                     unit_domains,
