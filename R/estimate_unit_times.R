@@ -547,9 +547,13 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
-    tidyr::unnest(.data$parsed_col) %>%
-    dplyr::filter(stringr::str_detect(.data$id, "audio"))
+    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col)
+  
+  if (nrow(parsed_audios) > 0) {
+    parsed_audios <- parsed_audios %>%
+      tidyr::unnest(.data$parsed_col) %>%
+      dplyr::filter(stringr::str_detect(.data$id, "audio"))
+  }
 
   videomask_resp <- stringr::str_detect(response_df$responses, "video")
   video_resp_rows <- response_df[videomask_resp, ]
@@ -565,9 +569,13 @@ estimate_audio_video_plays <- function(response_df) {
         }
         return(cell)
       })) %>%
-    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col) %>%
+    dplyr::select(.data$group_id, .data$login_name, .data$login_code, .data$booklet_id, .data$unit_key, .data$page_no, .data$parsed_col)
+    
+  if (nrow(parsed_videos) > 0) {
+    parsed_videos <- parsed_videos %>%
     tidyr::unnest(.data$parsed_col) %>%
     dplyr::filter(stringr::str_detect(.data$id, "video"))
+  }
 
   all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))
   all_parsed$media_unit_ids <- paste(all_parsed$unit_key, all_parsed$id)
