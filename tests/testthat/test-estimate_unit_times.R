@@ -494,3 +494,32 @@ test_that("estimate_unit_times handles run_no_load cases correctly", {
   expect_false(u2_row$unit_playbacks[[1]]$run_no_load_i[[1]],
                info = "u2's first playback should have run_no_load_i = FALSE")
 })
+
+# Test 13
+test_that("estimate_unit_times extracts device and browser from LOADCOMPLETE", {
+  logs <- tibble::tibble(
+    group = c(rep("g1", 6)),
+    login = c(rep("user1", 6)),
+    booklet_id = c(rep("book1", 6)),
+    unit_key = c("u1", "u1", "u2", "u2", "u2", "u2"),
+    unit_alias = c("u1", "u1", "u2", "u2", "u2", "u2"),
+    ts = c(1000, 2000, 3000, 4000, 5000, 6000),
+    log_entry = c(
+      'LOADCOMPLETE : \"{\\\"browserVersion\\\":\\\"20\\\",\\\"browserName\\\":\\\"Firefox\\\",\\\"osName\\\":\\\"xyz\\\",\\\"device\\\":\\\"Blackberry\\\",\\\"screenSizeWidth\\\":820,\\\"screenSizeHeight\\\":1180,\\\"loadTime\\\":7165}\"',
+      'PLAYER = RUNNING',       # ts=2000 (session end)
+      'LOADCOMPLETE : \"{\\\"browserVersion\\\":\\\"18.3\\\",\\\"browserName\\\":\\\"Safari\\\",\\\"osName\\\":\\\"iOS 18.6.2\\\",\\\"device\\\":\\\"Apple iPad tablet\\\",\\\"screenSizeWidth\\\":820,\\\"screenSizeHeight\\\":1180,\\\"loadTime\\\":7165}\"',
+      'PLAYER = RUNNING',       # ts=4000 (loading_time = 1000)
+      'PLAYER = LOADING',       # ts=5000 (playback_time = 1000)
+      'SESSION END'             # ts=6000 (loading_time = NA, playback_time = 1000)
+    )
+  )
+  
+  out <- estimate_unit_times(logs)
+  
+  expect_true(all(c("device", "osName", "browserName", "browserVersion") %in% names(out)))
+  
+  expect_equal(out$device[[1]], "Blackberry")
+  expect_equal(out$osName[[1]], "xyz")
+  expect_equal(out$browserName[[1]], "Firefox")
+  expect_equal(as.character(out$browserVersion[[1]]), "20")
+})

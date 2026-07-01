@@ -88,8 +88,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   logs_cols <- c("unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
   checkmate::assert_tibble(logs)
   assert_cols(logs, logs_cols, "logs")
+  
   checkmate::assert_tibble(full_design, null.ok = TRUE)
-
   checkmate::assert_logical(use_unit_alias, len = 1)
   checkmate::assert_logical(block_self_switch, len = 1)
 
@@ -187,7 +187,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       ),
       is_max_ts = .data$ts == max(.data$ts)
     ) %>%
-    tidyr::fill(unit_ident, .direction = "downup") %>%
+    tidyr::fill(.data$unit_ident, .direction = "downup") %>%
     dplyr::filter((!is.na(.data$unit_ident) & .data$unit_ident != "") | .data$is_max_ts) %>%
     dplyr::ungroup()
 
@@ -579,7 +579,7 @@ estimate_audio_video_plays <- function(response_df) {
 
   all_parsed <- dplyr::bind_rows(list(parsed_videos, parsed_audios))
   all_parsed$media_unit_ids <- paste(all_parsed$unit_key, all_parsed$id)
-  all_parsed <- dplyr::rename(all_parsed, n_plays = value)
+  all_parsed <- dplyr::rename(all_parsed, n_plays = .data$value)
 
   return(all_parsed)
 }
