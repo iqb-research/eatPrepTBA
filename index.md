@@ -1,4 +1,4 @@
-# eatPrepTBA [![](articles/figures/logo.png)](https://iqb-research.github.io/eatPrepTBA/)
+# eatPrepTBA
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with
 the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some
