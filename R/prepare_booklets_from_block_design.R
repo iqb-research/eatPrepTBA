@@ -606,7 +606,7 @@ prepare_position_time_restrictions <- function(restrictions = NULL,
         stringr::str_replace_all(.data$block_group, "\\s+", "_")
       ),
       time_restr_testlet_id = .data$time_group_id,
-      time_restr_testlet_label = paste(.data$block, collapse = " ")
+      time_restr_testlet_label = .data$block_group
     ) %>%
     dplyr::ungroup()
 

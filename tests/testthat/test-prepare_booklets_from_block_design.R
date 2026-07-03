@@ -91,7 +91,7 @@ test_that("prepare_booklets_from_block_design handles compact times sheets", {
 
   times <- tibble::tibble(
     design = c("M1", "M1"),
-    block_group = c("block_1", "block_1"),
+    block_group = c("1b_a", "1b_a"),
     block = c("block_1", "block_2"),
     seconds = c(90, 90)
   )
@@ -105,8 +105,8 @@ test_that("prepare_booklets_from_block_design handles compact times sheets", {
   )
 
   expect_equal(nrow(out$booklet_units[[1]]), 2)
-  expect_equal(out$booklet_units[[1]]$testlet_id[[1]], "M1_block_1")
-  expect_equal(out$booklet_units[[1]]$testlet_label[[1]], "block_1 block_2")
+  expect_equal(out$booklet_units[[1]]$testlet_id[[1]], "M1_1b_a")
+  expect_equal(out$booklet_units[[1]]$testlet_label[[1]], "1b_a")
   expect_equal(out$booklet_units[[1]]$units[[1]]$unit_key, c("U1", "U2"))
   expect_equal(out$booklet_units[[1]]$testlet_restrictions[[1]]$minutes, 1.5)
   expect_equal(out$booklet_units[[1]]$testlet_restrictions[[1]]$leave, "allowed")
@@ -116,11 +116,11 @@ test_that("prepare_booklets_from_block_design handles compact times sheets", {
   expect_length(
     xml2::xml_find_all(
       xml,
-      ".//Testlet[@id='M1_block_1']/Restrictions/TimeMax[@minutes='1.5'][@leave='allowed']"
+      ".//Testlet[@id='M1_1b_a'][@label='1b_a']/Restrictions/TimeMax[@minutes='1.5'][@leave='allowed']"
     ),
     1
   )
-  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='M1_block_1']/Unit"), 2)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='M1_1b_a']/Unit"), 2)
 })
 
 test_that("prepare_booklets_from_block_design keeps compact times leave values", {
