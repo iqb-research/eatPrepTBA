@@ -13,7 +13,13 @@
 #' @param restrictions An optional tibble with testlet restriction information.
 #'   It may contain `booklet_id`, `subject`, `domain`, `block`, `testlet_id`,
 #'   `testlet_label`, `minutes`, `leave`, `code`, `code_to_enter`,
-#'   `presentation`, `response`, and `wrap`.
+#'   `presentation`, `response`, and `wrap`. It can also use the compact timing
+#'   format `design`, `block_group`, `block`, `seconds`, and optional `leave`.
+#'   `design` is matched as an underscore-delimited part of `booklet_id`.
+#'   `block` contains one booklet position column, such as `"block_4"`.
+#'   Rows with the same `design` and `block_group` are combined into one timed
+#'   testlet. If `leave` is missing or empty in this compact format, it
+#'   defaults to `"allowed"`.
 #' @param booklet_subject_fn Optional function that receives `booklet_id` and
 #'   returns a subject used to disambiguate blocks that exist for several
 #'   subjects.
@@ -86,6 +92,13 @@ prepare_booklets_from_block_design <- function(
 
   units <- standardise_block_units(units)
   blocks <- standardise_blocks(blocks)
+  time_restrictions <- prepare_position_time_restrictions(
+    restrictions,
+    booklet_design
+  )
+  if (is_position_time_restrictions(restrictions)) {
+    restrictions <- NULL
+  }
   restrictions <- coerce_booklet_restrictions(restrictions)
 
   block_lookup <- blocks %>%
@@ -147,13 +160,19 @@ prepare_booklets_from_block_design <- function(
       by = c("booklet_id", "block"),
       relationship = "many-to-many"
     ) %>%
+    dplyr::left_join(
+      time_restrictions,
+      by = c("booklet_id", "block_pos")
+    ) %>%
     dplyr::mutate(
       minutes = dplyr::coalesce(
+        .data$time_restr_minutes,
         .data$minutes,
         .data$block_restr_minutes,
         .data$booklet_restr_minutes
       ),
       leave = dplyr::coalesce(
+        .data$time_restr_leave,
         .data$booklet_restr_leave,
         .data$block_restr_leave,
         default_leave
@@ -174,26 +193,37 @@ prepare_booklets_from_block_design <- function(
       ),
       response = dplyr::coalesce(.data$booklet_restr_response, .data$block_restr_response),
       wrap = dplyr::coalesce(
+        .data$time_restr_wrap,
         .data$booklet_restr_wrap,
         .data$block_restr_wrap,
         wrap_blocks
       ),
       testlet_id = dplyr::coalesce(
+        .data$time_restr_testlet_id,
         .data$booklet_restr_testlet_id,
         .data$block_restr_testlet_id,
         .data$testlet_id,
         .data$block
       ),
       testlet_id = dplyr::if_else(
-        .data$wrap & .data$booklet_block_n > 1L,
+        .data$wrap & is.na(.data$time_group_id) & .data$booklet_block_n > 1L,
         paste0(.data$testlet_id, "_", .data$block_pos),
         .data$testlet_id
       ),
       testlet_label = dplyr::coalesce(
+        .data$time_restr_testlet_label,
         .data$booklet_restr_testlet_label,
         .data$block_restr_testlet_label,
         .data$testlet_label,
         .data$block
+      ),
+      testlet_group_id = dplyr::coalesce(
+        .data$time_group_id,
+        paste0("block_", .data$block_pos)
+      ),
+      testlet_block_pos = dplyr::coalesce(
+        .data$time_group_start_pos,
+        .data$block_pos
       ),
       testlet_id = dplyr::if_else(.data$wrap, .data$testlet_id, NA_character_),
       testlet_label = dplyr::if_else(.data$wrap, .data$testlet_label, NA_character_)
@@ -205,8 +235,8 @@ prepare_booklets_from_block_design <- function(
     dplyr::group_by(
       .data$booklet_id,
       .data$booklet_label,
-      .data$block_pos,
-      .data$block,
+      .data$testlet_group_id,
+      .data$testlet_block_pos,
       .data$testlet_id,
       .data$testlet_label
     ) %>%
@@ -223,7 +253,9 @@ prepare_booklets_from_block_design <- function(
         "unit_key", "unit_alias", "unit_label", "unit_labelshort"
       )))),
       .groups = "drop"
-    )
+    ) %>%
+    dplyr::rename(block_pos = "testlet_block_pos") %>%
+    dplyr::select(-"testlet_group_id")
 
   if (add_start_end) {
     edge_rows <- block_rows %>%
@@ -431,6 +463,176 @@ coerce_booklet_restrictions <- function(restrictions = NULL) {
       response = as.character(.data$response),
       wrap = as.logical(.data$wrap)
     )
+}
+
+empty_position_time_restrictions <- function() {
+  tibble::tibble(
+    booklet_id = character(),
+    block_pos = integer(),
+    time_group_id = character(),
+    time_group_start_pos = integer(),
+    time_restr_testlet_id = character(),
+    time_restr_testlet_label = character(),
+    time_restr_minutes = numeric(),
+    time_restr_leave = character(),
+    time_restr_wrap = logical()
+  )
+}
+
+is_position_time_restrictions <- function(restrictions = NULL) {
+  !is.null(restrictions) &&
+    nrow(restrictions) > 0L &&
+    all(c("design", "block_group", "block", "seconds") %in% names(restrictions))
+}
+
+prepare_position_time_restrictions <- function(restrictions = NULL,
+                                               booklet_design) {
+  if (!is_position_time_restrictions(restrictions)) {
+    if (
+      !is.null(restrictions) &&
+        nrow(restrictions) > 0L &&
+        all(c("design", "seconds") %in% names(restrictions))
+    ) {
+      stop(
+        "Compact timing restrictions must contain 'design', 'block_group', ",
+        "'block', and 'seconds' columns.",
+        call. = FALSE
+      )
+    }
+    return(empty_position_time_restrictions())
+  }
+
+  restrictions <- add_missing_columns(
+    restrictions,
+    list(leave = NA_character_)
+  )
+
+  time_groups <- restrictions %>%
+    dplyr::mutate(
+      design = stringr::str_squish(as.character(.data$design)),
+      block_group = stringr::str_squish(as.character(.data$block_group)),
+      block = stringr::str_squish(as.character(.data$block)),
+      seconds = suppressWarnings(as.numeric(.data$seconds)),
+      leave = stringr::str_squish(as.character(.data$leave)),
+      leave = dplyr::na_if(.data$leave, ""),
+      leave = dplyr::coalesce(.data$leave, "allowed"),
+      time_restr_minutes = .data$seconds / 60,
+      time_restr_leave = .data$leave,
+      time_restr_wrap = TRUE
+    )
+
+  if (any(is.na(time_groups$design) | time_groups$design == "")) {
+    stop(
+      "Compact timing restrictions must contain non-empty 'design' values.",
+      call. = FALSE
+    )
+  }
+
+  if (any(is.na(time_groups$block_group) | time_groups$block_group == "")) {
+    stop(
+      "Compact timing restrictions must contain non-empty 'block_group' values.",
+      call. = FALSE
+    )
+  }
+
+  if (any(is.na(time_groups$block) | time_groups$block == "")) {
+    stop(
+      "Compact timing restrictions 'block' must contain values like 'block_4'.",
+      call. = FALSE
+    )
+  }
+
+  if (any(is.na(time_groups$seconds))) {
+    stop(
+      "Compact timing restrictions must contain numeric 'seconds' values.",
+      call. = FALSE
+    )
+  }
+
+  time_groups <- time_groups %>%
+    dplyr::mutate(
+      block_pos = as.integer(stringr::str_match(.data$block, "^block_(\\d+)$")[, 2])
+    )
+
+  if (any(is.na(time_groups$block_pos))) {
+    stop(
+      "Compact timing restrictions 'block' must contain values like 'block_4'.",
+      call. = FALSE
+    )
+  }
+
+  inconsistent_groups <- time_groups %>%
+    dplyr::group_by(.data$design, .data$block_group) %>%
+    dplyr::summarise(
+      seconds_n = dplyr::n_distinct(.data$seconds),
+      leave_n = dplyr::n_distinct(.data$leave),
+      .groups = "drop"
+    ) %>%
+    dplyr::filter(.data$seconds_n > 1L | .data$leave_n > 1L)
+
+  if (nrow(inconsistent_groups) > 0L) {
+    stop(
+      "Compact timing restrictions must use one 'seconds' and one 'leave' ",
+      "value per 'design'/'block_group'.",
+      call. = FALSE
+    )
+  }
+
+  nonconsecutive_groups <- time_groups %>%
+    dplyr::distinct(.data$design, .data$block_group, .data$block_pos) %>%
+    dplyr::group_by(.data$design, .data$block_group) %>%
+    dplyr::summarise(
+      consecutive = all(diff(sort(.data$block_pos)) == 1L),
+      .groups = "drop"
+    ) %>%
+    dplyr::filter(!.data$consecutive)
+
+  if (nrow(nonconsecutive_groups) > 0L) {
+    stop(
+      "Compact timing restrictions must use consecutive 'block' values ",
+      "within each 'design'/'block_group'.",
+      call. = FALSE
+    )
+  }
+
+  time_groups <- time_groups %>%
+    dplyr::arrange(.data$design, .data$block_group, .data$block_pos) %>%
+    dplyr::group_by(.data$design, .data$block_group) %>%
+    dplyr::mutate(
+      time_group_start_pos = min(.data$block_pos),
+      time_group_id = paste0(
+        .data$design,
+        "_",
+        stringr::str_replace_all(.data$block_group, "\\s+", "_")
+      ),
+      time_restr_testlet_id = .data$time_group_id,
+      time_restr_testlet_label = paste(.data$block, collapse = " ")
+    ) %>%
+    dplyr::ungroup()
+
+  booklet_design %>%
+    dplyr::select("booklet_id", "block_pos") %>%
+    dplyr::inner_join(time_groups, by = "block_pos", relationship = "many-to-many") %>%
+    dplyr::filter(booklet_design_matches(.data$booklet_id, .data$design)) %>%
+    dplyr::transmute(
+      booklet_id = .data$booklet_id,
+      block_pos = .data$block_pos,
+      time_group_id = .data$time_group_id,
+      time_group_start_pos = .data$time_group_start_pos,
+      time_restr_testlet_id = .data$time_restr_testlet_id,
+      time_restr_testlet_label = .data$time_restr_testlet_label,
+      time_restr_minutes = .data$time_restr_minutes,
+      time_restr_leave = .data$time_restr_leave,
+      time_restr_wrap = .data$time_restr_wrap
+    ) %>%
+    dplyr::distinct()
+}
+
+booklet_design_matches <- function(booklet_id, design) {
+  stringr::str_detect(
+    paste0("_", booklet_id, "_"),
+    stringr::fixed(paste0("_", design, "_"))
+  )
 }
 
 booklet_restriction_list <- function(code,

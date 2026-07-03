@@ -4,6 +4,7 @@
 * Reworked `configure_booklet()` to emit current active BookletConfig keys by default and added `booklet_config_version = "legacy-16"` for reproducing older Testcenter 16 configuration output.
 * Kept deprecated legacy booklet-configuration arguments accepted in current mode where they can be mapped to 18.0 settings, with warnings.
 * Rejected nested `TimeMax` restrictions during booklet generation because nested time constraints are not supported reliably by Testcenter.
+* Added compact `times` sheet support to `prepare_booklets_from_block_design()` with `design`, `block_group`, `block`, `seconds`, and optional `leave` columns. Missing or empty `leave` values default to `"allowed"`.
 
 # eatPrepTBA 0.9.8.9020
 
