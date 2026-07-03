@@ -142,6 +142,46 @@ test_that("prepare_booklets_from_block_design keeps compact times leave values",
   expect_equal(out$booklet_units[[1]]$testlet_restrictions[[1]]$leave, "confirm")
 })
 
+test_that("compact times use blocks when block_group is absent", {
+  out <- prepare_booklets_from_block_design(
+    booklets = tibble::tibble(
+      booklet_id = "TH_M1_01",
+      block_1 = "A",
+      block_2 = "B"
+    ),
+    blocks = tibble::tibble(block = c("A", "B")),
+    units = tibble::tibble(block = c("A", "B"), unit_key = c("U1", "U2")),
+    restrictions = tibble::tibble(
+      design = c("M1", "M1"),
+      block = c("block_1", "block_2"),
+      seconds = c(60, 120)
+    ),
+    add_start_end = FALSE
+  )
+
+  expect_equal(out$booklet_units[[1]]$testlet_id, c("M1_block_1", "M1_block_2"))
+  expect_equal(out$booklet_units[[1]]$testlet_label, c("block_1", "block_2"))
+  expect_equal(out$booklet_units[[1]]$testlet_restrictions[[1]]$minutes, 1)
+  expect_equal(out$booklet_units[[1]]$testlet_restrictions[[2]]$minutes, 2)
+
+  xml <- generate_booklets(out)$booklet_xml[[1]]
+
+  expect_length(
+    xml2::xml_find_all(
+      xml,
+      ".//Testlet[@id='M1_block_1'][@label='block_1']/Restrictions/TimeMax[@minutes='1']"
+    ),
+    1
+  )
+  expect_length(
+    xml2::xml_find_all(
+      xml,
+      ".//Testlet[@id='M1_block_2'][@label='block_2']/Restrictions/TimeMax[@minutes='2']"
+    ),
+    1
+  )
+})
+
 test_that("compact times match exact design components and default blank leave", {
   out <- prepare_booklets_from_block_design(
     booklets = tibble::tibble(
@@ -152,7 +192,7 @@ test_that("compact times match exact design components and default blank leave",
     units = tibble::tibble(block = c("A", "B"), unit_key = c("U1", "U2")),
     restrictions = tibble::tibble(
       design = "M1",
-      block_group = "block_1",
+      block_group = "",
       block = "block_1",
       seconds = 60,
       leave = ""
@@ -165,6 +205,7 @@ test_that("compact times match exact design components and default blank leave",
 
   expect_equal(m1$testlet_restrictions[[1]]$minutes, 1)
   expect_equal(m1$testlet_restrictions[[1]]$leave, "allowed")
+  expect_equal(m1$testlet_label[[1]], "block_1")
   expect_null(m10$testlet_restrictions[[1]]$minutes)
 })
 
@@ -181,6 +222,6 @@ test_that("compact times reject incomplete grouped timing columns", {
       ),
       add_start_end = FALSE
     ),
-    "must contain 'design', 'block_group', 'block', and 'seconds'"
+    "must contain 'design', 'block', and 'seconds'"
   )
 })

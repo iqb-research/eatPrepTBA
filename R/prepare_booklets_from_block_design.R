@@ -14,12 +14,14 @@
 #'   It may contain `booklet_id`, `subject`, `domain`, `block`, `testlet_id`,
 #'   `testlet_label`, `minutes`, `leave`, `code`, `code_to_enter`,
 #'   `presentation`, `response`, and `wrap`. It can also use the compact timing
-#'   format `design`, `block_group`, `block`, `seconds`, and optional `leave`.
-#'   `design` is matched as an underscore-delimited part of `booklet_id`.
-#'   `block` contains one booklet position column, such as `"block_4"`.
-#'   Rows with the same `design` and `block_group` are combined into one timed
-#'   testlet. If `leave` is missing or empty in this compact format, it
-#'   defaults to `"allowed"`.
+#'   format `design`, `block`, `seconds`, and optional `block_group` and
+#'   `leave`. `design` is matched as an underscore-delimited part of
+#'   `booklet_id`. `block` contains one booklet position column, such as
+#'   `"block_4"`. If `block_group` is present, rows with the same `design` and
+#'   `block_group` are combined into one timed testlet and `block_group` is used
+#'   as the testlet label. If `block_group` is missing or empty, each `block`
+#'   becomes its own timed testlet. If `leave` is missing or empty in this
+#'   compact format, it defaults to `"allowed"`.
 #' @param booklet_subject_fn Optional function that receives `booklet_id` and
 #'   returns a subject used to disambiguate blocks that exist for several
 #'   subjects.
@@ -482,7 +484,7 @@ empty_position_time_restrictions <- function() {
 is_position_time_restrictions <- function(restrictions = NULL) {
   !is.null(restrictions) &&
     nrow(restrictions) > 0L &&
-    all(c("design", "block_group", "block", "seconds") %in% names(restrictions))
+    all(c("design", "block", "seconds") %in% names(restrictions))
 }
 
 prepare_position_time_restrictions <- function(restrictions = NULL,
@@ -494,8 +496,8 @@ prepare_position_time_restrictions <- function(restrictions = NULL,
         all(c("design", "seconds") %in% names(restrictions))
     ) {
       stop(
-        "Compact timing restrictions must contain 'design', 'block_group', ",
-        "'block', and 'seconds' columns.",
+        "Compact timing restrictions must contain 'design', 'block', ",
+        "and 'seconds' columns. 'block_group' is optional.",
         call. = FALSE
       )
     }
@@ -504,14 +506,19 @@ prepare_position_time_restrictions <- function(restrictions = NULL,
 
   restrictions <- add_missing_columns(
     restrictions,
-    list(leave = NA_character_)
+    list(
+      block_group = NA_character_,
+      leave = NA_character_
+    )
   )
 
   time_groups <- restrictions %>%
     dplyr::mutate(
       design = stringr::str_squish(as.character(.data$design)),
-      block_group = stringr::str_squish(as.character(.data$block_group)),
       block = stringr::str_squish(as.character(.data$block)),
+      block_group = stringr::str_squish(as.character(.data$block_group)),
+      block_group = dplyr::na_if(.data$block_group, ""),
+      block_group = dplyr::coalesce(.data$block_group, .data$block),
       seconds = suppressWarnings(as.numeric(.data$seconds)),
       leave = stringr::str_squish(as.character(.data$leave)),
       leave = dplyr::na_if(.data$leave, ""),
@@ -524,13 +531,6 @@ prepare_position_time_restrictions <- function(restrictions = NULL,
   if (any(is.na(time_groups$design) | time_groups$design == "")) {
     stop(
       "Compact timing restrictions must contain non-empty 'design' values.",
-      call. = FALSE
-    )
-  }
-
-  if (any(is.na(time_groups$block_group) | time_groups$block_group == "")) {
-    stop(
-      "Compact timing restrictions must contain non-empty 'block_group' values.",
       call. = FALSE
     )
   }

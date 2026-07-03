@@ -35,12 +35,14 @@ and \code{unit_labelshort} are optional.}
 It may contain \code{booklet_id}, \code{subject}, \code{domain}, \code{block}, \code{testlet_id},
 \code{testlet_label}, \code{minutes}, \code{leave}, \code{code}, \code{code_to_enter},
 \code{presentation}, \code{response}, and \code{wrap}. It can also use the compact timing
-format \code{design}, \code{block_group}, \code{block}, \code{seconds}, and optional
+format \code{design}, \code{block}, \code{seconds}, and optional \code{block_group} and
 \code{leave}. \code{design} is matched as an underscore-delimited part of
 \code{booklet_id}. \code{block} contains one booklet position column, such as
-\code{"block_4"}. Rows with the same \code{design} and \code{block_group} are combined
-into one timed testlet. If \code{leave} is missing or empty in this compact format,
-it defaults to \code{"allowed"}.}
+\code{"block_4"}. If \code{block_group} is present, rows with the same \code{design} and
+\code{block_group} are combined into one timed testlet and \code{block_group} is used
+as the testlet label. If \code{block_group} is missing or empty, each \code{block}
+becomes its own timed testlet. If \code{leave} is missing or empty in this compact
+format, it defaults to \code{"allowed"}.}
 
 \item{booklet_subject_fn}{Optional function that receives \code{booklet_id} and
 returns a subject used to disambiguate blocks that exist for several
