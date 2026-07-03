@@ -12,7 +12,8 @@ generate_booklet(
   units = NULL,
   testlets = NULL,
   app_version = "16.0.2",
-  login = NULL
+  login = NULL,
+  booklet_config_version = c("18.0", "legacy-16")
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ generate_booklet(
 \item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
 
 \item{login}{Target Testcenter instance. If it is available, the \code{app_version} will be overwritten.}
+
+\item{booklet_config_version}{Booklet configuration version. \code{"18.0"} emits
+the current Testcenter booklet configuration keys. \code{"legacy-16"} emits the
+legacy key set used by older Testcenter 16 workflows.}
 }
 \value{
 A booklet XML.

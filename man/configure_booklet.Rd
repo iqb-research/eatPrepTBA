@@ -5,69 +5,113 @@
 \title{Helper function to prepare booklet configuration header}
 \usage{
 configure_booklet(
+  booklet_config_version = c("18.0", "legacy-16"),
   loading_mode = c("lazy", "eager"),
   log_policy = c("rich", "disabled", "lean", "debug"),
-  paging_mode = c("buttons", "separate", "concat-scroll", "concat-scroll-snap"),
-  page_navibuttons = c("off", "separate_bottom"),
-  unit_navibuttons = c("full", "arrows_only", "off"),
-  unit_menu = c("off", "full"),
-  force_presentation_complete = c("always", "on", "off"),
-  force_responses_complete = c("OFF", "always", "on"),
-  controller_design = c("2018", "2022"),
-  unit_screenheader = c("empty", "with_unit_title", "with_block_title",
-    "with_booklet_title", "off"),
-  unit_title = c("on", "off"),
-  unit_show_time_left = c("off", "on"),
-  unit_time_left_warnings = c(5),
-  show_end_button_in_player = c("off", "always", "on_last_unit"),
+  browser_behaviour = c("standard", "preventNav"),
+  paging_mode = c("separate", "concat-scroll", "concat-scroll-snap", "buttons"),
+  force_presentation_complete = c("off", "always", "on"),
+  force_response_complete = c("off", "always", "on"),
+  unit_time_left_warnings = "5,1",
   restore_current_page_on_return = c("off", "on"),
-  allow_player_to_terminate_test = c("on", "last_unit", "off"),
   lock_test_on_termination = c("off", "on"),
-  ask_for_fullscreen = c("on", "off"),
-  show_fullscreen_button = c("on", "off"),
-  show_reload_button = c("on", "off")
+  ask_for_fullscreen = c("off", "on"),
+  unit_responses_buffer_time = 5000,
+  unit_state_buffer_time = 6000,
+  test_state_buffer_time = 1000,
+  header_hidden = c("false", "true"),
+  header_content = c("booklet_label", "none", "block_label", "unit_label"),
+  navbar_unit_label = c("index", "hidden", "label"),
+  navbar_unit_controls_hidden = c("false", "true"),
+  navbar_page_label = c("index", "hidden", "label", "list"),
+  navbar_page_controls_hidden = c("false", "true"),
+  navbar_backward_button = c("hidden", "dynamic", "units", "pages"),
+  navbar_forward_button = c("hidden", "dynamic", "units", "pages"),
+  toolbar_show_unit_title = c("true", "false"),
+  toolbar_show_unit_list = c("false", "true"),
+  toolbar_show_fullscreen_button = c("false", "true"),
+  toolbar_show_reload_button = c("false", "true"),
+  toolbar_show_time_left = c("false", "true"),
+  silent_mode = c("false", "true"),
+  page_navibuttons = NULL,
+  unit_navibuttons = NULL,
+  unit_menu = NULL,
+  force_responses_complete = NULL,
+  controller_design = NULL,
+  unit_screenheader = NULL,
+  unit_title = NULL,
+  unit_show_time_left = NULL,
+  show_end_button_in_player = NULL,
+  allow_player_to_terminate_test = NULL,
+  show_fullscreen_button = NULL,
+  show_reload_button = NULL,
+  ui_mode = NULL
 )
 }
 \arguments{
-\item{loading_mode}{Tbd.}
+\item{booklet_config_version}{Booklet configuration version. \code{"18.0"} emits
+the current Testcenter booklet configuration keys. \code{"legacy-16"} emits the
+legacy key set used by older Testcenter 16 workflows.}
 
-\item{log_policy}{Tbd.}
+\item{loading_mode}{Loading mode.}
 
-\item{paging_mode}{Tbd.}
+\item{log_policy}{Log policy.}
 
-\item{page_navibuttons}{Tbd.}
+\item{browser_behaviour}{Browser navigation behaviour.}
 
-\item{unit_navibuttons}{Tbd.}
+\item{paging_mode}{Verona paging mode.}
 
-\item{unit_menu}{Tbd.}
+\item{force_presentation_complete}{Should navigation away from incompletely
+presented units be prevented?}
 
-\item{force_presentation_complete}{Tbd.}
+\item{force_response_complete}{Should navigation away from incompletely
+answered units be prevented?}
 
-\item{force_responses_complete}{Tbd.}
+\item{unit_time_left_warnings}{Comma-separated remaining-minute warnings.}
 
-\item{controller_design}{Tbd.}
+\item{restore_current_page_on_return}{Should units reopen on their last page?}
 
-\item{unit_screenheader}{Tbd.}
+\item{lock_test_on_termination}{Should a terminated test be locked?}
 
-\item{unit_title}{Tbd.}
+\item{ask_for_fullscreen}{Should fullscreen be requested when a booklet
+starts?}
 
-\item{unit_show_time_left}{Tbd.}
+\item{unit_responses_buffer_time}{Response save interval in milliseconds.}
 
-\item{unit_time_left_warnings}{Tbd.}
+\item{unit_state_buffer_time}{Unit-state save interval in milliseconds.}
 
-\item{show_end_button_in_player}{Tbd.}
+\item{test_state_buffer_time}{Test-state save interval in milliseconds.}
 
-\item{restore_current_page_on_return}{Tbd.}
+\item{header_hidden}{Should the header be hidden?}
 
-\item{allow_player_to_terminate_test}{Tbd.}
+\item{header_content}{Header title content.}
 
-\item{lock_test_on_termination}{Tbd.}
+\item{navbar_unit_label}{Unit label style in the navigation bar.}
 
-\item{ask_for_fullscreen}{Tbd.}
+\item{navbar_unit_controls_hidden}{Should unit navigation controls be hidden?}
 
-\item{show_fullscreen_button}{Tbd.}
+\item{navbar_page_label}{Page label style in the navigation bar.}
 
-\item{show_reload_button}{Tbd.}
+\item{navbar_page_controls_hidden}{Should page navigation controls be hidden?}
+
+\item{navbar_backward_button}{Backward button behaviour in the navigation bar.}
+
+\item{navbar_forward_button}{Forward button behaviour in the navigation bar.}
+
+\item{toolbar_show_unit_title}{Should the toolbar show the current unit title?}
+
+\item{toolbar_show_unit_list}{Should the toolbar show the unit list button?}
+
+\item{toolbar_show_fullscreen_button}{Should the toolbar show the fullscreen
+button?}
+
+\item{toolbar_show_reload_button}{Should the toolbar show the reload button?}
+
+\item{toolbar_show_time_left}{Should the toolbar show remaining time?}
+
+\item{silent_mode}{Should navigation and timer overlays be suppressed?}
+
+\item{page_navibuttons, unit_navibuttons, unit_menu, force_responses_complete, controller_design, unit_screenheader, unit_title, unit_show_time_left, show_end_button_in_player, allow_player_to_terminate_test, show_fullscreen_button, show_reload_button, ui_mode}{Deprecated legacy arguments.}
 }
 \value{
 A list with a valid booklet configuration.
