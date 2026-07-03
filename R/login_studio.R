@@ -32,7 +32,9 @@ login_studio <- function(base_url = "https://www.iqb-studio.de/",
                          dialog = TRUE,
                          verbose = FALSE) {
   cli_setting()
-  checkmate::assert_character(base_url, len = 1)
+
+  # Input validation using checkmate
+  assert_url(base_url, "base_url")
   checkmate::assert_character(app_version, len = 1)
   checkmate::assert_logical(keyring, len = 1)
   checkmate::assert_logical(change_key, len = 1)

@@ -21,6 +21,22 @@ test_that("generate_booklet and read_booklet round-trip units and testlets", {
   expect_error(read_booklet("<Booklet></Booklet>"), "xml_document")
 })
 
+test_that("generate_booklet accepts ordinary data frames", {
+  units <- data.frame(
+    id = c("U1", "U2"),
+    label = c("Unit 1", "Unit 2"),
+    alias = c("UA1", "UA2")
+  )
+
+  xml <- generate_booklet(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    units = units
+  )
+
+  expect_s3_class(xml, "xml_document")
+})
+
 test_that("generate_booklets creates XML for nested booklet specifications", {
   booklets <- tibble::tibble(
     booklet_id = "B1",

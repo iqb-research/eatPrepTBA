@@ -14,7 +14,7 @@
 #' @keywords internal
 get_credentials <- function(base_url, keyring, change_key, dialog, ...) {
   # input validation
-  checkmate::assert_character(base_url, len = 1)
+  assert_url(base_url, "base_url")
   checkmate::assert_logical(keyring, len = 1)
   checkmate::assert_logical(change_key, len = 1)
   checkmate::assert_logical(dialog, len = 1)

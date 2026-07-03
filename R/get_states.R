@@ -12,6 +12,7 @@
 #' @aliases
 #' get_states,WorkspaceStudio-method
 setGeneric("get_states", function(workspace) {
+
   standardGeneric("get_states")
 })
 

@@ -1,11 +1,19 @@
+# eatPrepTBA 0.9.8.9020
+
+* Added and refined input validation across API helpers, XML generation, stay-time table preparation, response coding inputs, and shared validation helpers.
+* Kept response-coding edge cases compatible with current behavior, including ordinary data-frame inputs, missing response payload rows, and structured empty coded outputs.
+
 # eatPrepTBA 0.9.8.9019
 
-* Added `prepare_booklets_from_block_design()` to convert tabular booklet/block/unit designs into the nested tibble structure expected by `generate_booklets()`.
-* Extended `generate_booklets()` to support recursively nested testlets via an optional `testlets` list-column.
-* Added regression tests for block-design booklet preparation and recursive testlet XML generation.
+* Added `unpack_response_jsons()` for auto-detecting and unpacking response JSON columns distributed across wide response tables, including matching `*_ts` timestamp columns and showing progress while JSON payloads are parsed.
+* Added `prepare_unpacked_codes()` to convert code-bearing unpacked slots into the core `code_responses(..., prepare = TRUE)` output shape, including `code_type` and unnested `value` output for direct binding before `complete_design()`.
+* These helpers are particularly useful for BKT-like question-slot preparation, where coded responses are stored across `question_*_content` columns rather than in one `coded` column.
+* Made the `unpack_response_jsons()` progress indicator visible immediately and persistent during long JSON parsing runs.
+* Added `keep_empty_rows = TRUE` as the default for `unpack_response_jsons()`, preserving one empty output row for source rows that do not produce unpacked JSON records, and renamed the payload-level empty-cell argument to `keep_empty_payloads`.
+* Relaxed `code_responses()` input validation so ordinary data frames are accepted and normalised internally to tibbles.
+* Extended `prepare_unpacked_codes(keep_uncoded = TRUE)` to preserve source rows that have no target response record, so identifiers such as `unit_key` survive BKT-like preparation.
 
 # eatPrepTBA 0.9.8.9018
-
 * Fixed `read_booklet()` for booklet XMLs where `Unit` elements already carry `testlet_id` or `testlet_label` attributes, avoiding duplicate-column failures while preserving testlet information.
 * Added regression tests for `read_booklet()` with pre-existing testlet attributes on standalone and nested units.
 
