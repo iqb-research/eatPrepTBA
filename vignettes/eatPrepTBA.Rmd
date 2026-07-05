@@ -2,7 +2,7 @@
 title: "Introduction to the IQB-Studio with eatPrepTBA"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{eatPrepTBA}
+  %\VignetteIndexEntry{Introduction to the IQB-Studio with eatPrepTBA}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 

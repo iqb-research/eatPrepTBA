@@ -40,7 +40,7 @@ library(dplyr)
 }
 ```
 
-eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests happen with use of the R package `httr2`. eatPrepTBA wraps this in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that eatPrepTBA users do not need to write `httr2` code directly.
+eatPrepTBA uses HTTP requests to retrieve and modify information from IQB Studio and IQB Testcenter. These requests are sent with the R package `httr2`. eatPrepTBA wraps them in higher-level functions such as `login_studio()`, `login_testcenter()`, `access_workspace()`, `list_units()`, `get_units()`, or `prepare_codebook()` so that users do not need to write `httr2` code directly.
 
 ## HTTP requests
 
@@ -54,7 +54,7 @@ Different types of requests are described by HTTP methods. The most relevant met
 
 - A `PATCH` request changes something that already exists. For example, changing the short name of a unit or changing the editor version modifies an existing unit.
 
-```{r , out.width="100%", echo=FALSE}
+```{r, out.width="100%", echo=FALSE}
 knitr::include_graphics("images/HTTP_Methods.png")
 ```
 
@@ -74,7 +74,7 @@ After opening the developer tools, switch to the **Network** tab. In German brow
 knitr::include_graphics("images/Browser_Developer_Tools.png")
 ```
 
-In the `Authorization` header, the access token used for the request appears in the form `Bearer <access-token>`. You will need it for further requests via httr2.
+In the `Authorization` header, the access token used for the request appears in the form `Bearer <access-token>`. You can use it for further requests via `httr2`.
 
 ```{r eval = FALSE}
 access_token <- "eyJhbGciOiJIUzI1NiI..."
@@ -86,7 +86,7 @@ access_token <- "eyJhbGciOiJIUzI1NiI..."
 
 After logging in to IQB Studio (www.iqb-studio.de), the server generates an access token for the current session. This token must be sent with every subsequent request to the Studio API.
 
-The token can be found in the browser developer tools: open the console, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`.
+The token can be found in the browser developer tools: open the developer tools, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`.
 
 When reproducing the request in R with `httr2`, this value is passed with `req_headers()`. In eatPrepTBA, users normally do not need to copy this token manually, because `login_studio()` handles the login and stores the token for later requests.
 
@@ -122,13 +122,16 @@ workspace should be retrieved.
 The `Authorization` header contains the bearer token that was returned by Studio
 during login. The `App-Version` header tells the API which Studio app version is used.
 
-Since the response type is JSON, the same request can be reproduced in R with `httr2` and parsed with `resp_body_json()`.
+Because the response body is JSON, the request can be reproduced in R with `httr2` and parsed with `resp_body_json()`.
 
 The result returned by `httr2::resp_body_json()` is an R list created from the JSON response of the Studio API. In this example, each top-level list element represents one unit in the selected workspace. Each unit contains several fields, such as the unit id, key, name, metadata, variables, timestamps, and information about comments.
 
 ```{r echo = FALSE, eval=FALSE}
 # Anonymize result
-httr2_result <- purrr::map(httr2_result, \(x) { x[grepl("User$", names(x))] <- "Max Mustermann"; x })
+httr2_result <- purrr::map(httr2_result, \(x) {
+  x[grepl("User$", names(x))] <- "Max Mustermann"
+  x
+})
 # This is used once for the creation of an example result list...
 httr2_result %>% readr::write_rds("../inst/extdata/example_httr2_result.rds")
 ```
@@ -169,7 +172,7 @@ httr2_result %>%
 
 ## Retrieving unit properties and metadata
 
-The unit list request shown above returns overview information about the units in a workspace. However, not all information that is visible in IQB Studio is included in this response. In particular, item metadata shown in the Studio under **Eigenschaften** / **Properties** has to be retrieved with a separate API request.
+The unit list request shown above returns overview information about the units in a workspace. However, not all information that is visible in IQB Studio is included in this response. In particular, item metadata shown in Studio under **Eigenschaften** / **Properties** has to be retrieved with a separate API request.
 
 ```{r, out.width="100%", echo = FALSE}
 knitr::include_graphics("images/Browser_Developer_Tools_unit_properties.png")
@@ -202,7 +205,7 @@ properties <- httr2::request("https://www.iqb-studio.de/api/") %>%
 ```{r eval = FALSE, echo = FALSE}
 # anonymize and save the properties object
 properties[grepl("User$", names(properties))] <- "Max Mustermann"
-readr::write_rds(properties,"../inst/extdata/example_properties.rds")
+readr::write_rds(properties, "../inst/extdata/example_properties.rds")
 ```
 
 ```{r echo = FALSE}
@@ -215,29 +218,29 @@ The response is again parsed with `resp_body_json()`. The result is an R list cr
 
 The metadata is stored inside the properties response. The response contains a metadata node, and inside this node there is an `items` node. The individual items contain the metadata fields that are shown in Studio under **Eigenschaften**.
 
-Its structure looks like this:
+A simplified structure looks like this:
 
 ```text
 properties
-├── metadata
-│   ├── profiles              # metadata for the unit as a whole
-│   │   └── profile
-│   │       └── entries       # unit-level metadata fields
-│   └── items                 # metadata for individual items
-│       └── item 1
-│           ├── id
-│           ├── variableId
-│           ├── description
-│           └── profiles
-│               └── profile
-│                   └── entries   # item-level metadata fields
-├── id
-├── key
-├── name
-├── description
-├── player
-├── editor
-└── ...
+|-- metadata
+|   |-- profiles              # metadata for the unit as a whole
+|   |   `-- profile
+|   |       `-- entries       # unit-level metadata fields
+|   `-- items                 # metadata for individual items
+|       `-- item 1
+|           |-- id
+|           |-- variableId
+|           |-- description
+|           `-- profiles
+|               `-- profile
+|                   `-- entries   # item-level metadata fields
+|-- id
+|-- key
+|-- name
+|-- description
+|-- player
+|-- editor
+`-- ...
 ```
 
 For example, we can extract some unit-level metadata for the unit `145615` in workspace `1300`.
@@ -393,25 +396,24 @@ In summary, not every response is immediately available as a conveniently nested
 
 ## Creating new data with POST requests
 
-The previous examples used `GET` requests to retrieve information from the Studio API.
-
-We now set `httr2::req_method("POST")`.
+The previous examples used `GET` requests to retrieve information from the Studio API. For a `POST` request, we set `httr2::req_method("POST")`.
 
 A `POST` request sends data to the server in order to create something new. One example is posting a new comment to a unit.
 
 ```text
 /api/workspaces/{workspace_id}/units/{unit_id}/comments
 ```
+
 In addition to the request path and headers, the request needs a body. This body is also called a payload. In German browser interfaces, it may be shown as **Anfrage**. The body contains the data that should be sent to the API. In this example, `body` contains the text of the comment. `parentId` is used when replying to an existing comment; for a new top-level comment, it can be `NULL`.
 
 ```{r, out.width="100%", echo=FALSE}
 knitr::include_graphics("images/Post_Comments.png")
 ```
 
-Additionally to the `access_token`, you also need to provide your user-ID for posting comments. It can be found in the developer tools payload tab.
+In addition to the `access_token`, this manual example also needs the user id that Studio sends when posting comments. It can be inspected in the Payload tab of the corresponding browser request.
 
-```{r}
-user_id <- 000
+```{r, eval=FALSE}
+user_id <- 12345
 ```
 
 The full request looks like this:
@@ -421,7 +423,7 @@ workspace_id <- 1300
 unit_id <- 145615
 
 httr2::request("https://www.iqb-studio.de/api/") %>%
-  httr2::req_method("POST") |>
+  httr2::req_method("POST") %>%
   httr2::req_url_path_append(
     "workspaces", workspace_id,
     "units", unit_id,
@@ -435,20 +437,18 @@ httr2::request("https://www.iqb-studio.de/api/") %>%
     body = "<p>Dies ist ein Test-Kommentar.</p>",
     parentId = NULL,
     unitId = unit_id,
-    userId = user_id ,
+    userId = user_id,
     userName = "Mustermann, Max"
   )) %>%
   httr2::req_perform()
 ```
 
-In eatPrepTBA, users should usually not construct this request body manually. The package can use information from the Studio login, for example the logged-in user name, so that comments are not posted under an arbitrary user name.
+In eatPrepTBA, users should usually not construct this request body manually. The package can use information from the Studio login, for example the logged-in user name, so that comments are not posted under a manually entered user name.
 
 
 ## Changing existing data with PATCH requests
 
-We now set `httr2::req_method("PATCH")`.
-
-A `PATCH` request is used to change something that already exists. For example, changing the short name of a unit modifies the existing unit properties:
+For a `PATCH` request, we set `httr2::req_method("PATCH")`. A `PATCH` request is used to change something that already exists. For example, changing the short name of a unit modifies the existing unit properties:
 
 ```text
 /api/workspaces/{workspace_id}/units/{unit_id}/properties
@@ -470,11 +470,11 @@ httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::req_headers(
     "Authorization" = paste("Bearer", access_token),
     "App-Version" = "17.0.1"
-  ) |>
+  ) %>%
   httr2::req_body_json(data = list(
     id = unit_id,
     key = "UNIT_001"
-    )) %>%
+  )) %>%
   httr2::req_perform()
 ```
 
