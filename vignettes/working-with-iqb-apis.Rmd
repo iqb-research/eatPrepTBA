@@ -48,11 +48,11 @@ eatPrepTBA communicates with IQB Studio and IQB Testcenter through HTTP requests
 
 Different types of requests are described by HTTP methods. The most relevant methods for eatPrepTBA are `GET`, `POST`, and `PATCH`.
 
-- A `GET` request retrieves existing information from the API. For example, when eatPrepTBA retrieves the list of units in a workspace, unit properties, metadata, or a coding scheme, it sends a `GET` request. A `GET` request should not change anything on the server.  
+- A `GET` request retrieves existing information from the API. For example, when eatPrepTBA retrieves the list of units in a workspace, unit properties, metadata, or a coding scheme, it sends a `GET` request. A `GET` request should not change anything on the server.
 
 - A `POST` request sends data to the API in order to create something new. For example, posting a comment creates a new comment in the IQB Studio.
 
-- A `PATCH` request changes something that already exists. For example, changing the short name of a unit or changing the editor version modifies an existing unit. 
+- A `PATCH` request changes something that already exists. For example, changing the short name of a unit or changing the editor version modifies an existing unit.
 
 ```{r , out.width="100%", echo=FALSE}
 knitr::include_graphics("images/HTTP_Methods.png")
@@ -84,9 +84,9 @@ access_token <- "eyJhbGciOiJIUzI1NiI..."
 
 ## Access tokens
 
-After logging in to IQB Studio (www.iqb-studio.de), the server generates an access token for the current session. This token must be sent with every subsequent request to the Studio API. 
+After logging in to IQB Studio (www.iqb-studio.de), the server generates an access token for the current session. This token must be sent with every subsequent request to the Studio API.
 
-The token can be found in the browser developer tools: open the console, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`. 
+The token can be found in the browser developer tools: open the console, go to the Network tab, select an API request, and inspect the request headers. In the `Authorization` header, the token appears in the form `Bearer <access-token>`.
 
 When reproducing the request in R with `httr2`, this value is passed with `req_headers()`. In eatPrepTBA, users normally do not need to copy this token manually, because `login_studio()` handles the login and stores the token for later requests.
 
@@ -161,8 +161,8 @@ knitr::include_graphics("images/Studio_Unit_Overview_unannotated.png")
 eatPrepTBA transforms these nested lists into data frames or tibbles, so that the results are less nested, more consistent, and easier to use with common R workflows.
 
 ```{r echo = TRUE}
-httr2_result %>% 
-  purrr::list_transpose() %>% 
+httr2_result %>%
+  purrr::list_transpose() %>%
   tibble::as_tibble()
 ```
 
@@ -175,7 +175,7 @@ The unit list request shown above returns overview information about the units i
 knitr::include_graphics("images/Browser_Developer_Tools_unit_properties.png")
 ```
 
-In the Network tab, the properties request appears as a `GET` request to `/api/workspaces/{workspace_id}/units/{unit_id}/properties`. 
+In the Network tab, the properties request appears as a `GET` request to `/api/workspaces/{workspace_id}/units/{unit_id}/properties`.
 
 In this example, the browser requests the properties of unit `145615` in workspace `1300`. The request headers show that the request is authenticated with an `Authorization` header containing a bearer token and that the Studio app version is sent with the `app-version` header. The actual metadata returned by this request can be inspected in the **Response** / **Antwort** tab.
 
@@ -280,7 +280,7 @@ The coding scheme of a unit can also be retrieved. In the browser developer tool
 knitr::include_graphics("images/Browser_Developer_Tools_scheme.png")
 ```
 
-The `httr2` workflow is almost identical to the metadata request: we need the workspace id, the unit id, the access token, and the app version. Only the final part of the request path changes from `properties` to `scheme`: 
+The `httr2` workflow is almost identical to the metadata request: we need the workspace id, the unit id, the access token, and the app version. Only the final part of the request path changes from `properties` to `scheme`:
 
 ```text
 /api/workspaces/{workspace_id}/units/{unit_id}/scheme
@@ -304,7 +304,7 @@ scheme_response <- httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::resp_body_json()
 ```
 
-The response from the API contains the coding scheme. In some cases, the scheme is not returned as a directly nested R list. Instead, it is stored as a JSON-formatted string inside the response. 
+The response from the API contains the coding scheme. In some cases, the scheme is not returned as a directly nested R list. Instead, it is stored as a JSON-formatted string inside the response.
 
 ```{r eval=FALSE}
 scheme_string <- scheme_response$scheme
@@ -393,11 +393,11 @@ In summary, not every response is immediately available as a conveniently nested
 
 ## Creating new data with POST requests
 
-The previous examples used `GET` requests to retrieve information from the Studio API. 
+The previous examples used `GET` requests to retrieve information from the Studio API.
 
 We now set `httr2::req_method("POST")`.
 
-A `POST` request sends data to the server in order to create something new. One example is posting a new comment to a unit. 
+A `POST` request sends data to the server in order to create something new. One example is posting a new comment to a unit.
 
 ```text
 /api/workspaces/{workspace_id}/units/{unit_id}/comments
@@ -481,7 +481,3 @@ httr2::request("https://www.iqb-studio.de/api/") %>%
 ```{r, out.width="100%", echo=FALSE}
 knitr::include_graphics("images/Change_Kurzname.png")
 ```
-
-
-
-
