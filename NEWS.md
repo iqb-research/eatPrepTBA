@@ -1,3 +1,11 @@
+# eatPrepTBA 0.9.8.9021
+
+* Updated `generate_booklets()` and deprecated `generate_booklet()` to target Testcenter booklet XML specification 18.0 by default, including the new `w3id.org` schema URL.
+* Reworked `configure_booklet()` to emit current active BookletConfig keys by default and added `booklet_config_version = "legacy-16"` for reproducing older Testcenter 16 configuration output.
+* Kept deprecated legacy booklet-configuration arguments accepted in current mode where they can be mapped to 18.0 settings, with warnings.
+* Rejected nested `TimeMax` restrictions during booklet generation because nested time constraints are not supported reliably by Testcenter.
+* Added compact `times` sheet support to `prepare_booklets_from_block_design()` with `design`, `block`, `seconds`, and optional `block_group` and `leave` columns. Missing or empty `block_group` values fall back to the block name, and missing or empty `leave` values default to `"allowed"`.
+
 # eatPrepTBA 0.9.8.9020
 
 * Added and refined input validation across API helpers, XML generation, stay-time table preparation, response coding inputs, and shared validation helpers.

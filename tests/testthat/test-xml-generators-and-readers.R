@@ -61,6 +61,61 @@ test_that("generate_booklets creates XML for nested booklet specifications", {
   expect_match(as.character(out$booklet_xml[[1]]), "Alias 2")
 })
 
+test_that("generate_booklets creates XML for recursively nested testlets", {
+  inner_testlets <- tibble::tibble(
+    testlet_id = "Inner",
+    testlet_label = "Inner testlet",
+    units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+  )
+
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(
+        testlet_id = "Outer",
+        testlet_label = "Outer testlet",
+        testlet_restrictions = list(list(minutes = 7, leave = "allowed")),
+        testlets = list(inner_testlets)
+      )
+    )
+  )
+
+  xml <- generate_booklets(booklets)$booklet_xml[[1]]
+
+  expect_length(xml2::xml_find_all(xml, ".//Units/Testlet[@id='Outer']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Outer']/Testlet[@id='Inner']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Inner']/Unit[@id='U1']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Outer']/Restrictions/TimeMax[@minutes='7']"), 1)
+  expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='Inner']/Restrictions/TimeMax"), 0)
+})
+
+test_that("generate_booklets rejects nested time restrictions", {
+  inner_testlets <- tibble::tibble(
+    testlet_id = "Inner",
+    testlet_label = "Inner testlet",
+    testlet_restrictions = list(list(minutes = 3, leave = "allowed")),
+    units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+  )
+
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(
+        testlet_id = "Outer",
+        testlet_label = "Outer testlet",
+        testlets = list(inner_testlets)
+      )
+    )
+  )
+
+  expect_error(
+    generate_booklets(booklets),
+    "TimeMax restrictions are only supported for top-level testlets"
+  )
+})
+
 test_that("generate_testtakers writes groups, logins, booklets, custom texts, and profiles", {
   testtakers <- tibble::tibble(
     group_id = "G1",
@@ -135,6 +190,76 @@ test_that("configuration and restriction helpers build compact XML-ready lists",
   expect_equal(config[[1]][[1]][[1]], "EAGER")
   expect_equal(restriction$Restrictions$CodeToEnter$code, "READY")
   expect_equal(restriction$Restrictions$TimeMax$minutes, 15)
+})
+
+test_that("generate_booklets emits current booklet config by default", {
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(unit_key = "U1", unit_label = "Unit 1")
+    )
+  )
+
+  xml <- generate_booklets(booklets)$booklet_xml[[1]]
+  config <- xml2::xml_find_all(xml, ".//BookletConfig/Config")
+  keys <- xml2::xml_attr(config, "key")
+
+  expect_match(
+    as.character(xml),
+    "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.0",
+    fixed = TRUE
+  )
+  expect_true("header_content" %in% keys)
+  expect_true("navbar_unit_label" %in% keys)
+  expect_true("toolbar_show_unit_title" %in% keys)
+  expect_true("force_response_complete" %in% keys)
+  expect_false("force_responses_complete" %in% keys)
+  expect_false("controller_design" %in% keys)
+})
+
+test_that("generate_booklets can emit legacy-16 booklet config", {
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(unit_key = "U1", unit_label = "Unit 1")
+    )
+  )
+
+  xml <- generate_booklets(booklets, booklet_config_version = "legacy-16")$booklet_xml[[1]]
+  config <- xml2::xml_find_all(xml, ".//BookletConfig/Config")
+  keys <- xml2::xml_attr(config, "key")
+  values <- stats::setNames(xml2::xml_text(config), keys)
+
+  expect_match(
+    as.character(xml),
+    "https://raw.githubusercontent.com/iqb-berlin/testcenter/16.0.2/definitions/vo_Booklet.xsd",
+    fixed = TRUE
+  )
+  expect_equal(values[["controller_design"]], "2018")
+  expect_equal(values[["page_navibuttons"]], "OFF")
+  expect_equal(values[["unit_navibuttons"]], "FULL")
+  expect_equal(values[["ask_for_fullscreen"]], "ON")
+  expect_false("header_content" %in% keys)
+  expect_false("force_response_complete" %in% keys)
+})
+
+test_that("configure_booklet maps deprecated arguments in current mode", {
+  config <- NULL
+  expect_warning(
+    config <- eatPrepTBA:::configure_booklet(unit_navibuttons = "full"),
+    "deprecated"
+  )
+  keys <- purrr::map_chr(config, "key")
+  values <- stats::setNames(
+    purrr::map_chr(config, function(x) x[[1]][[1]]),
+    keys
+  )
+
+  expect_equal(values[["navbar_unit_label"]], "INDEX")
+  expect_equal(values[["navbar_unit_controls_hidden"]], "FALSE")
+  expect_false("unit_navibuttons" %in% keys)
 })
 
 test_that("list_to_xml converts unnamed children to XML nodes and named values to attributes", {
