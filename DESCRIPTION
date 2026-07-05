@@ -9,6 +9,7 @@ Authors@R:
     person(given = "Jakob", family ="Schäfer", email = "jakob.schaefer@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0009-0006-2680-0585")),
     person(given = "Kristoph", family ="Schumann", email = "kristoph.schumann@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0001-9502-6083")),
     person(given = "Lea", family = "Musiolek", email = "lea.musiolek@iqb.hu-berlin.de", role = c("ctb"), comment = c(ORCID = "0000-0002-3729-2807")),
+    person(given = "Alina", family = "Apel", email = "alina.apel.2@hu-berlin.de", role = "ctb"),
     person(given = "Edna", family ="Grewers", email = "edna.grewers@iqb.hu-berlin.de", role = c("ctb"))
     )
 Maintainer: Karoline A. Sachse <karoline.sachse@iqb.hu-berlin.de>
