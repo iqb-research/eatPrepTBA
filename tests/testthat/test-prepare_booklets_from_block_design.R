@@ -51,6 +51,78 @@ test_that("prepare_booklets_from_block_design builds generate_booklets input", {
   expect_length(xml2::xml_find_all(xml, ".//Testlet[@id='A']/Unit[@id='U2']"), 1)
 })
 
+test_that("missing subject and domain scope block metadata and restrictions broadly", {
+  booklets <- tibble::tibble(
+    booklet_id = c("BK_M", "BK_S"),
+    block_1 = c("A", "A")
+  )
+
+  blocks <- tibble::tibble(
+    subject = c(NA_character_, "M"),
+    block = c("A", "A"),
+    minutes = c(5, 7),
+    testlet_label = c("Any A", "Math A")
+  )
+
+  units <- tibble::tibble(
+    subject = c("M", "S"),
+    domain = c("D", "D"),
+    block = c("A", "A"),
+    unit_key = c("UM", "US")
+  )
+
+  restrictions <- tibble::tibble(
+    subject = c(NA_character_, "M"),
+    block = c("A", "A"),
+    leave = c("allowed", "confirm")
+  )
+
+  out <- prepare_booklets_from_block_design(
+    booklets = booklets,
+    blocks = blocks,
+    units = units,
+    restrictions = restrictions,
+    booklet_subject_fn = function(booklet_id) {
+      ifelse(booklet_id == "BK_M", "M", "S")
+    },
+    add_start_end = FALSE
+  )
+
+  math <- out$booklet_units[[which(out$booklet_id == "BK_M")]]
+  science <- out$booklet_units[[which(out$booklet_id == "BK_S")]]
+
+  expect_equal(math$testlet_label, "Math A")
+  expect_equal(science$testlet_label, "Any A")
+  expect_equal(math$units[[1]]$unit_key, "UM")
+  expect_equal(science$units[[1]]$unit_key, "US")
+  expect_equal(math$testlet_restrictions[[1]]$minutes, 7)
+  expect_equal(science$testlet_restrictions[[1]]$minutes, 5)
+  expect_equal(math$testlet_restrictions[[1]]$leave, "confirm")
+  expect_equal(science$testlet_restrictions[[1]]$leave, "allowed")
+})
+
+test_that("nonmatching scoped metadata does not drop block units", {
+  out <- prepare_booklets_from_block_design(
+    booklets = tibble::tibble(booklet_id = "BK_S", block_1 = "A"),
+    blocks = tibble::tibble(subject = "M", block = "A", minutes = 7),
+    units = tibble::tibble(
+      subject = "S",
+      domain = "D",
+      block = "A",
+      unit_key = "US"
+    ),
+    restrictions = tibble::tibble(subject = "M", block = "A", leave = "confirm"),
+    booklet_subject_fn = function(booklet_id) "S",
+    add_start_end = FALSE
+  )
+
+  booklet_units <- out$booklet_units[[1]]
+
+  expect_equal(booklet_units$units[[1]]$unit_key, "US")
+  expect_null(booklet_units$testlet_restrictions[[1]]$minutes)
+  expect_null(booklet_units$testlet_restrictions[[1]]$leave)
+})
+
 test_that("prepare_booklets_from_block_design can add start and end units", {
   out <- prepare_booklets_from_block_design(
     booklets = tibble::tibble(booklet = "BK1", block_1 = "A"),

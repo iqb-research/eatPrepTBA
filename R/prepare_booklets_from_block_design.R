@@ -6,17 +6,19 @@
 #'   `booklet_configuration` are optional.
 #' @param blocks A tibble with one row per block. It must contain `block` and
 #'   may contain `subject`, `domain`, `minutes`, `testlet_id`, `testlet_label`,
-#'   and `wrap`.
+#'   and `wrap`. Missing `subject` or `domain` values apply to all matching
+#'   unit subjects or domains.
 #' @param units A tibble with one row per unit. It must contain `block` and
 #'   `unit_key`; `subject`, `domain`, `sequence`, `unit_alias`, `unit_label`,
 #'   and `unit_labelshort` are optional.
 #' @param restrictions An optional tibble with testlet restriction information.
 #'   It may contain `booklet_id`, `subject`, `domain`, `block`, `testlet_id`,
 #'   `testlet_label`, `minutes`, `leave`, `code`, `code_to_enter`,
-#'   `presentation`, `response`, and `wrap`. It can also use the compact timing
-#'   format `design`, `block`, `seconds`, and optional `block_group` and
-#'   `leave`. `design` is matched as an underscore-delimited part of
-#'   `booklet_id`. `block` contains one booklet position column, such as
+#'   `presentation`, `response`, and `wrap`. Missing `subject` or `domain`
+#'   values apply to all matching unit subjects or domains. It can also use the
+#'   compact timing format `design`, `block`, `seconds`, and optional
+#'   `block_group` and `leave`. `design` is matched as an underscore-delimited
+#'   part of `booklet_id`. `block` contains one booklet position column, such as
 #'   `"block_4"`. If `block_group` is present, rows with the same `design` and
 #'   `block_group` are combined into one timed testlet and `block_group` is used
 #'   as the testlet label. If `block_group` is missing or empty, each `block`
@@ -103,11 +105,14 @@ prepare_booklets_from_block_design <- function(
   }
   restrictions <- coerce_booklet_restrictions(restrictions)
 
-  block_lookup <- blocks %>%
-    dplyr::full_join(
-      units %>% dplyr::distinct(.data$subject, .data$domain, .data$block),
-      by = c("subject", "domain", "block")
-    ) %>%
+  unit_block_scope <- units %>%
+    dplyr::distinct(.data$subject, .data$domain, .data$block)
+
+  block_lookup <- resolve_scoped_values(
+    scope = unit_block_scope,
+    rules = blocks,
+    exact_cols = "block"
+  ) %>%
     dplyr::add_count(.data$block, name = "block_id_n")
 
   block_restrictions <- restrictions %>%
@@ -123,12 +128,31 @@ prepare_booklets_from_block_design <- function(
       block_restr_presentation = "presentation",
       block_restr_response = "response",
       block_restr_wrap = "wrap"
+    ) %>%
+    resolve_scoped_values(
+      scope = unit_block_scope,
+      exact_cols = "block"
     )
+
+  booklet_block_scope <- booklet_design %>%
+    dplyr::left_join(
+      block_lookup %>%
+        dplyr::select("subject", "domain", "block", "block_id_n"),
+      by = "block",
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::filter(
+      .data$block_id_n == 1L |
+        is.na(.data$booklet_subject) |
+        .data$subject == .data$booklet_subject
+    ) %>%
+    dplyr::select("booklet_id", "subject", "domain", "block") %>%
+    dplyr::distinct()
 
   booklet_restrictions <- restrictions %>%
     dplyr::filter(!is.na(.data$booklet_id), .data$booklet_id != "") %>%
     dplyr::select(
-      "booklet_id", "block",
+      "booklet_id", "subject", "domain", "block",
       booklet_restr_testlet_id = "testlet_id",
       booklet_restr_testlet_label = "testlet_label",
       booklet_restr_minutes = "minutes",
@@ -138,6 +162,10 @@ prepare_booklets_from_block_design <- function(
       booklet_restr_presentation = "presentation",
       booklet_restr_response = "response",
       booklet_restr_wrap = "wrap"
+    ) %>%
+    resolve_scoped_values(
+      scope = booklet_block_scope,
+      exact_cols = c("booklet_id", "block")
     )
 
   booklet_units <- booklet_design %>%
@@ -159,7 +187,7 @@ prepare_booklets_from_block_design <- function(
     ) %>%
     dplyr::left_join(
       booklet_restrictions,
-      by = c("booklet_id", "block"),
+      by = c("booklet_id", "subject", "domain", "block"),
       relationship = "many-to-many"
     ) %>%
     dplyr::left_join(
@@ -465,6 +493,78 @@ coerce_booklet_restrictions <- function(restrictions = NULL) {
       response = as.character(.data$response),
       wrap = as.logical(.data$wrap)
     )
+}
+
+resolve_scoped_values <- function(scope,
+                                  rules,
+                                  exact_cols,
+                                  scope_cols = c("subject", "domain")) {
+  value_cols <- setdiff(names(rules), c(exact_cols, scope_cols))
+  scope <- scope %>%
+    dplyr::select(dplyr::all_of(c(exact_cols, scope_cols))) %>%
+    dplyr::distinct()
+
+  if (length(value_cols) == 0L) {
+    return(scope)
+  }
+
+  rule_scope_cols <- paste0(".rule_", scope_cols)
+  rules <- rules %>%
+    dplyr::mutate(.rule_row = dplyr::row_number()) %>%
+    dplyr::rename_with(
+      function(x) paste0(".rule_", x),
+      dplyr::all_of(scope_cols)
+    )
+
+  matched <- scope %>%
+    dplyr::left_join(rules, by = exact_cols, relationship = "many-to-many")
+
+  for (i in seq_along(scope_cols)) {
+    matched <- matched %>%
+      dplyr::filter(
+        is.na(.data[[rule_scope_cols[[i]]]]) |
+          .data[[scope_cols[[i]]]] == .data[[rule_scope_cols[[i]]]]
+      )
+  }
+
+  matched_keys <- matched %>%
+    dplyr::select(dplyr::all_of(c(exact_cols, scope_cols))) %>%
+    dplyr::distinct()
+  unmatched <- scope %>%
+    dplyr::anti_join(matched_keys, by = c(exact_cols, scope_cols))
+
+  if (nrow(unmatched) > 0L) {
+    for (col in setdiff(names(matched), names(unmatched))) {
+      unmatched[[col]] <- rep(matched[[col]][NA_integer_][[1]], nrow(unmatched))
+    }
+    matched <- dplyr::bind_rows(matched, unmatched)
+  }
+
+  matched %>%
+    dplyr::mutate(
+      .specificity = rowSums(!is.na(dplyr::pick(dplyr::all_of(rule_scope_cols)))),
+      .rule_row = dplyr::coalesce(.data$.rule_row, .Machine$integer.max)
+    ) %>%
+    dplyr::arrange(dplyr::desc(.data$.specificity), .data$.rule_row) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(exact_cols, scope_cols)))) %>%
+    dplyr::summarise(
+      dplyr::across(dplyr::all_of(value_cols), first_scoped_value),
+      .groups = "drop"
+    )
+}
+
+first_scoped_value <- function(x) {
+  if (is.character(x)) {
+    x <- x[!is.na(x) & x != ""]
+  } else {
+    x <- x[!is.na(x)]
+  }
+
+  if (length(x) == 0L) {
+    x[NA_integer_][[1]]
+  } else {
+    x[[1]]
+  }
 }
 
 empty_position_time_restrictions <- function() {
