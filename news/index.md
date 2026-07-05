@@ -1,5 +1,14 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9022
+
+- Added a vignette showing how eatPrepTBA communicates with IQB Studio
+  APIs through `httr2`, including browser developer tools, bearer-token
+  headers, `GET`, `POST`, and `PATCH` examples, metadata extraction, and
+  coding-scheme JSON inspection.
+- Added anonymized example API response data and Studio screenshots used
+  by the API vignette.
+
 ## eatPrepTBA 0.9.8.9021
 
 - Updated

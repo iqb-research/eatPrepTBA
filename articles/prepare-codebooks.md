@@ -5,7 +5,7 @@
 ``` r
 
 library(eatPrepTBA)
-#> eatPrepTBA v0.9.8.9021
+#> eatPrepTBA v0.9.8.9022
 ```
 
 ## Login Procedure
