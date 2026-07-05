@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9022
+
+* Added a vignette showing how eatPrepTBA communicates with IQB Studio APIs through `httr2`, including browser developer tools, bearer-token headers, `GET`, `POST`, and `PATCH` examples, metadata extraction, and coding-scheme JSON inspection.
+* Added anonymized example API response data and Studio screenshots used by the API vignette.
+
 # eatPrepTBA 0.9.8.9021
 
 * Updated `generate_booklets()` and deprecated `generate_booklet()` to target Testcenter booklet XML specification 18.0 by default, including the new `w3id.org` schema URL.
