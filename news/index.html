@@ -37,12 +37,12 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9022" id="eatpreptba-0989022">eatPrepTBA 0.9.8.9022<a class="anchor" aria-label="anchor" href="#eatpreptba-0989022"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9022" id="eatpreptba-0989022-2026-07-05">eatPrepTBA 0.9.8.9022 [2026-07-05]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989022-2026-07-05"></a></h2>
 <ul><li>Added a vignette showing how eatPrepTBA communicates with IQB Studio APIs through <code>httr2</code>, including browser developer tools, bearer-token headers, <code>GET</code>, <code>POST</code>, and <code>PATCH</code> examples, metadata extraction, and coding-scheme JSON inspection.</li>
 <li>Added anonymized example API response data and Studio screenshots used by the API vignette.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9021" id="eatpreptba-0989021">eatPrepTBA 0.9.8.9021<a class="anchor" aria-label="anchor" href="#eatpreptba-0989021"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9021" id="eatpreptba-0989021-2026-07-03">eatPrepTBA 0.9.8.9021 [2026-07-03]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989021-2026-07-03"></a></h2>
 <ul><li>Updated <code><a href="../reference/generate_booklets.html">generate_booklets()</a></code> and deprecated <code><a href="../reference/generate_booklet.html">generate_booklet()</a></code> to target Testcenter booklet XML specification 18.0 by default, including the new <code>w3id.org</code> schema URL.</li>
 <li>Reworked <code><a href="../reference/configure_booklet.html">configure_booklet()</a></code> to emit current active BookletConfig keys by default and added <code>booklet_config_version = "legacy-16"</code> for reproducing older Testcenter 16 configuration output.</li>
 <li>Kept deprecated legacy booklet-configuration arguments accepted in current mode where they can be mapped to 18.0 settings, with warnings.</li>
@@ -50,12 +50,12 @@
 <li>Added compact <code>times</code> sheet support to <code><a href="../reference/prepare_booklets_from_block_design.html">prepare_booklets_from_block_design()</a></code> with <code>design</code>, <code>block</code>, <code>seconds</code>, and optional <code>block_group</code> and <code>leave</code> columns. Missing or empty <code>block_group</code> values fall back to the block name, and missing or empty <code>leave</code> values default to <code>"allowed"</code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9020" id="eatpreptba-0989020">eatPrepTBA 0.9.8.9020<a class="anchor" aria-label="anchor" href="#eatpreptba-0989020"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9020" id="eatpreptba-0989020-2026-06-26">eatPrepTBA 0.9.8.9020 [2026-06-26]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989020-2026-06-26"></a></h2>
 <ul><li>Added and refined input validation across API helpers, XML generation, stay-time table preparation, response coding inputs, and shared validation helpers.</li>
 <li>Kept response-coding edge cases compatible with current behavior, including ordinary data-frame inputs, missing response payload rows, and structured empty coded outputs.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9019" id="eatpreptba-0989019">eatPrepTBA 0.9.8.9019<a class="anchor" aria-label="anchor" href="#eatpreptba-0989019"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9019" id="eatpreptba-0989019-2026-06-26">eatPrepTBA 0.9.8.9019 [2026-06-26]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989019-2026-06-26"></a></h2>
 <ul><li>Added <code><a href="../reference/unpack_response_jsons.html">unpack_response_jsons()</a></code> for auto-detecting and unpacking response JSON columns distributed across wide response tables, including matching <code>*_ts</code> timestamp columns and showing progress while JSON payloads are parsed.</li>
 <li>Added <code><a href="../reference/prepare_unpacked_codes.html">prepare_unpacked_codes()</a></code> to convert code-bearing unpacked slots into the core <code>code_responses(..., prepare = TRUE)</code> output shape, including <code>code_type</code> and unnested <code>value</code> output for direct binding before <code><a href="../reference/complete_design.html">complete_design()</a></code>.</li>
 <li>These helpers are particularly useful for BKT-like question-slot preparation, where coded responses are stored across <code>question_*_content</code> columns rather than in one <code>coded</code> column.</li>
@@ -65,28 +65,28 @@
 <li>Extended <code>prepare_unpacked_codes(keep_uncoded = TRUE)</code> to preserve source rows that have no target response record, so identifiers such as <code>unit_key</code> survive BKT-like preparation.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9018" id="eatpreptba-0989018">eatPrepTBA 0.9.8.9018<a class="anchor" aria-label="anchor" href="#eatpreptba-0989018"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9018" id="eatpreptba-0989018-2026-06-16">eatPrepTBA 0.9.8.9018 [2026-06-16]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989018-2026-06-16"></a></h2>
 <ul><li>Fixed <code><a href="../reference/read_booklet.html">read_booklet()</a></code> for booklet XMLs where <code>Unit</code> elements already carry <code>testlet_id</code> or <code>testlet_label</code> attributes, avoiding duplicate-column failures while preserving testlet information.</li>
 <li>Added regression tests for <code><a href="../reference/read_booklet.html">read_booklet()</a></code> with pre-existing testlet attributes on standalone and nested units.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9017" id="eatpreptba-0989017">eatPrepTBA 0.9.8.9017<a class="anchor" aria-label="anchor" href="#eatpreptba-0989017"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9017" id="eatpreptba-0989017-2026-06-11">eatPrepTBA 0.9.8.9017 [2026-06-11]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989017-2026-06-11"></a></h2>
 <ul><li>Added <code>recode_omissions_to_not_reached</code> to <code><a href="../reference/complete_design.html">complete_design()</a></code> so users can choose whether trailing omission sequences at the end of a testlet are recoded as not reached.</li>
 <li>Kept <code><a href="../reference/complete_design.html">complete_design()</a></code> not-reached detection within each <code>testlet_no</code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9016" id="eatpreptba-0989016">eatPrepTBA 0.9.8.9016<a class="anchor" aria-label="anchor" href="#eatpreptba-0989016"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9016" id="eatpreptba-0989016-2026-06-11">eatPrepTBA 0.9.8.9016 [2026-06-11]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989016-2026-06-11"></a></h2>
 <ul><li>Added and corrected input validation across response coding, booklet/testtaker generation, metadata, settings, and psychometric helper functions.</li>
 <li>Removed the redundant plain-text <code>Author</code> field from <code>DESCRIPTION</code>; contributor metadata is now maintained via <code>Authors@R</code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9015" id="eatpreptba-0989015">eatPrepTBA 0.9.8.9015<a class="anchor" aria-label="anchor" href="#eatpreptba-0989015"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9015" id="eatpreptba-0989015-2026-06-11">eatPrepTBA 0.9.8.9015 [2026-06-11]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989015-2026-06-11"></a></h2>
 <ul><li>Refreshed the getting-started vignette with IQB Studio login, workspace, unit metadata, and coding-scheme walkthroughs.</li>
 <li>Added anonymized example unit data and Studio screenshots used by the vignette.</li>
 <li>Kept the shared RStudio project file tracked in the repository.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9014" id="eatpreptba-0989014">eatPrepTBA 0.9.8.9014<a class="anchor" aria-label="anchor" href="#eatpreptba-0989014"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9014" id="eatpreptba-0989014-2026-06-05">eatPrepTBA 0.9.8.9014 [2026-06-05]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989014-2026-06-05"></a></h2>
 <ul><li>Added shape-aware diagnostics in <code><a href="../reference/download_responses.html">download_responses()</a></code>, <code><a href="../reference/get_responses.html">get_responses()</a></code>, and <code><a href="../reference/read_responses.html">read_responses()</a></code> for changed Testcenter response slot ids. The new <code>diagnostics</code> argument controls compact, full, or suppressed feedback without changing output behavior.</li>
 <li>Refined response slot diagnostics to classify subform/state response containers separately from standard Testcenter wrapper slots.</li>
 <li>Made compact response slot diagnostics less alarming and less silent by confirming OK standard slots and pointing to <code>diagnostics = "full"</code> when id examples are shortened.</li>
@@ -99,7 +99,7 @@
 <li>Aligned response report preparation and raw empty-payload announcements in <code><a href="../reference/get_responses.html">get_responses()</a></code> and <code><a href="../reference/download_responses.html">download_responses()</a></code> with the <code>diagnostics</code> modes used by <code><a href="../reference/read_responses.html">read_responses()</a></code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9013" id="eatpreptba-0989013">eatPrepTBA 0.9.8.9013<a class="anchor" aria-label="anchor" href="#eatpreptba-0989013"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9013" id="eatpreptba-0989013-2026-06-05">eatPrepTBA 0.9.8.9013 [2026-06-05]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989013-2026-06-05"></a></h2>
 <ul><li>Added broad <code>testthat</code> coverage for XML readers/generators, response and log preparation, metadata/codebook helpers, S4 workspace/login methods, mocked API wrappers, and analysis routines.</li>
 <li>Fixed <code><a href="../reference/compute_sizes.html">compute_sizes()</a></code> by assigning the intermediate dependency-size table before summarising resource sizes.</li>
 <li>Made codebook preparation helpers robust to single-variable and single-code JSON structures.</li>
@@ -109,7 +109,7 @@
 <li>Added a GitHub Actions workflow for Codecov coverage uploads.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9012" id="eatpreptba-0989012">eatPrepTBA 0.9.8.9012<a class="anchor" aria-label="anchor" href="#eatpreptba-0989012"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9012" id="eatpreptba-0989012-2026-06-02">eatPrepTBA 0.9.8.9012 [2026-06-02]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989012-2026-06-02"></a></h2>
 <ul><li>Made <code><a href="../reference/prepare_coding_scheme.html">prepare_coding_scheme()</a></code> more robust for missing, partial, and mixed-type schemer payloads.</li>
 <li>Preserved multi-parameter rule expansion and normalized rule operators, rule positions, code models, and code identifiers to stable output types.</li>
 <li>Made <code><a href="../reference/add_coding_scheme.html">add_coding_scheme()</a></code> tolerate units with missing coding schemes while preserving the original unit rows.</li>
@@ -117,20 +117,20 @@
 <li>Added regression tests for missing coding schemes, incomplete schemer columns, multi-parameter rules, mixed rule-position types, and coded-response joins.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9011" id="eatpreptba-0989011">eatPrepTBA 0.9.8.9011<a class="anchor" aria-label="anchor" href="#eatpreptba-0989011"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9011" id="eatpreptba-0989011-2026-06-01">eatPrepTBA 0.9.8.9011 [2026-06-01]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989011-2026-06-01"></a></h2>
 <ul><li>Added focus lost/regained event extraction to <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code>, including optional block-aware handling of automatic block switches.</li>
 <li>Improved unit loading summaries with failed loading counts and explicit <code>run_no_load</code> handling.</li>
 <li>Added warnings when block information from <code>full_design</code> cannot be joined for automatic block-switch detection.</li>
 <li>Added regression tests for focus-event durations, automatic block-switch handling, failed loading counts, and missing load starts.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9010" id="eatpreptba-0989010">eatPrepTBA 0.9.8.9010<a class="anchor" aria-label="anchor" href="#eatpreptba-0989010"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9010" id="eatpreptba-0989010-2026-05-28">eatPrepTBA 0.9.8.9010 [2026-05-28]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989010-2026-05-28"></a></h2>
 <ul><li>Fixed <code><a href="../reference/add_metadata.html">add_metadata()</a></code> so item and unit metadata are matched against the workspace metadata profile when Studio returns stale <code>isCurrent</code> flags. This preserves item metadata such as <code>Variablenbezeichnung</code> even when the relevant profile is marked as not current in the returned properties JSON.</li>
 <li>Added regression tests for metadata profiles with stale <code>isCurrent</code> values.</li>
 <li>Removed a deprecated dplyr usage in <code><a href="../reference/add_metadata.html">add_metadata()</a></code> that produced a lifecycle warning when deriving <code>unit_has_uuids</code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9009" id="eatpreptba-0989009">eatPrepTBA 0.9.8.9009<a class="anchor" aria-label="anchor" href="#eatpreptba-0989009"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9009" id="eatpreptba-0989009-2026-05-13">eatPrepTBA 0.9.8.9009 [2026-05-13]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989009-2026-05-13"></a></h2>
 <ul><li>Added <code><a href="../reference/download_responses.html">download_responses()</a></code> for retrieving raw response reports from the Testcenter response endpoint.</li>
 <li>Updated <code><a href="../reference/get_responses.html">get_responses()</a></code>, <code><a href="../reference/read_responses.html">read_responses()</a></code>, and response documentation for the current response report format.</li>
 <li>Added <code>geometry_variables</code> and <code>geometry_variables_ts</code> columns to <code><a href="../reference/get_responses.html">get_responses()</a></code> and <code><a href="../reference/read_responses.html">read_responses()</a></code> for Testcenter <code>geometryVariableCodes</code> payloads.</li>
@@ -142,7 +142,7 @@
 <li>Added regression tests for response reports with empty nested response data.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9008" id="eatpreptba-0989008">eatPrepTBA 0.9.8.9008<a class="anchor" aria-label="anchor" href="#eatpreptba-0989008"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9008" id="eatpreptba-0989008-2026-05-05">eatPrepTBA 0.9.8.9008 [2026-05-05]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989008-2026-05-05"></a></h2>
 <ul><li>Added <code><a href="../reference/compute_staytime_tables.html">compute_staytime_tables()</a></code> for preparing stay-time quantile tables and related report output.</li>
 <li>Improved <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> with faster processing, failed loading counts, failed loading times, and expanded documentation.</li>
 <li>Restored and documented <code><a href="../reference/layout_staytime_tables.html">layout_staytime_tables()</a></code>, including a pkgdown entry.</li>
@@ -150,17 +150,17 @@
 <li>Updated package governance metadata in <code>DESCRIPTION</code>.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9007" id="eatpreptba-0989007">eatPrepTBA 0.9.8.9007<a class="anchor" aria-label="anchor" href="#eatpreptba-0989007"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9007" id="eatpreptba-0989007-2026-05-04">eatPrepTBA 0.9.8.9007 [2026-05-04]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989007-2026-05-04"></a></h2>
 <ul><li>Updated <code><a href="../reference/login_studio.html">login_studio()</a></code> for Studio app version <code>16.0.0</code>.</li>
 <li>Adjusted Studio authentication handling to read the access token from the JSON login response.</li>
 <li>Refreshed the generated <code><a href="../reference/login_studio.html">login_studio()</a></code> documentation.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9006" id="eatpreptba-0989006">eatPrepTBA 0.9.8.9006<a class="anchor" aria-label="anchor" href="#eatpreptba-0989006"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9006" id="eatpreptba-0989006-2026-02-26">eatPrepTBA 0.9.8.9006 [2026-02-26]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989006-2026-02-26"></a></h2>
 <ul><li>Fixed <code><a href="../reference/get_system_checks.html">get_system_checks()</a></code> for workspaces with no retrievable system-check data.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9005" id="eatpreptba-0989005">eatPrepTBA 0.9.8.9005<a class="anchor" aria-label="anchor" href="#eatpreptba-0989005"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9005" id="eatpreptba-0989005-2026-02-24">eatPrepTBA 0.9.8.9005 [2026-02-24]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989005-2026-02-24"></a></h2>
 <ul><li>Improved compatibility with STAR Player response data.</li>
 <li>Added <code><a href="../reference/prepare_coded.html">prepare_coded()</a></code> for preparing coded response data with list-column values.</li>
 <li>Renamed prepared response status output from <code>variable_status</code> to <code>code_status</code>.</li>
@@ -168,22 +168,22 @@
 <li>Added <code><a href="../reference/prepare_responses.html">prepare_responses()</a></code> to the pkgdown configuration.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9004" id="eatpreptba-0989004">eatPrepTBA 0.9.8.9004<a class="anchor" aria-label="anchor" href="#eatpreptba-0989004"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9004" id="eatpreptba-0989004-2026-01-14">eatPrepTBA 0.9.8.9004 [2026-01-14]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989004-2026-01-14"></a></h2>
 <ul><li>Incremented the development version.</li>
 <li>Corrected author metadata.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9003" id="eatpreptba-0989003">eatPrepTBA 0.9.8.9003<a class="anchor" aria-label="anchor" href="#eatpreptba-0989003"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9003" id="eatpreptba-0989003-2026-01-09">eatPrepTBA 0.9.8.9003 [2026-01-09]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989003-2026-01-09"></a></h2>
 <ul><li>Added <code><a href="../reference/test_coding_scheme.html">test_coding_scheme()</a></code> for checking common coding-scheme problems.</li>
 <li>Exported and documented <code><a href="../reference/test_coding_scheme.html">test_coding_scheme()</a></code>.</li>
 <li>Updated startup/package helper code used by the new coding-scheme checks.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9002" id="eatpreptba-0989002">eatPrepTBA 0.9.8.9002<a class="anchor" aria-label="anchor" href="#eatpreptba-0989002"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9002" id="eatpreptba-0989002-2026-01-07">eatPrepTBA 0.9.8.9002 [2026-01-07]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989002-2026-01-07"></a></h2>
 <ul><li>Adjusted <code><a href="../reference/complete_design.html">complete_design()</a></code> missing-code handling so <code>-94</code> remains available for missing-by-design cases and <code>-93</code> is used for no-code cases.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9001" id="eatpreptba-0989001">eatPrepTBA 0.9.8.9001<a class="anchor" aria-label="anchor" href="#eatpreptba-0989001"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9001" id="eatpreptba-0989001-2025-12-15">eatPrepTBA 0.9.8.9001 [2025-12-15]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989001-2025-12-15"></a></h2>
 <ul><li>Made <code><a href="../reference/get_design.html">get_design()</a></code> available as a top-level exported function.</li>
 <li>Fixed <code><a href="../reference/prepare_coding_scheme.html">prepare_coding_scheme()</a></code>.</li>
 <li>Updated Studio login and codebook documentation.</li>
@@ -192,7 +192,7 @@
 <li>Updated contributor metadata.</li>
 </ul></div>
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.8.9000" id="eatpreptba-0989000">eatPrepTBA 0.9.8.9000<a class="anchor" aria-label="anchor" href="#eatpreptba-0989000"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.8.9000" id="eatpreptba-0989000-2025-11-04">eatPrepTBA 0.9.8.9000 [2025-11-04]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989000-2025-11-04"></a></h2>
 <ul><li>Added support in <code><a href="../reference/change_unit_settings.html">change_unit_settings()</a></code> for changing unit metadata such as unit keys, names, descriptions, player/editor/schemer versions, groups, and states.</li>
 <li>Updated Studio login handling used by the unit-setting workflow.</li>
 <li>Updated display and documentation for the changed unit-setting behavior.</li>

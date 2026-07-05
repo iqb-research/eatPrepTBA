@@ -1,6 +1,6 @@
 # Changelog
 
-## eatPrepTBA 0.9.8.9022
+## eatPrepTBA 0.9.8.9022 \[2026-07-05\]
 
 - Added a vignette showing how eatPrepTBA communicates with IQB Studio
   APIs through `httr2`, including browser developer tools, bearer-token
@@ -9,7 +9,7 @@
 - Added anonymized example API response data and Studio screenshots used
   by the API vignette.
 
-## eatPrepTBA 0.9.8.9021
+## eatPrepTBA 0.9.8.9021 \[2026-07-03\]
 
 - Updated
   [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)
@@ -34,7 +34,7 @@
   the block name, and missing or empty `leave` values default to
   `"allowed"`.
 
-## eatPrepTBA 0.9.8.9020
+## eatPrepTBA 0.9.8.9020 \[2026-06-26\]
 
 - Added and refined input validation across API helpers, XML generation,
   stay-time table preparation, response coding inputs, and shared
@@ -43,7 +43,7 @@
   including ordinary data-frame inputs, missing response payload rows,
   and structured empty coded outputs.
 
-## eatPrepTBA 0.9.8.9019
+## eatPrepTBA 0.9.8.9019 \[2026-06-26\]
 
 - Added
   [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
@@ -76,7 +76,7 @@
   source rows that have no target response record, so identifiers such
   as `unit_key` survive BKT-like preparation.
 
-## eatPrepTBA 0.9.8.9018
+## eatPrepTBA 0.9.8.9018 \[2026-06-16\]
 
 - Fixed
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
@@ -87,7 +87,7 @@
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
   with pre-existing testlet attributes on standalone and nested units.
 
-## eatPrepTBA 0.9.8.9017
+## eatPrepTBA 0.9.8.9017 \[2026-06-11\]
 
 - Added `recode_omissions_to_not_reached` to
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
@@ -97,7 +97,7 @@
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   not-reached detection within each `testlet_no`.
 
-## eatPrepTBA 0.9.8.9016
+## eatPrepTBA 0.9.8.9016 \[2026-06-11\]
 
 - Added and corrected input validation across response coding,
   booklet/testtaker generation, metadata, settings, and psychometric
@@ -105,7 +105,7 @@
 - Removed the redundant plain-text `Author` field from `DESCRIPTION`;
   contributor metadata is now maintained via `Authors@R`.
 
-## eatPrepTBA 0.9.8.9015
+## eatPrepTBA 0.9.8.9015 \[2026-06-11\]
 
 - Refreshed the getting-started vignette with IQB Studio login,
   workspace, unit metadata, and coding-scheme walkthroughs.
@@ -113,7 +113,7 @@
   vignette.
 - Kept the shared RStudio project file tracked in the repository.
 
-## eatPrepTBA 0.9.8.9014
+## eatPrepTBA 0.9.8.9014 \[2026-06-05\]
 
 - Added shape-aware diagnostics in
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
@@ -151,7 +151,7 @@
   with the `diagnostics` modes used by
   [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
-## eatPrepTBA 0.9.8.9013
+## eatPrepTBA 0.9.8.9013 \[2026-06-05\]
 
 - Added broad `testthat` coverage for XML readers/generators, response
   and log preparation, metadata/codebook helpers, S4 workspace/login
@@ -169,7 +169,7 @@
   imports, and data-masked column names.
 - Added a GitHub Actions workflow for Codecov coverage uploads.
 
-## eatPrepTBA 0.9.8.9012
+## eatPrepTBA 0.9.8.9012 \[2026-06-02\]
 
 - Made
   [`prepare_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coding_scheme.md)
@@ -189,7 +189,7 @@
   columns, multi-parameter rules, mixed rule-position types, and
   coded-response joins.
 
-## eatPrepTBA 0.9.8.9011
+## eatPrepTBA 0.9.8.9011 \[2026-06-01\]
 
 - Added focus lost/regained event extraction to
   [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md),
@@ -201,7 +201,7 @@
 - Added regression tests for focus-event durations, automatic
   block-switch handling, failed loading counts, and missing load starts.
 
-## eatPrepTBA 0.9.8.9010
+## eatPrepTBA 0.9.8.9010 \[2026-05-28\]
 
 - Fixed
   [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
@@ -215,7 +215,7 @@
   [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
   that produced a lifecycle warning when deriving `unit_has_uuids`.
 
-## eatPrepTBA 0.9.8.9009
+## eatPrepTBA 0.9.8.9009 \[2026-05-13\]
 
 - Added
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md)
@@ -252,7 +252,7 @@
 - Added regression tests for response reports with empty nested response
   data.
 
-## eatPrepTBA 0.9.8.9008
+## eatPrepTBA 0.9.8.9008 \[2026-05-05\]
 
 - Added
   [`compute_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.md)
@@ -270,7 +270,7 @@
   Added a regression test for this case.
 - Updated package governance metadata in `DESCRIPTION`.
 
-## eatPrepTBA 0.9.8.9007
+## eatPrepTBA 0.9.8.9007 \[2026-05-04\]
 
 - Updated
   [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
@@ -281,13 +281,13 @@
   [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
   documentation.
 
-## eatPrepTBA 0.9.8.9006
+## eatPrepTBA 0.9.8.9006 \[2026-02-26\]
 
 - Fixed
   [`get_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/get_system_checks.md)
   for workspaces with no retrievable system-check data.
 
-## eatPrepTBA 0.9.8.9005
+## eatPrepTBA 0.9.8.9005 \[2026-02-24\]
 
 - Improved compatibility with STAR Player response data.
 - Added
@@ -305,12 +305,12 @@
   [`prepare_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_responses.md)
   to the pkgdown configuration.
 
-## eatPrepTBA 0.9.8.9004
+## eatPrepTBA 0.9.8.9004 \[2026-01-14\]
 
 - Incremented the development version.
 - Corrected author metadata.
 
-## eatPrepTBA 0.9.8.9003
+## eatPrepTBA 0.9.8.9003 \[2026-01-09\]
 
 - Added
   [`test_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/test_coding_scheme.md)
@@ -320,14 +320,14 @@
 - Updated startup/package helper code used by the new coding-scheme
   checks.
 
-## eatPrepTBA 0.9.8.9002
+## eatPrepTBA 0.9.8.9002 \[2026-01-07\]
 
 - Adjusted
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   missing-code handling so `-94` remains available for missing-by-design
   cases and `-93` is used for no-code cases.
 
-## eatPrepTBA 0.9.8.9001
+## eatPrepTBA 0.9.8.9001 \[2025-12-15\]
 
 - Made
   [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
@@ -340,7 +340,7 @@
 - Added the package logo and refreshed package site configuration.
 - Updated contributor metadata.
 
-## eatPrepTBA 0.9.8.9000
+## eatPrepTBA 0.9.8.9000 \[2025-11-04\]
 
 - Added support in
   [`change_unit_settings()`](https://iqb-research.github.io/eatPrepTBA/reference/change_unit_settings.md)
