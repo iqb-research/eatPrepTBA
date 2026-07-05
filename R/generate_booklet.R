@@ -8,6 +8,9 @@
 #' @param testlets Tbd.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
+#' @param booklet_config_version Booklet configuration version. `"18.0"` emits
+#'   the current Testcenter booklet configuration keys. `"legacy-16"` emits the
+#'   legacy key set used by older Testcenter 16 workflows.
 #'
 #' @description
 #' `r lifecycle::badge("deprecated")`
@@ -21,18 +24,24 @@ generate_booklet <- function(booklet_id,
                              units = NULL,
                              testlets = NULL,
                              app_version = "16.0.2",
-                             login = NULL) {
+                             login = NULL,
+                             booklet_config_version = c("18.0", "legacy-16")) {
   cli_setting()
   # input validation
   checkmate::assert_character(booklet_id)
   checkmate::assert_character(booklet_label)
   checkmate::assert_character(booklet_description, null.ok = TRUE)
   checkmate::assert_list(booklet_configuration, null.ok = TRUE)
-  # tbd: units, testlets
   checkmate::assert_character(app_version, len = 1)
   checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
+  checkmate::assert_data_frame(units, null.ok = TRUE)
+  checkmate::assert_data_frame(testlets, null.ok = TRUE)
+  booklet_config_version <- match.arg(booklet_config_version)
 
-  BookletConfig <- rlang::exec("configure_booklet", !!!booklet_configuration)
+  BookletConfig <- prepare_booklet_configuration(
+    booklet_configuration,
+    booklet_config_version = booklet_config_version
+  )
 
   if (!is.null(login)) {
     app_version <- login@app_version
@@ -66,7 +75,10 @@ generate_booklet <- function(booklet_id,
            BookletConfig = BookletConfig,
            Units = Units),
       "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
-      "xsi:noNamespaceSchemaLocation" = stringr::str_glue("https://raw.githubusercontent.com/iqb-berlin/testcenter/{app_version}/definitions/vo_Booklet.xsd")
+      "xsi:noNamespaceSchemaLocation" = booklet_schema_location(
+        booklet_config_version,
+        app_version
+      )
     ))  %>%
     list_to_xml() %>%
     xml2::as_xml_document()

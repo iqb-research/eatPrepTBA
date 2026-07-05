@@ -80,10 +80,13 @@ reference:
   - generate_testtakers
   - generate_booklet
   - generate_booklets
+  - prepare_booklets_from_block_design
   - upload_file
 - subtitle: Code responses and work with coded responses and logs from IQB Testcenter
   contents:
   - code_responses
+  - unpack_response_jsons
+  - prepare_unpacked_codes
   - complete_design
   - estimate_unit_times
   - evaluate_psychometrics

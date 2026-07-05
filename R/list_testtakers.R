@@ -12,6 +12,7 @@
 #' @aliases
 #' list_testtakers,WorkspaceTestcenter-method
 setGeneric("list_testtakers", function(workspace) {
+
   standardGeneric("list_testtakers")
 })
 

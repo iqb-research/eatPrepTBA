@@ -12,6 +12,7 @@
 #' @aliases
 #' get_logs,WorkspaceTestcenter-method
 setGeneric("get_logs", function(workspace, groups = NULL) {
+
   standardGeneric("get_logs")
 })
 
