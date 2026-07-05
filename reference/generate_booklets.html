@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9020</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9021</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,12 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">generate_booklets</span><span class="op">(</span><span class="va">booklets</span>, app_version <span class="op">=</span> <span class="st">"16.0.2"</span>, login <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">generate_booklets</span><span class="op">(</span></span>
+<span>  <span class="va">booklets</span>,</span>
+<span>  app_version <span class="op">=</span> <span class="st">"16.0.2"</span>,</span>
+<span>  login <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  booklet_config_version <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18.0"</span>, <span class="st">"legacy-16"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -50,7 +55,7 @@
 
 
 <dl><dt id="arg-booklets">booklets<a class="anchor" aria-label="anchor" href="#arg-booklets"></a></dt>
-<dd><p>Must be a tibble with the columns <code>booklet_id</code>, <code>booklet_label</code>, and <code>booklet_units</code>.Optionally, the columns <code>booklet_description</code> (character) and <code>booklet_configuration</code> (list) can be added. The (list) column <code>booklet_units</code> is a nested tibble with columns <code>testlet_id</code>, <code>testlet_label</code>, and <code>units</code>. Optionally, it can contain the column <code>testlet_restrictions</code>. Finally, the (list) column <code>units</code> is again a nested tibble with columns <code>unit_key</code>, <code>unit_alias</code>, <code>unit_label</code>, and <code>unit_labelshort</code>.</p></dd>
+<dd><p>Must be a tibble with the columns <code>booklet_id</code>, <code>booklet_label</code>, and <code>booklet_units</code>.Optionally, the columns <code>booklet_description</code> (character) and <code>booklet_configuration</code> (list) can be added. The (list) column <code>booklet_units</code> is a nested tibble with columns <code>testlet_id</code>, <code>testlet_label</code>, and <code>units</code>. Optionally, it can contain the columns <code>testlet_restrictions</code> and <code>testlets</code>. Finally, the (list) column <code>units</code> is again a nested tibble with columns <code>unit_key</code>, <code>unit_alias</code>, <code>unit_label</code>, and <code>unit_labelshort</code>. The optional <code>testlets</code> column can contain nested tibbles with the same structure as <code>booklet_units</code>.</p></dd>
 
 
 <dt id="arg-app-version">app_version<a class="anchor" aria-label="anchor" href="#arg-app-version"></a></dt>
@@ -59,6 +64,12 @@
 
 <dt id="arg-login">login<a class="anchor" aria-label="anchor" href="#arg-login"></a></dt>
 <dd><p>Target Testcenter instance. If it is available, the <code>app_version</code> will be overwritten.</p></dd>
+
+
+<dt id="arg-booklet-config-version">booklet_config_version<a class="anchor" aria-label="anchor" href="#arg-booklet-config-version"></a></dt>
+<dd><p>Booklet configuration version. <code>"18.0"</code> emits
+the current Testcenter booklet configuration keys. <code>"legacy-16"</code> emits the
+legacy key set used by older Testcenter 16 workflows.</p></dd>
 
 </dl></div>
     <div class="section level2">

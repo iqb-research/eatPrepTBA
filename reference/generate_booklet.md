@@ -13,7 +13,8 @@ generate_booklet(
   units = NULL,
   testlets = NULL,
   app_version = "16.0.2",
-  login = NULL
+  login = NULL,
+  booklet_config_version = c("18.0", "legacy-16")
 )
 ```
 
@@ -53,6 +54,12 @@ generate_booklet(
 
   Target Testcenter instance. If it is available, the `app_version` will
   be overwritten.
+
+- booklet_config_version:
+
+  Booklet configuration version. `"18.0"` emits the current Testcenter
+  booklet configuration keys. `"legacy-16"` emits the legacy key set
+  used by older Testcenter 16 workflows.
 
 ## Value
 

@@ -176,6 +176,8 @@ Functions to check units, prepare material for administration and coding
   **\[deprecated\]** : Generates booklets XML from unit information
 - [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)
   : Generates booklet XMLs from booklet, testlet, and unit information
+- [`prepare_booklets_from_block_design()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_booklets_from_block_design.md)
+  : Prepare booklet specifications from a tabular block design
 - [`upload_file()`](https://iqb-research.github.io/eatPrepTBA/reference/upload_file.md)
   : Upload file
 
