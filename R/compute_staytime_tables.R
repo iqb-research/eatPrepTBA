@@ -13,11 +13,11 @@
 #' Can be generated from the blocks.xlsx used for generating the test booklets, using the 
 #' generate_unit_domains() function in this file.
 #' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
-#' ideally corrected for switches etc. Relevant variables: id_used, code_type,
-#' code_id, variable_source_type, booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
+#' ideally corrected for switches etc. Relevant variables: id_used, 
+#' booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
 #' unit_key, variable_page
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
-#' @param units_cs Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
+#' @param unit_cs Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
 #' Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_meta Data frame. Unit-wise metadata, exported directly from IQB Studio.
@@ -80,7 +80,7 @@
 #' output_path <- "..."
 #'
 #' unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
-#' units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
+#' unit_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
 #' final_responses <- readRDS(paste(c(data_path, "responses_xyz.rds"), 
 #' collapse="")) #final results file
 #'
@@ -95,7 +95,7 @@
 #'                                     log_times,
 #'                                     unit_domains,
 #'                                     final_responses,
-#'                                     units_cs,
+#'                                     unit_cs,
 #'                                     unit_meta,
 #'                                     students_select,
 #'                                     FS_marker,
@@ -105,12 +105,15 @@
 #' # Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
 #'
 #' @export
+#' 
+#' # TODO: id_used wichtig? Rausfinden (auf Zoom gefragt 07.07.)
+#' # TODO: Examples und "not coded" anders rausfiltern, ohne code_type
 
 compute_staytime_tables <- function(fach,
                                     log_times,
                                     unit_domains,
                                     final_responses,
-                                    units_cs,
+                                    unit_cs,
                                     unit_meta,
                                     students_select,
                                     FS_marker,
@@ -126,7 +129,7 @@ compute_staytime_tables <- function(fach,
   checkmate::assert_data_frame(unit_domains)
   assert_cols(unit_domains, unit_domains_cols, "unit_domains")
 
-  final_responses_cols <- c("id_used", "code_type", "code_id", "variable_source_type",
+  final_responses_cols <- c("id_used",
                             "booklet_id", "item_id", "IDSTUD", "group_id", "login_name",
                             "login_code", "unit_key", "variable_page")
   checkmate::assert_data_frame(final_responses)
@@ -145,22 +148,22 @@ compute_staytime_tables <- function(fach,
     )
   rm(log_times)
 
-  # units_cs umformen: irrelevante Units rausschmeißen
-  units_cs <-
-    units_cs[which(units_cs$unit_key %in% unit_domains$unit_key), ]
+  # unit_cs umformen: irrelevante Units rausschmeißen
+  unit_cs <-
+    unit_cs[which(unit_cs$unit_key %in% unit_domains$unit_key), ]
 
   # Unit-Details auspacken
-  units_cs <-
-    units_cs %>%
+  unit_cs <-
+    unit_cs %>%
     tidyr::unnest(unit_codes, keep_empty = TRUE)
   
-  units_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
-  checkmate::assert_data_frame(units_cs)
-  assert_cols(units_cs, units_cs_cols, "units_cs")
+  unit_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
+  checkmate::assert_data_frame(unit_cs)
+  assert_cols(unit_cs, unit_cs_cols, "unit_cs")
 
   # Korrektur fuer die Markieritems
-  units_cs_corrected <-
-    units_cs %>%
+  unit_cs_corrected <-
+    unit_cs %>%
     dplyr::mutate(
       # variable_temp = dplyr::case_when(
       #   grepl("^[0-9]+$", variable_label) ~ as.integer(variable_label),
@@ -174,7 +177,7 @@ compute_staytime_tables <- function(fach,
         .default = as.integer(.data$variable_page)
       )
     )
-  rm(units_cs)
+  rm(unit_cs)
 
   # Umformen: irrelevante Units rausschmeißen
   final_responses <-
@@ -183,8 +186,7 @@ compute_staytime_tables <- function(fach,
 
   final_resp <-
     final_responses[
-      complete.cases(final_responses[, c("id_used", "code_type",
-                                         "code_id", "variable_source_type")]) &
+      complete.cases(final_responses[, c("id_used")]) &
         final_responses$id_used == TRUE &
         final_responses$code_type != "EXAMPLE" &
         final_responses$code_type != "NO_CODING", ] %>%
@@ -200,8 +202,8 @@ compute_staytime_tables <- function(fach,
   resp_pages <-
     final_resp %>%
     dplyr::filter(!is.na(.data$item_id)) %>%
-    dplyr::left_join(units_cs_corrected %>% dplyr::select(unit_key, variable_id, variable_page))
-  rm(units_cs_corrected, final_resp)
+    dplyr::left_join(unit_cs_corrected %>% dplyr::select(unit_key, variable_id, variable_page))
+  rm(unit_cs_corrected, final_resp)
 
   resp_page_logtimes <-
     resp_pages %>%
