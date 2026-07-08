@@ -167,20 +167,27 @@ add_profile <- function(unit_items, units, md_profile, profiles, extra_columns =
   return(units_return)
 }
 
-# Uses the workspace profile as source of truth. `isCurrent` is only a fallback
-# because Studio can return stale stored flags for units with separately saved metadata.
+# Uses the workspace profile as source of truth. `order = -1` hides profiles in
+# metadata-values >= 2.0, while `isCurrent` is only a legacy fallback because
+# Studio can return stale stored flags for units with separately saved metadata.
 #' @keywords internal
 filter_current_metadata_profiles <- function(units_meta, md_profile, group_cols) {
   has_profile_id <- tibble::has_name(units_meta, "profile_id")
   has_profile_is_current <- tibble::has_name(units_meta, "profile_is_current")
+  has_profile_order <- tibble::has_name(units_meta, "profile_order")
 
-  if (!has_profile_id && !has_profile_is_current) {
+  if (!has_profile_id && !has_profile_is_current && !has_profile_order) {
     return(units_meta)
   }
 
   units_meta %>%
     dplyr::group_by(dplyr::across(dplyr::any_of(group_cols))) %>%
     dplyr::mutate(
+      profile_visible = if (has_profile_order) {
+        is.na(.data[["profile_order"]]) | .data[["profile_order"]] >= 0
+      } else {
+        TRUE
+      },
       profile_matches_workspace = if (has_profile_id) {
         !is.na(.data[[md_profile]]) &
           !is.na(.data[["profile_id"]]) &
@@ -195,11 +202,12 @@ filter_current_metadata_profiles <- function(units_meta, md_profile, group_cols)
       },
       has_expected_profile = !is.na(.data[[md_profile]]),
       has_profile_id = if (has_profile_id) any(!is.na(.data[["profile_id"]])) else FALSE,
-      has_workspace_profile = any(.data[["profile_matches_workspace"]]),
+      has_workspace_profile = any(.data[["profile_matches_workspace"]] & .data[["profile_visible"]]),
       has_current_profile = any(.data[["profile_marked_current"]])
     ) %>%
     dplyr::filter(
       dplyr::case_when(
+        !.data[["profile_visible"]] ~ FALSE,
         .data[["has_workspace_profile"]] ~ .data[["profile_matches_workspace"]],
         .data[["has_expected_profile"]] & .data[["has_profile_id"]] ~ FALSE,
         .data[["has_current_profile"]] ~ .data[["profile_marked_current"]],
@@ -209,6 +217,7 @@ filter_current_metadata_profiles <- function(units_meta, md_profile, group_cols)
     dplyr::ungroup() %>%
     dplyr::select(
       -dplyr::any_of(c(
+        "profile_visible",
         "profile_matches_workspace",
         "profile_marked_current",
         "has_expected_profile",

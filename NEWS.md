@@ -1,3 +1,7 @@
+# eatPrepTBA 0.9.8.9023 [2026-07-08]
+
+* Updated metadata preparation to read IQB `metadata-values` 3.0 structures, including `order`, `raw`, `asText`, language-coded text values, vocabulary `annotation`, and `order = -1` hidden profiles, while keeping legacy `isCurrent` and `valueAsText` support.
+
 # eatPrepTBA 0.9.8.9022 [2026-07-05]
 
 * Added a vignette showing how eatPrepTBA communicates with IQB Studio APIs through `httr2`, including browser developer tools, bearer-token headers, `GET`, `POST`, and `PATCH` examples, metadata extraction, and coding-scheme JSON inspection.
