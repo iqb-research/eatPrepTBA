@@ -1,11 +1,11 @@
 pandoc: 3.8.3
-pkgdown: 2.2.0
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   eatPrepTBA: eatPrepTBA.html
   prepare-codebooks: prepare-codebooks.html
   working-with-iqb-apis: working-with-iqb-apis.html
-last_built: 2026-07-05T17:48Z
+last_built: 2026-07-08T11:06Z
 urls:
   reference: https://iqb-research.github.io/eatPrepTBA/reference
   article: https://iqb-research.github.io/eatPrepTBA/articles
