@@ -13,7 +13,7 @@
 #' Can be generated from the blocks.xlsx used for generating the test booklets, using the 
 #' generate_unit_domains() function in this file.
 #' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
-#' ideally corrected for switches etc. Relevant variables: id_used, 
+#' ideally corrected for switches etc. Relevant variables: 
 #' booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
 #' unit_key, variable_page
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
@@ -105,9 +105,6 @@
 #' # Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
 #'
 #' @export
-#' 
-#' # TODO: id_used wichtig? Rausfinden (auf Zoom gefragt 07.07.)
-#' # TODO: Examples und "not coded" anders rausfiltern, ohne code_type
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -129,8 +126,7 @@ compute_staytime_tables <- function(fach,
   checkmate::assert_data_frame(unit_domains)
   assert_cols(unit_domains, unit_domains_cols, "unit_domains")
 
-  final_responses_cols <- c("id_used",
-                            "booklet_id", "item_id", "IDSTUD", "group_id", "login_name",
+  final_responses_cols <- c("booklet_id", "item_id", "IDSTUD", "group_id", "login_name",
                             "login_code", "unit_key", "variable_page")
   checkmate::assert_data_frame(final_responses)
   assert_cols(final_responses, final_responses_cols, "final_responses")
@@ -184,12 +180,7 @@ compute_staytime_tables <- function(fach,
     final_responses[which(final_responses$unit_key %in% unit_domains$unit_key), ] %>%
     dplyr::left_join(unit_domains, by="unit_key")
 
-  final_resp <-
-    final_responses[
-      complete.cases(final_responses[, c("id_used")]) &
-        final_responses$id_used == TRUE &
-        final_responses$code_type != "EXAMPLE" &
-        final_responses$code_type != "NO_CODING", ] %>%
+  final_resp <- final_responses %>%
     dplyr::mutate(
       design = dplyr::case_when(
         stringr::str_detect(.data$booklet_id, FS_marker) ~ "FS",

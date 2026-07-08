@@ -75,6 +75,7 @@
 #' - osName: Operating system, drawn from LOADCOMPLETE log entries
 #' - browserName: Browser used for testing, drawn from LOADCOMPLETE log entries
 #' - browserVersion: Browser version, drawn from LOADCOMPLETE log entries
+#' - testlet_no: Block (testlet) number
 #'
 #' Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 #'
@@ -85,7 +86,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   cli_setting()
   devicecolumns <- c("device", "osName", "browserName", "browserVersion")
 
-  logs_cols <- c("unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
+  logs_cols <- c("group_id", "login_name", "login_code", "unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
   checkmate::assert_tibble(logs)
   assert_cols(logs, logs_cols, "logs")
   
@@ -100,8 +101,8 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     logs$unit_ident <- logs$unit_key
   }
 
-  groups_booklet <- setdiff(names(logs), c("unit_key", "unit_alias", "unit_ident", "ts", "log_entry"))
-  groups_unit <- setdiff(names(logs), c("ts", "log_entry", "unit_key", "unit_alias"))
+  groups_booklet <- c("group_id", "login_name", "login_code", "booklet_id")
+  groups_unit <- c("group_id", "login_name", "login_code", "booklet_id", "unit_ident")
 
   logs <- logs[!duplicated(logs), ]
 
@@ -151,13 +152,21 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     if (!"testlet_no" %in% names(full_design)) {
       full_design$testlet_no <- NA_integer_
     }
+    if (use_unit_alias) {
+      full_design$unit_ident <- full_design$unit_alias
+    } else {
+      full_design$unit_ident <- full_design$unit_key
+    }
+    design_cols <- c("group_id", "login_name", "login_code", "unit_ident", "booklet_id", "testlet_no")
+    checkmate::assert_tibble(full_design)
+    assert_cols(full_design, design_cols, "design")
 
     all_logs <- all_logs %>%
     dplyr::left_join(
       full_design %>% dplyr::select(dplyr::all_of(c(intersect(names(all_logs), names(full_design)),
                                                     "testlet_no"))),
       by = intersect(names(.), intersect(names(all_logs), names(full_design))),
-      multiple = "first"
+      multiple = "any"
     )
 
     if (!block_self_switch && all(is.na(all_logs$testlet_no))) {
@@ -497,13 +506,25 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       dplyr::left_join(
         dev_logs %>% dplyr::select(dplyr::all_of(c(groups_booklet, devicecolumns))),
         by = groups_booklet,
-        multiple = "first")}
-
+        multiple = "any")}
+  
+  # Re-insert all unit IDs
   unit_logs <- unit_logs %>%
     dplyr::left_join(
       all_ts %>% dplyr::select(dplyr::all_of(c(groups_unit, "unit_alias", "unit_key", "unit_ident"))),
       by = groups_unit,
       multiple = "any")
+  
+  # Re-insert testlet_no (block number) if available
+  if (!is.null(full_design)) {
+    unit_logs <- unit_logs %>%
+      dplyr::left_join(
+        full_design %>% dplyr::select(dplyr::all_of(c(groups_unit, "testlet_no"))),
+        by = groups_unit,
+        multiple = "any")
+  } else {
+    unit_logs$testlet_no <- NA
+  }
 
   unit_logs$unit_page_logs[unit_logs$unit_page_logs=="NULL"] <- NA
   unit_logs$focus_events[unit_logs$focus_events=="NULL"] <- NA

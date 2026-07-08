@@ -100,6 +100,7 @@ use_unit_alias
 \item osName: Operating system, drawn from LOADCOMPLETE log entries
 \item browserName: Browser used for testing, drawn from LOADCOMPLETE log entries
 \item browserVersion: Browser version, drawn from LOADCOMPLETE log entries
+\item testlet_no: Block (testlet) number
 }
 
 Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.

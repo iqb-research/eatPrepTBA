@@ -2,8 +2,9 @@
 test_that("estimate_unit_times returns tibble with expected columns", {
   # Create minimal test data
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -18,6 +19,9 @@ test_that("estimate_unit_times returns tibble with expected columns", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
@@ -39,8 +43,9 @@ test_that("estimate_unit_times returns tibble with expected columns,
           even without optional arguments", {
   # Create minimal test data
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -67,8 +72,9 @@ test_that("estimate_unit_times returns tibble with expected columns,
 # Test 3
 test_that("estimate_unit_times calculates focus lost events correctly", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1",
                  "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2",
@@ -94,6 +100,9 @@ test_that("estimate_unit_times calculates focus lost events correctly", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_1",
                  "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2",
@@ -121,8 +130,9 @@ test_that("estimate_unit_times calculates focus lost events correctly", {
 
 test_that("estimate_unit_times ignores auto block loading and first page as focus regain", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = c("UNIT_1", "UNIT_1", "UNIT_1", "UNIT_2",
                  "UNIT_2", "UNIT_2", "UNIT_2", "UNIT_2"),
@@ -142,6 +152,9 @@ test_that("estimate_unit_times ignores auto block loading and first page as focu
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = c("UNIT_1", "UNIT_2"),
     testlet_no = c(1, 2)
@@ -158,8 +171,9 @@ test_that("estimate_unit_times ignores auto block loading and first page as focu
 
 test_that("estimate_unit_times warns when block mapping cannot be joined", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -172,6 +186,9 @@ test_that("estimate_unit_times warns when block mapping cannot be joined", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "OTHER_UNIT",
     testlet_no = 1
@@ -188,8 +205,9 @@ test_that("estimate_unit_times warns when block mapping cannot be joined", {
 # Test 4
 test_that("estimate_unit_times respects booklet endings when flagging unfollowed focus events", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -203,6 +221,9 @@ test_that("estimate_unit_times respects booklet endings when flagging unfollowed
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
@@ -218,8 +239,9 @@ test_that("estimate_unit_times respects booklet endings when flagging unfollowed
 # Test 5
 test_that("estimate_unit_times handles multiple unit plays", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -235,6 +257,9 @@ test_that("estimate_unit_times handles multiple unit plays", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
@@ -251,8 +276,9 @@ test_that("estimate_unit_times handles multiple unit plays", {
 # Test 6
 test_that("estimate_unit_times creates unit_ident column correctly", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_ALIAS_1",
@@ -265,6 +291,9 @@ test_that("estimate_unit_times creates unit_ident column correctly", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_ALIAS_1",
@@ -285,8 +314,9 @@ test_that("estimate_unit_times creates unit_ident column correctly", {
 # Test 7
 test_that("estimate_unit_times handles missing booklet_id entries", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = c("BOOKLET_1", NA, "BOOKLET_1", "BOOKLET_1"),
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -300,6 +330,9 @@ test_that("estimate_unit_times handles missing booklet_id entries", {
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
@@ -314,8 +347,9 @@ test_that("estimate_unit_times handles missing booklet_id entries", {
 # Test 8
 test_that("estimate_unit_times returns NA focus_events when no focus events occur", {
   logs <- tibble::tibble(
-    group = "test_group",
-    login = "user1",
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     unit_alias = "UNIT_1",
@@ -328,6 +362,9 @@ test_that("estimate_unit_times returns NA focus_events when no focus events occu
   )
 
   design <- tibble::tibble(
+    group_id = "test_group",
+    login_code = "user1",
+    login_name = "ln1",
     booklet_id = "BOOKLET_1",
     unit_key = "UNIT_1",
     testlet_no = 1
@@ -344,8 +381,9 @@ test_that("estimate_unit_times returns NA focus_events when no focus events occu
 test_that("estimate_unit_times correctly calculates loading and playback times", {
   # Create a minimal test logs tibble with known loading and playback times
   logs <- tibble::tibble(
-    group = c(rep("g1", 8)),
-    login = c(rep("user1", 8)),
+    group_id = c(rep("g1", 8)),
+    login_code = c(rep("user1", 8)),
+    login_name = c(rep("ln1", 8)),
     booklet_id = c(rep("book1", 8)),
     unit_key = c("u1", "u1", "u1", "u1", "u2", "u2", "u2", "u2"),
     unit_alias = c("u1", "u1", "u1", "u1", "u2", "u2", "u2", "u2"),
@@ -386,8 +424,9 @@ test_that("estimate_unit_times correctly calculates loading and playback times",
 test_that("estimate_unit_times correctly counts n_failed_loadings", {
   # Create logs with failed loading attempts
   logs <- tibble::tibble(
-    group = c(rep("g1", 5)),
-    login = c(rep("user1", 5)),
+    group_id = c(rep("g1", 5)),
+    login_code = c(rep("user1", 5)),
+    login_name = c(rep("ln1", 5)),
     booklet_id = c(rep("book1", 5)),
     unit_key = c("u1", "u1", "u1", "u1", "u1"),
     unit_alias = c("u1", "u1", "u1", "u1", "u1"),
@@ -413,8 +452,9 @@ test_that("estimate_unit_times correctly counts n_failed_loadings", {
 test_that("estimate_unit_times handles multiple playbacks with different loading times", {
   # Create logs with multiple playbacks of the same unit
   logs <- tibble::tibble(
-    group = c(rep("g1", 10)),
-    login = c(rep("user1", 10)),
+    group_id = c(rep("g1", 10)),
+    login_code = c(rep("user1", 10)),
+    login_name = c(rep("ln1", 10)),
     booklet_id = c(rep("book1", 10)),
     unit_key = c("u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1"),
     unit_alias = c("u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1", "u1"),
@@ -459,8 +499,9 @@ test_that("estimate_unit_times handles multiple playbacks with different loading
 test_that("estimate_unit_times handles run_no_load cases correctly", {
   # Create logs where PLAYER = RUNNING occurs without prior PLAYER = LOADING
   logs <- tibble::tibble(
-    group = c(rep("g1", 6)),
-    login = c(rep("user1", 6)),
+    group_id = c(rep("g1", 6)),
+    login_code = c(rep("user1", 6)),
+    login_name = c(rep("ln1", 6)),
     booklet_id = c(rep("book1", 6)),
     unit_key = c("u1", "u1", "u2", "u2", "u2", "u2"),
     unit_alias = c("u1", "u1", "u2", "u2", "u2", "u2"),
@@ -498,8 +539,9 @@ test_that("estimate_unit_times handles run_no_load cases correctly", {
 # Test 13
 test_that("estimate_unit_times extracts device and browser from LOADCOMPLETE", {
   logs <- tibble::tibble(
-    group = c(rep("g1", 6)),
-    login = c(rep("user1", 6)),
+    group_id = c(rep("g1", 6)),
+    login_code = c(rep("user1", 6)),
+    login_name = c(rep("ln1", 6)),
     booklet_id = c(rep("book1", 6)),
     unit_key = c("u1", "u1", "u2", "u2", "u2", "u2"),
     unit_alias = c("u1", "u1", "u2", "u2", "u2", "u2"),

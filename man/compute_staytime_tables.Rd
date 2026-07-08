@@ -9,7 +9,7 @@ compute_staytime_tables(
   log_times,
   unit_domains,
   final_responses,
-  units_cs,
+  unit_cs,
   unit_meta,
   students_select,
   FS_marker,
@@ -31,12 +31,12 @@ Can be generated from the blocks.xlsx used for generating the test booklets, usi
 generate_unit_domains() function in this file.}
 
 \item{final_responses}{Data frame. Contains the item-wise and respondent-wise coded responses,
-ideally corrected for switches etc. Relevant variables: id_used, code_type,
-code_id, variable_source_type, booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
+ideally corrected for switches etc. Relevant variables:
+booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
 unit_key, variable_page
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
-\item{units_cs}{Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
+\item{unit_cs}{Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
 Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
@@ -106,7 +106,7 @@ db_path <- "..."
 output_path <- "..."
 
 unit_meta <- readRDS(paste(c(db_path, "units_md.rds"), collapse="")) # unit meta data
-units_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
+unit_cs <- readRDS(paste(c(db_path, "units_cs.rds"), collapse="")) # unit coding scheme
 final_responses <- readRDS(paste(c(data_path, "responses_xyz.rds"), 
 collapse="")) #final results file
 
@@ -121,7 +121,7 @@ eatPrepTBA::compute_staytime_tables(fach,
                                     log_times,
                                     unit_domains,
                                     final_responses,
-                                    units_cs,
+                                    unit_cs,
                                     unit_meta,
                                     students_select,
                                     FS_marker,
