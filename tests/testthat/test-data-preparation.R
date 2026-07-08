@@ -125,7 +125,7 @@ test_that("extract_metadata returns the known metadata attributes", {
 test_that("metadata helpers tolerate empty profiles and item lists", {
   metadata <- eatPrepTBA:::prepare_metadata(list(profiles = list(), items = list()))
 
-  expect_equal(metadata$unit_profiles[[1]]$profile_name, NA)
+  expect_equal(metadata$unit_profiles[[1]]$profile_name, NA_character_)
   expect_equal(metadata$items_list[[1]]$item_id, NA_character_)
   expect_equal(metadata$items_profiles[[1]]$item_no, NA_integer_)
 })
