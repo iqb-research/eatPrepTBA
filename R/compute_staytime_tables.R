@@ -118,9 +118,9 @@ compute_staytime_tables <- function(fach,
                                     FS_marker,
                                     output_path) {
   # input validation
-  checkmate::assert_character(fach, len =1)
-  checkmate::assert_character(FS_marker, len =1)
-  checkmate::assert_character(output_path, len =1)
+  checkmate::assert_character(fach, len=1)
+  checkmate::assert_character(FS_marker, len=1)
+  checkmate::assert_character(output_path, len=1)
   checkmate::assert_character(students_select, null.ok = TRUE)
   checkmate::assert_data_frame(log_times)
 
@@ -237,7 +237,8 @@ compute_staytime_tables <- function(fach,
       # Nur Seiten, die mindestens 11 mal bearbeitet wurden
       .data$page_n_valid > 10
     ) %>%
-    dplyr::left_join(unit_domains, by="unit_key")
+    dplyr::left_join(unit_domains, 
+                     by="unit_key")
 
   stim_logs_quant_design <-
     unit_page_logtimes %>%
@@ -409,7 +410,8 @@ compute_staytime_tables <- function(fach,
 
   resp_page_logtimes_unit_quant_meta_design <-
     resp_page_logtimes_unit_quant_design %>%
-    dplyr::left_join(meta_logs) %>%
+    dplyr::left_join(meta_logs,
+                     by = "unit_key") %>%
     dplyr::mutate(
       unit_diff_RS = .data$unit_q90_RS - .data$unit_estimated,
       unit_diff95_RS = .data$unit_q95_RS - .data$unit_estimated,
@@ -423,21 +425,25 @@ compute_staytime_tables <- function(fach,
       stim_logs_quant_design
     ) %>%
     dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
-    dplyr::left_join(
-      resp_page_logtimes_unit_quant_meta_design
+    dplyr::left_join(resp_page_logtimes_unit_quant_meta_design,
+                     by = "unit_key"
     )
   # rm(resp_page_logtimes_page_quant_design, stim_logs_quant_design, resp_page_logtimes_unit_quant_meta_design)
 
-  resp_page_logtimes_page_quant <- dplyr::left_join(resp_page_logtimes_page_quant, unit_domains, by="unit_key")
+  resp_page_logtimes_page_quant <- resp_page_logtimes_page_quant %>% 
+    dplyr::left_join(unit_domains, 
+                     by="unit_key")
 
   p25_all_quant <-
     dplyr::bind_rows(
       resp_page_logtimes_page_quant,
-      stim_logs_quant
+      stim_logs_quant %>% mutate(item_id = as.character(item_id))
     ) %>%
     dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
-    dplyr::left_join(resp_page_logtimes_unit_quant_meta) %>%
-    dplyr::left_join(p25_all_quant_design)
+    dplyr::left_join(resp_page_logtimes_unit_quant_meta,
+                     by = "unit_key") %>%
+    dplyr::left_join(p25_all_quant_design,
+                     by = c("unit_key", "item_id", "variable_page", "unit_label", "link", "unit_estimated"))
   
   # rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, p25_all_quant_design)
 
@@ -638,7 +644,7 @@ layout_staytime_tables <- function(data,
   #                         "flag")
   # }
 
-  # diff_group <- intersect(
+  # diff_group <- dplyr::intersect(
   #   names(data),
   #   diff_group
   # )
@@ -685,7 +691,7 @@ layout_staytime_tables <- function(data,
   #                          "outfit__g",
   #                          "se__g")
   #
-  #   show_parameters <- intersect(filter_parameters, names(data))
+  #   show_parameters <- dplyr::intersect(filter_parameters, names(data))
   #
   #   filter_meta <- c("Geschätzte_Schwierigkeit",
   #                    "Anforderungsbereich",
@@ -698,7 +704,7 @@ layout_staytime_tables <- function(data,
   #     filter_meta <- c(filter_meta, "innovation_unit")
   #   }
   #
-  #   show_meta <- intersect(filter_meta, names(data))
+  #   show_meta <- dplyr::intersect(filter_meta, names(data))
 
   filter_design <- c("unit_median_RS",
                      "unit_q90_RS",
@@ -722,7 +728,7 @@ layout_staytime_tables <- function(data,
     )
   }
 
-  show_design <- intersect(filter_design, names(data))
+  show_design <- dplyr::intersect(filter_design, names(data))
 
   # Darstellung mit Checkboxen
   htmltools::browsable(
