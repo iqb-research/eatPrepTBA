@@ -123,8 +123,10 @@ test_that("generate_testtakers writes groups, logins, booklets, custom texts, an
     login_name = c("login1", "monitor"),
     login_pw = c("pw1", NA_character_),
     login_mode = c("run-hot-return", "monitor-group"),
+    login_monitor_code = c("M1", NA_character_),
     booklet_id = c("B1", NA_character_),
     booklet_codes = c("C1 C2", NA_character_),
+    booklet_state = c("unit-a:presented", NA_character_),
     profile_id = c(NA_character_, "P1")
   )
 
@@ -136,6 +138,7 @@ test_that("generate_testtakers writes groups, logins, booklets, custom texts, an
     view = "full",
     group_column = "hide",
     booklet_column = "hide",
+    booklet_states_columns = "unit-a",
     filter_pending = "no",
     filter_locked = "no",
     autoselect_next_block = "no",
@@ -143,6 +146,7 @@ test_that("generate_testtakers writes groups, logins, booklets, custom texts, an
     filter_field = "bookletLabel",
     filter_type = "equal",
     filter_value = "Booklet 1",
+    filter_sub_value = "Booklet 1a",
     filter_not = "false"
   )
 
@@ -159,6 +163,105 @@ test_that("generate_testtakers writes groups, logins, booklets, custom texts, an
   expect_match(xml_text, "<Booklet")
   expect_match(xml_text, "<CustomText")
   expect_match(xml_text, "<Profile")
+  expect_match(
+    xml_text,
+    "https://w3id.org/iqb/spec/testcenter-testtaker-xml/18.0",
+    fixed = TRUE
+  )
+  expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Login[@name='login1']"), "monitorcode"), "M1")
+  expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Booklet"), "state"), "unit-a:presented")
+  expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Profiles//Profile"), "bookletStatesColumns"), "unit-a")
+  expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Filter"), "subValue"), "Booklet 1a")
+})
+
+test_that("generate_testtakers fills missing current group labels", {
+  testtakers <- tibble::tibble(
+    group_id = "G1",
+    login_name = "login1"
+  )
+
+  expect_warning(
+    xml <- generate_testtakers(testtakers),
+    "requires `group_label`"
+  )
+
+  expect_match(
+    as.character(xml),
+    "https://w3id.org/iqb/spec/testcenter-testtaker-xml/18.0",
+    fixed = TRUE
+  )
+  expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Group"), "label"), "G1")
+})
+
+test_that("generate_testtakers can emit legacy-16 schema location", {
+  testtakers <- tibble::tibble(
+    group_id = "G1",
+    login_name = "login1"
+  )
+
+  xml <- generate_testtakers(testtakers, testtakers_version = "legacy-16")
+
+  expect_match(
+    as.character(xml),
+    "https://raw.githubusercontent.com/iqb-berlin/testcenter/18.0.0/definitions/vo_Testtakers.xsd",
+    fixed = TRUE
+  )
+  expect_true(is.na(xml2::xml_attr(xml2::xml_find_first(xml, ".//Group"), "label")))
+})
+
+test_that("generate_testtakers rejects mixed booklet and profile children in current mode", {
+  testtakers <- tibble::tibble(
+    group_id = "G1",
+    group_label = "Group 1",
+    login_name = "login1",
+    booklet_id = "B1",
+    profile_id = "P1"
+  )
+
+  profiles <- tibble::tibble(profile_id = "P1")
+
+  expect_error(
+    generate_testtakers(testtakers, profiles = profiles),
+    "does not allow"
+  )
+
+  expect_s3_class(
+    generate_testtakers(testtakers, profiles = profiles, testtakers_version = "legacy-16"),
+    "xml_document"
+  )
+})
+
+test_that("generate_testtakers validates operational target table inputs", {
+  expect_error(
+    generate_testtakers(tibble::tibble(group_id = NA_character_, login_name = "login1")),
+    "Required columns"
+  )
+
+  expect_error(
+    generate_testtakers(tibble::tibble(
+      group_id = c("G1", "G2"),
+      login_name = "login1"
+    )),
+    "only one"
+  )
+
+  expect_error(
+    generate_testtakers(
+      tibble::tibble(group_id = "G1", login_name = "login1"),
+      custom_texts = list("Pilot")
+    ),
+    "named list"
+  )
+
+  expect_error(
+    generate_testtakers(tibble::tibble(
+      group_id = "G1",
+      group_label = "Group 1",
+      login_name = "monitor",
+      profile_id = "P1"
+    )),
+    "provide matching"
+  )
 })
 
 test_that("read_testtakers expands booklet codes and preserves order", {

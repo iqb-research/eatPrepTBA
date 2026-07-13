@@ -1,3 +1,10 @@
+# eatPrepTBA 0.9.8.9024 [2026-07-13]
+
+* Updated `generate_testtakers()` to target Testcenter testtakers XML specification 18.0 by default, including the new `w3id.org` schema URL and `testtakers_version = "legacy-16"` for older Testcenter 16 output.
+* Raised the default `generate_testtakers()` `app_version` to `"18.0.0"`.
+* Added current testtakers XML support for `booklet_state`, `login_monitor_code`, `booklet_states_columns`, and `filter_sub_value`, and guarded against current-mode logins that mix `Booklet` and `Profile` children.
+* Clarified `generate_testtakers()` documentation around the required target table format used by project-specific wrappers, and added input checks for required values, named custom texts, profile references, and consistent login definitions.
+
 # eatPrepTBA 0.9.8.9023 [2026-07-08]
 
 * Updated metadata preparation to read IQB `metadata-values` 3.0 structures, including `order`, `raw`, `asText`, language-coded text values, vocabulary `annotation`, and `order = -1` hidden profiles, while keeping legacy `isCurrent` and `valueAsText` support.
