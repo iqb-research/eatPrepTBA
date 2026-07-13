@@ -4,6 +4,7 @@
 * Raised the default `generate_testtakers()` `app_version` to `"18.0.0"`.
 * Added current testtakers XML support for `booklet_state`, `login_monitor_code`, `booklet_states_columns`, and `filter_sub_value`, and guarded against current-mode logins that mix `Booklet` and `Profile` children.
 * Clarified `generate_testtakers()` documentation around the required target table format used by project-specific wrappers, and added input checks for required values, named custom texts, profile references, and consistent login definitions.
+* Expanded `generate_testtakers()` documentation and examples for large project-specific `custom_texts` lists.
 
 # eatPrepTBA 0.9.8.9023 [2026-07-08]
 

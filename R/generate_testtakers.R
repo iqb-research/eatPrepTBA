@@ -7,9 +7,9 @@
 #'   `group_label`, `group_valid_to`, `group_valid_from`, `group_valid_for`,
 #'   `login_pw`, `login_mode`, `login_monitor_code`, `booklet_id`,
 #'   `booklet_codes`, `booklet_state`, and `profile_id`.
-#' @param custom_texts Optional named list of custom text keys and values.
-#'   For example, `list(AppTitle = "Pilot")` becomes a `CustomText` node with
-#'   key `AppTitle`.
+#' @param custom_texts Optional named list of Testcenter custom text keys and
+#'   replacement strings. For example, `list(AppTitle = "Pilot")` becomes a
+#'   `CustomText` node with key `AppTitle`.
 #' @param profiles Optional data frame defining group-monitor profiles. It must
 #'   contain `profile_id` when supplied. Optional columns are `profile_label`,
 #'   `block_column`, `unit_column`, `view`, `group_column`, `booklet_column`,
@@ -44,6 +44,15 @@
 #' files or write `testtakers.xml`; wrapper functions should call
 #' [xml2::write_xml()] if a file should be created.
 #'
+#' `custom_texts` is passed through to the XML as named `CustomText` nodes and
+#' can be an extensive project-specific list. Typical keys override text in the
+#' booklet player (`booklet_*`), group monitor (`gm_*`), and login screen
+#' (`login_*`). Values can contain longer or multi-line messages. Keep
+#' Testcenter placeholders such as `%s` unchanged when replacing texts. The
+#' function checks that the list is named, but it does not validate the key set
+#' against a particular Testcenter version; unsupported or misspelled keys are
+#' handled by Testcenter.
+#'
 #' @return An `xml_document` containing a Testcenter `Testtakers` XML document.
 #'
 #' @examples
@@ -57,11 +66,19 @@
 #'   booklet_codes = "A1 B2"
 #' )
 #'
+#' custom_texts <- list(
+#'   booklet_codeToEnterPrompt = "Please enter the release code.",
+#'   booklet_msgSoonTimeOver = "You have %s minute(s) left for this section.",
+#'   gm_col_personLabel = "Login/student code",
+#'   gm_control_pause = "Pause",
+#'   login_codeInputTitle = "Enter student code"
+#' )
+#'
 #' # Wrapper for the current Testcenter 18 testtakers XML specification.
 #' write_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
 #'   xml <- generate_testtakers(
 #'     testtakers,
-#'     custom_texts = list(AppTitle = "Pilot study")
+#'     custom_texts = custom_texts
 #'   )
 #'   xml2::write_xml(xml, output)
 #'   output
@@ -73,7 +90,7 @@
 #' write_legacy_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
 #'   xml <- generate_testtakers(
 #'     testtakers,
-#'     custom_texts = list(AppTitle = "Pilot study"),
+#'     custom_texts = custom_texts,
 #'     app_version = "16.0.2",
 #'     testtakers_version = "legacy-16"
 #'   )
