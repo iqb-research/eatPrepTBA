@@ -5,6 +5,9 @@
 #' @param profiles Optional. Data frame of profiles for the group monitor.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
+#' @param testtakers_version Testtakers XML specification version. `"18.0"`
+#'   emits the current Testcenter testtakers schema URL. `"legacy-16"` emits
+#'   the legacy Testcenter 16 schema URL used by older workflows.
 #'
 #' @return A testtakers XML.
 #'
@@ -13,7 +16,8 @@ generate_testtakers <- function(testtakers,
                                 custom_texts = NULL,
                                 profiles = NULL,
                                 app_version = "16.0.2",
-                                login = NULL) {
+                                login = NULL,
+                                testtakers_version = c("18.0", "legacy-16")) {
   cli_setting()
   # input validation
   testtakers_cols <- c("group_id", "login_name")
@@ -26,11 +30,15 @@ generate_testtakers <- function(testtakers,
   if(!is.null(profiles)) profiles <- tibble::as_tibble(profiles)
   checkmate::assert_character(app_version, len = 1)
   checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
+  testtakers_version <- match.arg(testtakers_version)
 
 
   if (!is.null(login)) {
     app_version <- login@app_version
   }
+
+  testtakers <- prepare_testtakers_for_version(testtakers, testtakers_version)
+  validate_testtaker_login_children(testtakers, testtakers_version)
 
   if (!is.null(custom_texts) & length(custom_texts) > 0) {
     CustomTexts <- rlang::exec("customize_texts", !!!custom_texts)
@@ -150,7 +158,10 @@ generate_testtakers <- function(testtakers,
                Profiles = Profiles),
           TesttakerGroups),
         "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
-        "xsi:noNamespaceSchemaLocation" = stringr::str_glue("https://raw.githubusercontent.com/iqb-berlin/testcenter/{app_version}/definitions/vo_Testtakers.xsd")
+        "xsi:noNamespaceSchemaLocation" = testtakers_schema_location(
+          testtakers_version,
+          app_version
+        )
       ))
 
   # Bug in XSD scheme (CustomTexts MUST be filled)
@@ -165,6 +176,98 @@ generate_testtakers <- function(testtakers,
   # cat()
 }
 
+testtakers_schema_location <- function(testtakers_version, app_version) {
+  if (testtakers_version == "legacy-16") {
+    stringr::str_glue("https://raw.githubusercontent.com/iqb-berlin/testcenter/{app_version}/definitions/vo_Testtakers.xsd")
+  } else {
+    stringr::str_glue("https://w3id.org/iqb/spec/testcenter-testtaker-xml/{testtakers_version}")
+  }
+}
+
+prepare_testtakers_for_version <- function(testtakers, testtakers_version) {
+  if (testtakers_version == "legacy-16") {
+    return(testtakers)
+  }
+
+  if (!tibble::has_name(testtakers, "group_label")) {
+    warning(
+      "Testcenter testtakers XML 18.0 requires `group_label`; using `group_id` as group labels.",
+      call. = FALSE
+    )
+    testtakers$group_label <- testtakers$group_id
+    return(testtakers)
+  }
+
+  missing_group_label <- is_missing_testtaker_value(testtakers$group_label)
+  if (any(missing_group_label)) {
+    warning(
+      "Testcenter testtakers XML 18.0 requires `group_label`; replacing missing group labels with `group_id`.",
+      call. = FALSE
+    )
+    testtakers$group_label[missing_group_label] <- testtakers$group_id[missing_group_label]
+  }
+
+  testtakers
+}
+
+validate_testtaker_login_children <- function(testtakers, testtakers_version) {
+  if (testtakers_version == "legacy-16" ||
+      !all(c("booklet_id", "profile_id") %in% names(testtakers))) {
+    return(invisible(NULL))
+  }
+
+  mixed_logins <-
+    testtakers %>%
+    dplyr::mutate(
+      .has_booklet = has_testtaker_value(booklet_id),
+      .has_profile = has_testtaker_value(profile_id)
+    ) %>%
+    dplyr::group_by(dplyr::across(dplyr::any_of(c("group_id", "login_name")))) %>%
+    dplyr::summarise(
+      .has_booklet = any(.has_booklet),
+      .has_profile = any(.has_profile),
+      .groups = "drop"
+    ) %>%
+    dplyr::filter(.has_booklet & .has_profile)
+
+  if (nrow(mixed_logins) > 0L) {
+    login_labels <- mixed_logins %>%
+      dplyr::mutate(.label = paste0(group_id, "/", login_name)) %>%
+      dplyr::pull(.label)
+
+    cli::cli_abort(
+      "Testcenter testtakers XML 18.0 does not allow {.testtaker-label logins}
+      to contain both {.booklet-label booklets} and {.profile-label profiles}.
+      Split or remove one child type for {.testtaker-id {login_labels}}.",
+      wrap = TRUE
+    )
+  }
+
+  invisible(NULL)
+}
+
+has_testtaker_value <- function(x) {
+  !is_missing_testtaker_value(x)
+}
+
+is_missing_testtaker_value <- function(x) {
+  if (is.null(x) || length(x) == 0L) {
+    return(TRUE)
+  }
+
+  if (is.list(x)) {
+    return(vapply(x, is_missing_testtaker_value, logical(1)))
+  }
+
+  missing <- is.na(x)
+
+  if (is.character(x)) {
+    missing <- missing | x == ""
+  }
+
+  missing
+}
+
 prepare_profiles <- function(profiles) {
   # Profile nodes
   profile_variables <- c(
@@ -174,6 +277,7 @@ prepare_profiles <- function(profiles) {
     "view" = "view",
     "groupColumn" = "group_column",
     "bookletColumn" = "booklet_column",
+    "bookletStatesColumns" = "booklet_states_columns",
     "filterPending" = "filter_pending",
     "filterLocked" = "filter_locked",
     "autoselectNextBlock" = "autoselect_next_block"
@@ -192,6 +296,7 @@ prepare_profiles <- function(profiles) {
                         "field" = "filter_field",
                         "type" = "filter_type",
                         "value" = "filter_value",
+                        "subValue" = "filter_sub_value",
                         "not" = "filter_not")
 
   filters <-
@@ -259,7 +364,8 @@ prepare_testtaker_groups <- function(testtakers) {
   login_variables <- c(
     "name" = "login_name" ,
     "pw" = "login_pw" ,
-    "mode" = "login_mode"
+    "mode" = "login_mode",
+    "monitorcode" = "login_monitor_code"
   )
 
   logins <-
@@ -273,7 +379,8 @@ prepare_testtaker_groups <- function(testtakers) {
   # Booklet nodes
   booklet_variables <- c(
     "booklet" = "booklet_id",
-    "codes" = "booklet_codes"#,
+    "codes" = "booklet_codes",
+    "state" = "booklet_state"
     # "login_code" = "login_code"
   )
 

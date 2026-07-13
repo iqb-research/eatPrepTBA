@@ -9,7 +9,8 @@ generate_testtakers(
   custom_texts = NULL,
   profiles = NULL,
   app_version = "16.0.2",
-  login = NULL
+  login = NULL,
+  testtakers_version = c("18.0", "legacy-16")
 )
 }
 \arguments{
@@ -22,6 +23,10 @@ generate_testtakers(
 \item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
 
 \item{login}{Target Testcenter instance. If it is available, the \code{app_version} will be overwritten.}
+
+\item{testtakers_version}{Testtakers XML specification version. \code{"18.0"}
+emits the current Testcenter testtakers schema URL. \code{"legacy-16"} emits
+the legacy Testcenter 16 schema URL used by older workflows.}
 }
 \value{
 A testtakers XML.
