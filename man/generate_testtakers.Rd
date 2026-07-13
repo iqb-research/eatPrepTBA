@@ -8,7 +8,7 @@ generate_testtakers(
   testtakers,
   custom_texts = NULL,
   profiles = NULL,
-  app_version = "16.0.2",
+  app_version = "18.0.0",
   login = NULL,
   testtakers_version = c("18.0", "legacy-16")
 )
@@ -33,9 +33,13 @@ contain \code{profile_id} when supplied. Optional columns are \code{profile_labe
 \code{autoselect_next_block}, \code{filter_label}, \code{filter_field}, \code{filter_type},
 \code{filter_value}, \code{filter_sub_value}, and \code{filter_not}.}
 
-\item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
+\item{app_version}{Version of the target Testcenter instance. Defaults to
+\code{"18.0.0"}. This is used for legacy raw-GitHub schema URLs; current
+Testcenter 18 output uses \code{testtakers_version} for the \code{w3id.org} schema
+URL.}
 
-\item{login}{Target Testcenter instance. If it is available, the \code{app_version} will be overwritten.}
+\item{login}{Target Testcenter instance. If it is available, the
+\code{app_version} will be overwritten.}
 
 \item{testtakers_version}{Testtakers XML specification version. \code{"18.0"}
 emits the current Testcenter testtakers schema URL. \code{"legacy-16"} emits

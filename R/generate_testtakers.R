@@ -16,8 +16,12 @@
 #'   `booklet_states_columns`, `filter_pending`, `filter_locked`,
 #'   `autoselect_next_block`, `filter_label`, `filter_field`, `filter_type`,
 #'   `filter_value`, `filter_sub_value`, and `filter_not`.
-#' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
-#' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
+#' @param app_version Version of the target Testcenter instance. Defaults to
+#'   `"18.0.0"`. This is used for legacy raw-GitHub schema URLs; current
+#'   Testcenter 18 output uses `testtakers_version` for the `w3id.org` schema
+#'   URL.
+#' @param login Target Testcenter instance. If it is available, the
+#'   `app_version` will be overwritten.
 #' @param testtakers_version Testtakers XML specification version. `"18.0"`
 #'   emits the current Testcenter testtakers schema URL. `"legacy-16"` emits
 #'   the legacy Testcenter 16 schema URL used by older workflows.
@@ -46,7 +50,7 @@
 generate_testtakers <- function(testtakers,
                                 custom_texts = NULL,
                                 profiles = NULL,
-                                app_version = "16.0.2",
+                                app_version = "18.0.0",
                                 login = NULL,
                                 testtakers_version = c("18.0", "legacy-16")) {
   cli_setting()

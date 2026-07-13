@@ -203,7 +203,7 @@ test_that("generate_testtakers can emit legacy-16 schema location", {
 
   expect_match(
     as.character(xml),
-    "https://raw.githubusercontent.com/iqb-berlin/testcenter/16.0.2/definitions/vo_Testtakers.xsd",
+    "https://raw.githubusercontent.com/iqb-berlin/testcenter/18.0.0/definitions/vo_Testtakers.xsd",
     fixed = TRUE
   )
   expect_true(is.na(xml2::xml_attr(xml2::xml_find_first(xml, ".//Group"), "label")))
