@@ -68,9 +68,9 @@ are filled from <code>group_id</code> with a warning. Optional columns are
 
 
 <dt id="arg-custom-texts">custom_texts<a class="anchor" aria-label="anchor" href="#arg-custom-texts"></a></dt>
-<dd><p>Optional named list of custom text keys and values.
-For example, <code>list(AppTitle = "Pilot")</code> becomes a <code>CustomText</code> node with
-key <code>AppTitle</code>.</p></dd>
+<dd><p>Optional named list of Testcenter custom text keys and
+replacement strings. For example, <code>list(AppTitle = "Pilot")</code> becomes a
+<code>CustomText</code> node with key <code>AppTitle</code>.</p></dd>
 
 
 <dt id="arg-profiles">profiles<a class="anchor" aria-label="anchor" href="#arg-profiles"></a></dt>
@@ -120,6 +120,14 @@ children.</p>
 <p><code>generate_testtakers()</code> returns an XML document only. It does not read input
 files or write <code>testtakers.xml</code>; wrapper functions should call
 <code><a href="http://xml2.r-lib.org/reference/write_xml.html" class="external-link">xml2::write_xml()</a></code> if a file should be created.</p>
+<p><code>custom_texts</code> is passed through to the XML as named <code>CustomText</code> nodes and
+can be an extensive project-specific list. Typical keys override text in the
+booklet player (<code>booklet_*</code>), group monitor (<code>gm_*</code>), and login screen
+(<code>login_*</code>). Values can contain longer or multi-line messages. Keep
+Testcenter placeholders such as <code>%s</code> unchanged when replacing texts. The
+function checks that the list is named, but it does not validate the key set
+against a particular Testcenter version; unsupported or misspelled keys are
+handled by Testcenter.</p>
     </div>
 
     <div class="section level2">
@@ -134,11 +142,19 @@ files or write <code>testtakers.xml</code>; wrapper functions should call
 <span class="r-in"><span>  booklet_codes <span class="op">=</span> <span class="st">"A1 B2"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">custom_texts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  booklet_codeToEnterPrompt <span class="op">=</span> <span class="st">"Please enter the release code."</span>,</span></span>
+<span class="r-in"><span>  booklet_msgSoonTimeOver <span class="op">=</span> <span class="st">"You have %s minute(s) left for this section."</span>,</span></span>
+<span class="r-in"><span>  gm_col_personLabel <span class="op">=</span> <span class="st">"Login/student code"</span>,</span></span>
+<span class="r-in"><span>  gm_control_pause <span class="op">=</span> <span class="st">"Pause"</span>,</span></span>
+<span class="r-in"><span>  login_codeInputTitle <span class="op">=</span> <span class="st">"Enter student code"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Wrapper for the current Testcenter 18 testtakers XML specification.</span></span></span>
 <span class="r-in"><span><span class="va">write_testtakers_xml</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">testtakers</span>, <span class="va">output</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xml"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">xml</span> <span class="op">&lt;-</span> <span class="fu">generate_testtakers</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="va">testtakers</span>,</span></span>
-<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>AppTitle <span class="op">=</span> <span class="st">"Pilot study"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="va">custom_texts</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">xml2</span><span class="fu">::</span><span class="fu"><a href="http://xml2.r-lib.org/reference/write_xml.html" class="external-link">write_xml</a></span><span class="op">(</span><span class="va">xml</span>, <span class="va">output</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">output</span></span></span>
@@ -150,7 +166,7 @@ files or write <code>testtakers.xml</code>; wrapper functions should call
 <span class="r-in"><span><span class="va">write_legacy_testtakers_xml</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">testtakers</span>, <span class="va">output</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xml"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">xml</span> <span class="op">&lt;-</span> <span class="fu">generate_testtakers</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="va">testtakers</span>,</span></span>
-<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>AppTitle <span class="op">=</span> <span class="st">"Pilot study"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="va">custom_texts</span>,</span></span>
 <span class="r-in"><span>    app_version <span class="op">=</span> <span class="st">"16.0.2"</span>,</span></span>
 <span class="r-in"><span>    testtakers_version <span class="op">=</span> <span class="st">"legacy-16"</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>

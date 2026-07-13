@@ -20,6 +20,10 @@
   project-specific wrappers, and added input checks for required values,
   named custom texts, profile references, and consistent login
   definitions.
+- Expanded
+  [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
+  documentation and examples for large project-specific `custom_texts`
+  lists.
 
 ## eatPrepTBA 0.9.8.9023 \[2026-07-08\]
 
