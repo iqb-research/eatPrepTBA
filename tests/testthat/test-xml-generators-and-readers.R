@@ -231,6 +231,39 @@ test_that("generate_testtakers rejects mixed booklet and profile children in cur
   )
 })
 
+test_that("generate_testtakers validates operational target table inputs", {
+  expect_error(
+    generate_testtakers(tibble::tibble(group_id = NA_character_, login_name = "login1")),
+    "Required columns"
+  )
+
+  expect_error(
+    generate_testtakers(tibble::tibble(
+      group_id = c("G1", "G2"),
+      login_name = "login1"
+    )),
+    "only one"
+  )
+
+  expect_error(
+    generate_testtakers(
+      tibble::tibble(group_id = "G1", login_name = "login1"),
+      custom_texts = list("Pilot")
+    ),
+    "named list"
+  )
+
+  expect_error(
+    generate_testtakers(tibble::tibble(
+      group_id = "G1",
+      group_label = "Group 1",
+      login_name = "monitor",
+      profile_id = "P1"
+    )),
+    "provide matching"
+  )
+})
+
 test_that("read_testtakers expands booklet codes and preserves order", {
   testtakers_xml <- xml2::read_xml(
     "<Testtakers>

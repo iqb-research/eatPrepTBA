@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_testtakers.R
 \name{generate_testtakers}
 \alias{generate_testtakers}
-\title{Generates testtakers XML from unit information}
+\title{Generate Testcenter testtakers XML}
 \usage{
 generate_testtakers(
   testtakers,
@@ -14,11 +14,24 @@ generate_testtakers(
 )
 }
 \arguments{
-\item{testtakers}{Must be a data frame with the columns \code{group_id} and \code{login_name}.}
+\item{testtakers}{Data frame in the eatPrepTBA testtakers target format.
+It must contain \code{group_id} and \code{login_name}. In current Testcenter 18
+output, \code{group_label} is required by the XML specification; missing labels
+are filled from \code{group_id} with a warning. Optional columns are
+\code{group_label}, \code{group_valid_to}, \code{group_valid_from}, \code{group_valid_for},
+\code{login_pw}, \code{login_mode}, \code{login_monitor_code}, \code{booklet_id},
+\code{booklet_codes}, \code{booklet_state}, and \code{profile_id}.}
 
-\item{custom_texts}{Optional. List of custom texts to be modified.}
+\item{custom_texts}{Optional named list of custom text keys and values.
+For example, \code{list(AppTitle = "Pilot")} becomes a \code{CustomText} node with
+key \code{AppTitle}.}
 
-\item{profiles}{Optional. Data frame of profiles for the group monitor.}
+\item{profiles}{Optional data frame defining group-monitor profiles. It must
+contain \code{profile_id} when supplied. Optional columns are \code{profile_label},
+\code{block_column}, \code{unit_column}, \code{view}, \code{group_column}, \code{booklet_column},
+\code{booklet_states_columns}, \code{filter_pending}, \code{filter_locked},
+\code{autoselect_next_block}, \code{filter_label}, \code{filter_field}, \code{filter_type},
+\code{filter_value}, \code{filter_sub_value}, and \code{filter_not}.}
 
 \item{app_version}{Version of the target Testcenter instance. Defaults to \code{"16.0.0"}.}
 
@@ -29,8 +42,26 @@ emits the current Testcenter testtakers schema URL. \code{"legacy-16"} emits
 the legacy Testcenter 16 schema URL used by older workflows.}
 }
 \value{
-A testtakers XML.
+An \code{xml_document} containing a Testcenter \code{Testtakers} XML document.
 }
 \description{
-Generates testtakers XML from unit information
+Generate Testcenter testtakers XML
+}
+\details{
+This function expects the final target table for a Testcenter testtakers
+file. Project-specific wrappers can read Excel files, join booklet designs,
+expand days or parts, and create monitor logins, but they should eventually
+hand over a \code{testtakers} data frame with one row per login/booklet or
+login/profile assignment.
+
+Rows with the same \code{group_id} form one \code{Group}. Rows with the same
+\code{login_name} form one \code{Login}; a \code{login_name} must not be reused across
+groups. If \code{booklet_id} is present, \code{Booklet} children are added to the
+login. If \code{profile_id} is present, \code{Profile} references are added instead.
+In Testcenter 18.0 output, one login cannot mix \code{Booklet} and \code{Profile}
+children.
+
+\code{generate_testtakers()} returns an XML document only. It does not read input
+files or write \code{testtakers.xml}; wrapper functions should call
+\code{xml2::write_xml()} if a file should be created.
 }
