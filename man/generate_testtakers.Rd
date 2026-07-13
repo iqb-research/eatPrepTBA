@@ -69,3 +69,40 @@ children.
 files or write \code{testtakers.xml}; wrapper functions should call
 \code{xml2::write_xml()} if a file should be created.
 }
+\examples{
+testtakers <- tibble::tibble(
+  group_id = "G1",
+  group_label = "Group 1",
+  login_name = "student01",
+  login_pw = "pw01",
+  login_mode = "run-hot-return",
+  booklet_id = "BOOKLET_1",
+  booklet_codes = "A1 B2"
+)
+
+# Wrapper for the current Testcenter 18 testtakers XML specification.
+write_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
+  xml <- generate_testtakers(
+    testtakers,
+    custom_texts = list(AppTitle = "Pilot study")
+  )
+  xml2::write_xml(xml, output)
+  output
+}
+
+output_18 <- write_testtakers_xml(testtakers)
+
+# Wrapper pinned to the legacy Testcenter 16 schema location.
+write_legacy_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
+  xml <- generate_testtakers(
+    testtakers,
+    custom_texts = list(AppTitle = "Pilot study"),
+    app_version = "16.0.2",
+    testtakers_version = "legacy-16"
+  )
+  xml2::write_xml(xml, output)
+  output
+}
+
+output_legacy <- write_legacy_testtakers_xml(testtakers)
+}
