@@ -171,7 +171,7 @@ Functions to check units, prepare material for administration and coding
 ### Prepare studies on IQB Testcenter
 
 - [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
-  : Generates testtakers XML from unit information
+  : Generate Testcenter testtakers XML
 - [`generate_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklet.md)
   **\[deprecated\]** : Generates booklets XML from unit information
 - [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)

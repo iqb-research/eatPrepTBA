@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9023</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9024</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,13 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9024" id="eatpreptba-0989024-2026-07-13">eatPrepTBA 0.9.8.9024 [2026-07-13]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989024-2026-07-13"></a></h2>
+<ul><li>Updated <code><a href="../reference/generate_testtakers.html">generate_testtakers()</a></code> to target Testcenter testtakers XML specification 18.0 by default, including the new <code>w3id.org</code> schema URL and <code>testtakers_version = "legacy-16"</code> for older Testcenter 16 output.</li>
+<li>Raised the default <code><a href="../reference/generate_testtakers.html">generate_testtakers()</a></code> <code>app_version</code> to <code>"18.0.0"</code>.</li>
+<li>Added current testtakers XML support for <code>booklet_state</code>, <code>login_monitor_code</code>, <code>booklet_states_columns</code>, and <code>filter_sub_value</code>, and guarded against current-mode logins that mix <code>Booklet</code> and <code>Profile</code> children.</li>
+<li>Clarified <code><a href="../reference/generate_testtakers.html">generate_testtakers()</a></code> documentation around the required target table format used by project-specific wrappers, and added input checks for required values, named custom texts, profile references, and consistent login definitions.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9023" id="eatpreptba-0989023-2026-07-08">eatPrepTBA 0.9.8.9023 [2026-07-08]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989023-2026-07-08"></a></h2>
 <ul><li>Updated metadata preparation to read IQB <code>metadata-values</code> 3.0 structures, including <code>order</code>, <code>raw</code>, <code>asText</code>, language-coded text values, vocabulary <code>annotation</code>, and <code>order = -1</code> hidden profiles, while keeping legacy <code>isCurrent</code> and <code>valueAsText</code> support.</li>
