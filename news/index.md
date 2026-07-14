@@ -8,7 +8,8 @@
   response rows lacked Testcenter identifier columns, and made the
   unused-category path robust to incomplete preparation output.
 - Ignored unlinked item metadata rows with missing `variable_id` when
-  checking psychometric item-variable link uniqueness.
+  checking psychometric item-variable link uniqueness, and reported them
+  separately from genuinely ambiguous links.
 - Skipped unlinked item rows with missing `variable_id` when deriving
   item-level stay-time summaries.
 - Added regression coverage for psychometric summaries with categories

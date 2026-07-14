@@ -39,7 +39,7 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9025" id="eatpreptba-0989025-2026-07-14">eatPrepTBA 0.9.8.9025 [2026-07-14]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989025-2026-07-14"></a></h2>
 <ul><li>Fixed <code><a href="../reference/evaluate_psychometrics.html">evaluate_psychometrics()</a></code> for missing category-code completion when internally generated response rows lacked Testcenter identifier columns, and made the unused-category path robust to incomplete preparation output.</li>
-<li>Ignored unlinked item metadata rows with missing <code>variable_id</code> when checking psychometric item-variable link uniqueness.</li>
+<li>Ignored unlinked item metadata rows with missing <code>variable_id</code> when checking psychometric item-variable link uniqueness, and reported them separately from genuinely ambiguous links.</li>
 <li>Skipped unlinked item rows with missing <code>variable_id</code> when deriving item-level stay-time summaries.</li>
 <li>Added regression coverage for psychometric summaries with categories that are present in the coding scheme but absent from observed responses.</li>
 </ul></div>
