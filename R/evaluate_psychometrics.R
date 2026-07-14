@@ -260,12 +260,27 @@ evaluate_psychometrics <- function(
     dplyr::rename(id = variable_id) %>%
     tidyr::nest(
       responses = c(id, status, value)
+    ) %>%
+    dplyr::mutate(
+      group_id = ".psychometrics",
+      login_code = ".psychometrics",
+      login_name = ".psychometrics",
+      booklet_id = ".psychometrics"
     )
 
   if (nrow(lost_frequency_responses) > 0) {
     # TODO: What about missing values in DnD (would not be estimated here, if they
     # are not in the dataset!)
     cli::cli_alert_info("Adding missing category codes")
+
+    lost_codes_lookup <-
+      units_cs %>%
+      dplyr::select(unit_key, unit_codes) %>%
+      tidyr::unnest(unit_codes) %>%
+      dplyr::select(unit_key, variable_id, variable_source_type, variable_codes) %>%
+      tidyr::unnest(variable_codes) %>%
+      dplyr::distinct(unit_key, variable_id, variable_source_type, code_id, code_score, code_type)
+
     lost_frequency_coding <-
       code_responses(
         responses = lost_frequency_responses,
@@ -274,10 +289,35 @@ evaluate_psychometrics <- function(
         overwrite = FALSE
       )
 
+    lost_frequency_coding_defaults <- list(
+      variable_source_type = NA_character_,
+      code_id = NA_integer_,
+      code_score = NA_real_,
+      code_status = NA_character_,
+      code_type = NA_character_,
+      value = NA_character_
+    )
+
+    for (col in setdiff(names(lost_frequency_coding_defaults), names(lost_frequency_coding))) {
+      lost_frequency_coding[[col]] <- lost_frequency_coding_defaults[[col]]
+    }
+
     lost_category_frequencies <-
       lost_frequency_coding %>%
-      dplyr::select(-code_chunk) %>%
-      dplyr::filter(code_status != "UNSET",
+      dplyr::select(-dplyr::any_of("code_chunk")) %>%
+      tidyr::unnest(value, keep_empty = TRUE) %>%
+      dplyr::left_join(
+        lost_codes_lookup,
+        by = dplyr::join_by("unit_key", "variable_id", "code_id"),
+        suffix = c("", "_lookup")
+      ) %>%
+      dplyr::mutate(
+        variable_source_type = dplyr::coalesce(variable_source_type, variable_source_type_lookup),
+        code_score = dplyr::coalesce(code_score, code_score_lookup),
+        code_type = dplyr::coalesce(code_type, code_type_lookup)
+      ) %>%
+      dplyr::filter(!is.na(code_id),
+                    code_status != "UNSET",
                     variable_source_type == "BASE", value != "undefined") %>%
       dplyr::left_join(variable_labels, by = dplyr::join_by("unit_key", "variable_id", "value")) %>%
       dplyr::rename(
@@ -288,7 +328,12 @@ evaluate_psychometrics <- function(
         category_n = 0L,
         category_is_list = FALSE
       ) %>%
-      dplyr::select(-code_status)
+      dplyr::select(-dplyr::any_of(c(
+        "code_status",
+        "variable_source_type_lookup",
+        "code_score_lookup",
+        "code_type_lookup"
+      )))
   } else {
     lost_category_frequencies <- tibble::tibble()
   }

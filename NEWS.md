@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9025 [2026-07-14]
+
+* Fixed `evaluate_psychometrics()` for missing category-code completion when internally generated response rows lacked Testcenter identifier columns, and made the unused-category path robust to incomplete preparation output.
+* Added regression coverage for psychometric summaries with categories that are present in the coding scheme but absent from observed responses.
+
 # eatPrepTBA 0.9.8.9024 [2026-07-13]
 
 * Updated `generate_testtakers()` to target Testcenter testtakers XML specification 18.0 by default, including the new `w3id.org` schema URL and `testtakers_version = "legacy-16"` for older Testcenter 16 output.

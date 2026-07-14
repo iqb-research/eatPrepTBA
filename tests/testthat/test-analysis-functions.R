@@ -422,6 +422,55 @@ test_that("evaluate_psychometrics summarizes code and category frequencies", {
   expect_equal(unique(out$domain), "D1")
 })
 
+test_that("evaluate_psychometrics completes unused category frequencies", {
+  testthat::local_mocked_bindings(
+    add_coding_scheme = function(units, overwrite = FALSE, filter_has_codes = TRUE) units,
+    code_responses = function(responses, units, prepare = FALSE, overwrite = FALSE) {
+      expect_true(all(c("unit_key", "group_id", "login_code", "login_name", "booklet_id") %in% names(responses)))
+      expect_true(prepare)
+
+      tibble::tibble(
+        unit_key = responses$unit_key,
+        variable_id = "V1",
+        variable_source_type = "BASE",
+        value = "B",
+        code_id = 0L,
+        code_score = 0,
+        code_status = "CODING_COMPLETE",
+        code_type = "RESIDUAL"
+      )
+    },
+    .package = "eatPrepTBA"
+  )
+
+  units <- minimal_units()
+  design_coded <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    unit_key = "U1",
+    variable_id = "V1",
+    variable_source_type = "BASE",
+    id_used = TRUE,
+    code_id = 1L,
+    code_score = 1,
+    code_type = "FULL_CREDIT",
+    value = "A"
+  )
+
+  out <- evaluate_psychometrics(
+    design_coded,
+    units,
+    domains = tibble::tibble(domain = "D1", unit_key = "U1")
+  )
+
+  unused_category <- out[out$category_id == "B", ]
+
+  expect_equal(unused_category$category_n, 0L)
+  expect_equal(unused_category$code_id, 0L)
+  expect_equal(unused_category$category_label, "Beta")
+})
+
 test_that("small psychometric helpers concatenate categories and correlations", {
   values <- tibble::tibble(
     category_id = list(
