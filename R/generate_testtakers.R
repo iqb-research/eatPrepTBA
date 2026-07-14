@@ -106,7 +106,7 @@ generate_testtakers <- function(testtakers,
                                 profiles = NULL,
                                 app_version = "18.0.0",
                                 login = NULL,
-                                testtakers_version = c("18.1.1", "legacy-16")) {
+                                testtakers_version = c("18.0", "legacy-16")) {
   cli_setting()
   # input validation
   testtakers_cols <- c("group_id", "login_name")
