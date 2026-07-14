@@ -79,11 +79,22 @@ evaluate_psychometrics <- function(
     )
 
   if (tibble::has_name(units_cs, "items_list")) {
-    units_items <-
+    units_items_raw <-
       units_cs %>%
       dplyr::select(unit_key, items_list) %>%
       tidyr::unnest(items_list) %>%
-      dplyr::select(unit_key, variable_id, item_id) %>%
+      dplyr::select(unit_key, variable_id, item_id)
+
+    unlinked_items <-
+      units_items_raw %>%
+      dplyr::filter(!is.na(item_id), is.na(variable_id))
+
+    if (nrow(unlinked_items) > 0) {
+      cli::cli_alert_info("Ignoring {nrow(unlinked_items)} unlinked item metadata row{?s} with missing {.field variable_id}: {.unit-key {unique(unlinked_items$unit_key)}}")
+    }
+
+    units_items <-
+      units_items_raw %>%
       dplyr::filter(!is.na(item_id), !is.na(variable_id)) %>%
       dplyr::distinct(unit_key, variable_id, item_id, .keep_all = TRUE) %>%
       dplyr::mutate(
@@ -99,9 +110,9 @@ evaluate_psychometrics <- function(
       dplyr::filter(n_items > 1)
 
     if (nrow(check_items) > 0) {
-      cli::cli_alert_danger("Found metadata, but the following {.unit-key units} contained item-variable links that were not unique: {.unit-key {unique(check_items$unit_key)}}")
+      cli::cli_alert_danger("Found linked metadata item-variable links with multiple {.field item_id} values in the following {.unit-key units}: {.unit-key {unique(check_items$unit_key)}}")
       # TODO: Ggf. nochmal anpassen, dass nur die Zweifelsfälle entsprechend verarbeitet werden
-      cli::cli_alert_info("Please check. For the following analyses, the final derived variables due to the coding schemes were used insted.")
+      cli::cli_alert_info("Please check. For the following analyses, the final derived variables due to the coding schemes were used instead.")
 
       units_items <-
         units_final_variables

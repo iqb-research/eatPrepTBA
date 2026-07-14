@@ -508,10 +508,13 @@ test_that("evaluate_psychometrics ignores unlinked metadata items", {
     value = c("A", "B", "B", "A")
   )
 
-  out <- evaluate_psychometrics(
-    design_coded,
-    units,
-    domains = tibble::tibble(domain = "D1", unit_key = "U1")
+  expect_message(
+    out <- evaluate_psychometrics(
+      design_coded,
+      units,
+      domains = tibble::tibble(domain = "D1", unit_key = "U1")
+    ),
+    "Ignoring 2 unlinked item metadata rows"
   )
 
   v2_full_credit <- out %>%
