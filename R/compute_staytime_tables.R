@@ -193,7 +193,7 @@ compute_staytime_tables <- function(fach,
 
   resp_pages <-
     final_resp %>%
-    filter(!is.na(item_id)) %>%
+    filter(!is.na(item_id), !is.na(variable_id)) %>%
     dplyr::left_join(units_cs_corrected %>% dplyr::select(unit_key, variable_id, variable_page))
   rm(units_cs_corrected, final_resp)
 
