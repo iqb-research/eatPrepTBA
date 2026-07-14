@@ -1,5 +1,20 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9025 \[2026-07-14\]
+
+- Fixed
+  [`evaluate_psychometrics()`](https://iqb-research.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
+  for missing category-code completion when internally generated
+  response rows lacked Testcenter identifier columns, and made the
+  unused-category path robust to incomplete preparation output.
+- Ignored unlinked item metadata rows with missing `variable_id` when
+  checking psychometric item-variable link uniqueness.
+- Skipped unlinked item rows with missing `variable_id` when deriving
+  item-level stay-time summaries.
+- Added regression coverage for psychometric summaries with categories
+  that are present in the coding scheme but absent from observed
+  responses.
+
 ## eatPrepTBA 0.9.8.9024 \[2026-07-13\]
 
 - Updated
