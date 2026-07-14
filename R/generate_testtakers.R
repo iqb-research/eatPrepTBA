@@ -106,7 +106,7 @@ generate_testtakers <- function(testtakers,
                                 profiles = NULL,
                                 app_version = "18.0.0",
                                 login = NULL,
-                                testtakers_version = c("18.0", "legacy-16")) {
+                                testtakers_version = c("18.1.1", "legacy-16")) {
   cli_setting()
   # input validation
   testtakers_cols <- c("group_id", "login_name")
@@ -701,7 +701,18 @@ prepare_testtaker_groups <- function(testtakers) {
         purrr::set_names("Profile") %>%
         list(.)
 
-      c(x, BookletMerge, ProfileMerge) %>%
+      ViewSettings <- list(
+        theme = "Sekundar",
+        codeInput = list(
+          type = "text-field"
+        )
+      )
+
+      str(ViewSettings)
+      names(ViewSettings)
+      names(ViewSettings$ViewSettings)
+
+      c(x, ViewSettings, BookletMerge, ProfileMerge) %>%
         purrr::compact()
     }) %>%
     purrr::set_names(purrr::map(., "id")) %>%
