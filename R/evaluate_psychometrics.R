@@ -84,19 +84,19 @@ evaluate_psychometrics <- function(
       dplyr::select(unit_key, items_list) %>%
       tidyr::unnest(items_list) %>%
       dplyr::select(unit_key, variable_id, item_id) %>%
-      dplyr::filter(!is.na(item_id)) %>%
+      dplyr::filter(!is.na(item_id), !is.na(variable_id)) %>%
+      dplyr::distinct(unit_key, variable_id, item_id, .keep_all = TRUE) %>%
       dplyr::mutate(
         item_source = "metadata"
       )
 
     check_items <-
       units_items %>%
-      dplyr::group_by(unit_key, variable_id) %>%
-      dplyr::mutate(
-        n_variable = length(variable_id)
+      dplyr::summarise(
+        n_items = dplyr::n_distinct(item_id),
+        .by = c(unit_key, variable_id)
       ) %>%
-      dplyr::filter(n_variable > 1) %>%
-      dplyr::ungroup()
+      dplyr::filter(n_items > 1)
 
     if (nrow(check_items) > 0) {
       cli::cli_alert_danger("Found metadata, but the following {.unit-key units} contained item-variable links that were not unique: {.unit-key {unique(check_items$unit_key)}}")
