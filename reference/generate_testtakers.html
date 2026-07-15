@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9025</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9026</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +47,7 @@
 <span>  <span class="va">testtakers</span>,</span>
 <span>  custom_texts <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  profiles <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  view_settings <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  app_version <span class="op">=</span> <span class="st">"18.0.0"</span>,</span>
 <span>  login <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  testtakers_version <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18.0"</span>, <span class="st">"legacy-16"</span><span class="op">)</span></span>
@@ -80,6 +81,16 @@ contain <code>profile_id</code> when supplied. Optional columns are <code>profil
 <code>booklet_states_columns</code>, <code>filter_pending</code>, <code>filter_locked</code>,
 <code>autoselect_next_block</code>, <code>filter_label</code>, <code>filter_field</code>, <code>filter_type</code>,
 <code>filter_value</code>, <code>filter_sub_value</code>, and <code>filter_not</code>.</p></dd>
+
+
+<dt id="arg-view-settings">view_settings<a class="anchor" aria-label="anchor" href="#arg-view-settings"></a></dt>
+<dd><p>Optional named list of Testcenter 18.0 login view
+settings applied to each generated <code>Login</code>. Supported entries are <code>theme</code>,
+<code>code_input = list(type = ..., length = ...)</code>, top-level
+<code>code_input_type</code> and <code>code_input_length</code>, and
+<code>monitor_booklet_visibility</code>. XML-style aliases <code>codeInput</code> and
+<code>monitorBookletVisibility</code> are also accepted. Ignored with a warning for
+<code>testtakers_version = "legacy-16"</code>.</p></dd>
 
 
 <dt id="arg-app-version">app_version<a class="anchor" aria-label="anchor" href="#arg-app-version"></a></dt>
@@ -128,6 +139,11 @@ Testcenter placeholders such as <code>%s</code> unchanged when replacing texts. 
 function checks that the list is named, but it does not validate the key set
 against a particular Testcenter version; unsupported or misspelled keys are
 handled by Testcenter.</p>
+<p><code>view_settings</code> emits Testcenter 18.0 <code>ViewSettings</code> nodes below each
+<code>Login</code>, after any <code>Booklet</code> or <code>Profile</code> children. For example,
+<code>list(theme = "Sekundar", code_input = list(type = "text-field"))</code> writes
+<code>&lt;theme&gt;Sekundar&lt;/theme&gt;</code> and <code>&lt;codeInput&gt;&lt;type&gt;text-field&lt;/type&gt;&lt;/codeInput&gt;</code>.
+These nodes are not emitted for <code>testtakers_version = "legacy-16"</code>.</p>
     </div>
 
     <div class="section level2">
@@ -150,11 +166,17 @@ handled by Testcenter.</p>
 <span class="r-in"><span>  login_codeInputTitle <span class="op">=</span> <span class="st">"Enter student code"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">current_view_settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  theme <span class="op">=</span> <span class="st">"Sekundar"</span>,</span></span>
+<span class="r-in"><span>  code_input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"text-field"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Wrapper for the current Testcenter 18 testtakers XML specification.</span></span></span>
 <span class="r-in"><span><span class="va">write_testtakers_xml</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">testtakers</span>, <span class="va">output</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xml"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">xml</span> <span class="op">&lt;-</span> <span class="fu">generate_testtakers</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="va">testtakers</span>,</span></span>
-<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="va">custom_texts</span></span></span>
+<span class="r-in"><span>    custom_texts <span class="op">=</span> <span class="va">custom_texts</span>,</span></span>
+<span class="r-in"><span>    view_settings <span class="op">=</span> <span class="va">current_view_settings</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">xml2</span><span class="fu">::</span><span class="fu"><a href="http://xml2.r-lib.org/reference/write_xml.html" class="external-link">write_xml</a></span><span class="op">(</span><span class="va">xml</span>, <span class="va">output</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">output</span></span></span>

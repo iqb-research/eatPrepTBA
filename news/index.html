@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9025</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9026</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,12 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9026" id="eatpreptba-0989026-2026-07-15">eatPrepTBA 0.9.8.9026 [2026-07-15]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989026-2026-07-15"></a></h2>
+<ul><li>Added optional Testcenter 18.0 <code>ViewSettings</code> output to <code><a href="../reference/generate_testtakers.html">generate_testtakers()</a></code> via <code>view_settings</code>, including <code>theme</code>, <code>code_input</code>, and monitor booklet visibility settings.</li>
+<li>Ensured <code>ViewSettings</code> is emitted as proper nested XML below <code>Login</code> and after any <code>Booklet</code> or <code>Profile</code> children, while <code>legacy-16</code> output keeps omitting unsupported current Testcenter nodes.</li>
+<li>Added regression coverage for current <code>ViewSettings</code> XML, legacy omission, and invalid view-setting values.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9025" id="eatpreptba-0989025-2026-07-14">eatPrepTBA 0.9.8.9025 [2026-07-14]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989025-2026-07-14"></a></h2>
 <ul><li>Fixed <code><a href="../reference/evaluate_psychometrics.html">evaluate_psychometrics()</a></code> for missing category-code completion when internally generated response rows lacked Testcenter identifier columns, and made the unused-category path robust to incomplete preparation output.</li>
