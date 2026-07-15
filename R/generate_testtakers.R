@@ -16,6 +16,13 @@
 #'   `booklet_states_columns`, `filter_pending`, `filter_locked`,
 #'   `autoselect_next_block`, `filter_label`, `filter_field`, `filter_type`,
 #'   `filter_value`, `filter_sub_value`, and `filter_not`.
+#' @param view_settings Optional named list of Testcenter 18.0 login view
+#'   settings applied to each generated `Login`. Supported entries are `theme`,
+#'   `code_input = list(type = ..., length = ...)`, top-level
+#'   `code_input_type` and `code_input_length`, and
+#'   `monitor_booklet_visibility`. XML-style aliases `codeInput` and
+#'   `monitorBookletVisibility` are also accepted. Ignored with a warning for
+#'   `testtakers_version = "legacy-16"`.
 #' @param app_version Version of the target Testcenter instance. Defaults to
 #'   `"18.0.0"`. This is used for legacy raw-GitHub schema URLs; current
 #'   Testcenter 18 output uses `testtakers_version` for the `w3id.org` schema
@@ -53,6 +60,12 @@
 #' against a particular Testcenter version; unsupported or misspelled keys are
 #' handled by Testcenter.
 #'
+#' `view_settings` emits Testcenter 18.0 `ViewSettings` nodes below each
+#' `Login`, after any `Booklet` or `Profile` children. For example,
+#' `list(theme = "Sekundar", code_input = list(type = "text-field"))` writes
+#' `<theme>Sekundar</theme>` and `<codeInput><type>text-field</type></codeInput>`.
+#' These nodes are not emitted for `testtakers_version = "legacy-16"`.
+#'
 #' @return An `xml_document` containing a Testcenter `Testtakers` XML document.
 #'
 #' @examples
@@ -74,11 +87,17 @@
 #'   login_codeInputTitle = "Enter student code"
 #' )
 #'
+#' current_view_settings <- list(
+#'   theme = "Sekundar",
+#'   code_input = list(type = "text-field")
+#' )
+#'
 #' # Wrapper for the current Testcenter 18 testtakers XML specification.
 #' write_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
 #'   xml <- generate_testtakers(
 #'     testtakers,
-#'     custom_texts = custom_texts
+#'     custom_texts = custom_texts,
+#'     view_settings = current_view_settings
 #'   )
 #'   xml2::write_xml(xml, output)
 #'   output
@@ -104,6 +123,7 @@
 generate_testtakers <- function(testtakers,
                                 custom_texts = NULL,
                                 profiles = NULL,
+                                view_settings = NULL,
                                 app_version = "18.0.0",
                                 login = NULL,
                                 testtakers_version = c("18.0", "legacy-16")) {
@@ -118,6 +138,7 @@ generate_testtakers <- function(testtakers,
   checkmate::assert_list(custom_texts, null.ok = TRUE)
   validate_custom_texts(custom_texts)
   checkmate::assert_data_frame(profiles, null.ok = TRUE)
+  checkmate::assert_list(view_settings, null.ok = TRUE)
   if(!is.null(profiles)) {
     assert_cols(profiles, "profile_id", "profiles")
     profiles <- tibble::as_tibble(profiles)
@@ -132,6 +153,7 @@ generate_testtakers <- function(testtakers,
     app_version <- login@app_version
   }
 
+  view_settings <- prepare_testtaker_view_settings(view_settings, testtakers_version)
   testtakers <- prepare_testtakers_for_version(testtakers, testtakers_version)
   validate_testtaker_profiles(testtakers, profiles)
   validate_testtaker_login_children(testtakers, testtakers_version)
@@ -243,7 +265,7 @@ generate_testtakers <- function(testtakers,
     Profiles <- list()
   }
 
-  TesttakerGroups <- prepare_testtaker_groups(testtakers)
+  TesttakerGroups <- prepare_testtaker_groups(testtakers, view_settings = view_settings)
 
   # Get nodes together
   Testtakers <-
@@ -325,6 +347,200 @@ validate_custom_texts <- function(custom_texts) {
   }
 
   invisible(NULL)
+}
+
+prepare_testtaker_view_settings <- function(view_settings, testtakers_version) {
+  if (is.null(view_settings) || length(view_settings) == 0L) {
+    return(NULL)
+  }
+
+  if (testtakers_version == "legacy-16") {
+    cli::cli_warn(
+      "{.arg view_settings} is only supported for Testcenter testtakers XML 18.0 and is ignored for {.val legacy-16}."
+    )
+    return(NULL)
+  }
+
+  validate_named_view_settings(view_settings, "view_settings")
+
+  allowed_names <- c(
+    "theme",
+    "code_input",
+    "codeInput",
+    "code_input_type",
+    "code_input_length",
+    "monitor_booklet_visibility",
+    "monitorBookletVisibility"
+  )
+  unknown_names <- setdiff(names(view_settings), allowed_names)
+  if (length(unknown_names) > 0L) {
+    cli::cli_abort(
+      "{.arg view_settings} contains unsupported entr{?y/ies}: {.field {unknown_names}}."
+    )
+  }
+
+  theme <- resolve_view_setting(view_settings, "theme")
+  theme <- validate_view_setting_string(theme, "view_settings$theme")
+
+  code_input <- resolve_view_setting(view_settings, c("code_input", "codeInput"))
+  code_input_type <- resolve_view_setting(view_settings, "code_input_type")
+  code_input_length <- resolve_view_setting(view_settings, "code_input_length")
+
+  if (!is.null(code_input)) {
+    validate_named_view_settings(code_input, "view_settings$code_input")
+    unknown_code_input_names <- setdiff(names(code_input), c("type", "length"))
+    if (length(unknown_code_input_names) > 0L) {
+      cli::cli_abort(
+        "{.arg view_settings$code_input} contains unsupported entr{?y/ies}: {.field {unknown_code_input_names}}."
+      )
+    }
+
+    if (!is.null(code_input[["type"]]) && !is.null(code_input_type)) {
+      cli::cli_abort(
+        "{.arg view_settings} must define the code input type either as {.arg code_input$type} or {.arg code_input_type}, not both."
+      )
+    }
+    if (!is.null(code_input[["length"]]) && !is.null(code_input_length)) {
+      cli::cli_abort(
+        "{.arg view_settings} must define the code input length either as {.arg code_input$length} or {.arg code_input_length}, not both."
+      )
+    }
+
+    if (is.null(code_input_type)) {
+      code_input_type <- code_input[["type"]]
+    }
+    if (is.null(code_input_length)) {
+      code_input_length <- code_input[["length"]]
+    }
+  }
+
+  code_input_type <- validate_view_setting_string(
+    code_input_type,
+    "view_settings$code_input$type"
+  )
+  if (!is.null(code_input_type)) {
+    code_input_type_choices <- c(
+      "text-field",
+      "keypad-symbols",
+      "keypad-symbols-alt",
+      "keypad-numbers"
+    )
+    if (!code_input_type %in% code_input_type_choices) {
+      cli::cli_abort(
+        "{.arg view_settings$code_input$type} must be one of {.val {code_input_type_choices}}."
+      )
+    }
+  }
+
+  if (!is.null(code_input_length)) {
+    if (!checkmate::test_integerish(
+      code_input_length,
+      len = 1,
+      lower = 3,
+      any.missing = FALSE
+    )) {
+      cli::cli_abort(
+        "{.arg view_settings$code_input$length} must be a single integer greater than or equal to 3."
+      )
+    }
+    if (is.null(code_input_type)) {
+      cli::cli_abort(
+        "{.arg view_settings$code_input$length} requires {.arg view_settings$code_input$type}."
+      )
+    }
+    code_input_length <- as.integer(code_input_length)
+  }
+
+  monitor_booklet_visibility <- resolve_view_setting(
+    view_settings,
+    c("monitor_booklet_visibility", "monitorBookletVisibility")
+  )
+  monitor_booklet_visibility <- validate_view_setting_string(
+    monitor_booklet_visibility,
+    "view_settings$monitor_booklet_visibility"
+  )
+  if (!is.null(monitor_booklet_visibility)) {
+    monitor_booklet_visibility_choices <- c("visible", "collapsed", "hidden")
+    if (!monitor_booklet_visibility %in% monitor_booklet_visibility_choices) {
+      cli::cli_abort(
+        "{.arg view_settings$monitor_booklet_visibility} must be one of {.val {monitor_booklet_visibility_choices}}."
+      )
+    }
+  }
+
+  view_settings_xml <- list()
+  if (!is.null(theme)) {
+    view_settings_xml <- c(
+      view_settings_xml,
+      list(list(theme = testtaker_xml_text_node(theme)))
+    )
+  }
+  if (!is.null(code_input_type)) {
+    code_input_xml <- list(
+      list(type = testtaker_xml_text_node(code_input_type))
+    )
+    if (!is.null(code_input_length)) {
+      code_input_xml <- c(
+        code_input_xml,
+        list(list(length = testtaker_xml_text_node(code_input_length)))
+      )
+    }
+    view_settings_xml <- c(
+      view_settings_xml,
+      list(list(codeInput = code_input_xml))
+    )
+  }
+  if (!is.null(monitor_booklet_visibility)) {
+    view_settings_xml <- c(
+      view_settings_xml,
+      list(list(
+        monitorBookletVisibility = testtaker_xml_text_node(
+          monitor_booklet_visibility
+        )
+      ))
+    )
+  }
+
+  if (length(view_settings_xml) == 0L) {
+    return(NULL)
+  }
+  view_settings_xml
+}
+
+validate_named_view_settings <- function(view_settings, arg_name) {
+  setting_names <- names(view_settings)
+  if (is.null(setting_names) ||
+      any(is.na(setting_names) | setting_names == "")) {
+    cli::cli_abort("{.arg {arg_name}} must be a named list.")
+  }
+  invisible(NULL)
+}
+
+resolve_view_setting <- function(view_settings, aliases) {
+  present <- aliases[aliases %in% names(view_settings)]
+  if (length(present) == 0L) {
+    return(NULL)
+  }
+  if (length(present) > 1L) {
+    cli::cli_abort(
+      "{.arg view_settings} must not define aliases for the same option together: {.field {present}}."
+    )
+  }
+  view_settings[[present]]
+}
+
+validate_view_setting_string <- function(value, arg_name) {
+  if (is.null(value)) {
+    return(NULL)
+  }
+  if (!is.character(value) || length(value) != 1L || is.na(value) || value == "") {
+    cli::cli_abort("{.arg {arg_name}} must be a single non-empty string.")
+  }
+  value
+}
+
+testtaker_xml_text_node <- function(value) {
+  list(list(as.character(value)))
 }
 
 prepare_testtakers_for_version <- function(testtakers, testtakers_version) {
@@ -551,7 +767,7 @@ prepare_profiles <- function(profiles) {
 }
 
 # needs to be rebuilt to allow for booklets
-prepare_testtaker_groups <- function(testtakers) {
+prepare_testtaker_groups <- function(testtakers, view_settings = NULL) {
   # Group nodes
   group_variables <- c(
     "label" = "group_label",
@@ -701,7 +917,14 @@ prepare_testtaker_groups <- function(testtakers) {
         purrr::set_names("Profile") %>%
         list(.)
 
-      c(x, BookletMerge, ProfileMerge) %>%
+      ViewSettingsMerge <-
+        if (is.null(view_settings)) {
+          list(NULL)
+        } else {
+          list(list(ViewSettings = view_settings))
+        }
+
+      c(x, BookletMerge, ProfileMerge, ViewSettingsMerge) %>%
         purrr::compact()
     }) %>%
     purrr::set_names(purrr::map(., "id")) %>%

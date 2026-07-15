@@ -174,6 +174,44 @@ test_that("generate_testtakers writes groups, logins, booklets, custom texts, an
   expect_equal(xml2::xml_attr(xml2::xml_find_first(xml, ".//Filter"), "subValue"), "Booklet 1a")
 })
 
+test_that("generate_testtakers writes current login view settings", {
+  testtakers <- tibble::tibble(
+    group_id = "G1",
+    group_label = "Group 1",
+    login_name = c("login1", "monitor"),
+    login_mode = c("run-hot-return", "monitor-group"),
+    booklet_id = c("B1", NA_character_),
+    profile_id = c(NA_character_, "P1")
+  )
+
+  profiles <- tibble::tibble(profile_id = "P1")
+
+  xml <- generate_testtakers(
+    testtakers,
+    profiles = profiles,
+    view_settings = list(
+      theme = "Sekundar",
+      code_input = list(type = "text-field", length = 8),
+      monitor_booklet_visibility = "collapsed"
+    )
+  )
+
+  test_login <- xml2::xml_find_first(xml, ".//Login[@name='login1']")
+  monitor_login <- xml2::xml_find_first(xml, ".//Login[@name='monitor']")
+  test_view_settings <- xml2::xml_find_first(test_login, "./ViewSettings")
+
+  expect_equal(xml2::xml_name(xml2::xml_children(test_login)), c("Booklet", "ViewSettings"))
+  expect_equal(xml2::xml_name(xml2::xml_children(monitor_login)), c("Profile", "ViewSettings"))
+  expect_true(is.na(xml2::xml_attr(test_login, "theme")))
+  expect_equal(xml2::xml_text(xml2::xml_find_first(test_view_settings, "./theme")), "Sekundar")
+  expect_equal(xml2::xml_text(xml2::xml_find_first(test_view_settings, "./codeInput/type")), "text-field")
+  expect_equal(xml2::xml_text(xml2::xml_find_first(test_view_settings, "./codeInput/length")), "8")
+  expect_equal(
+    xml2::xml_text(xml2::xml_find_first(test_view_settings, "./monitorBookletVisibility")),
+    "collapsed"
+  )
+})
+
 test_that("generate_testtakers fills missing current group labels", {
   testtakers <- tibble::tibble(
     group_id = "G1",
@@ -207,6 +245,25 @@ test_that("generate_testtakers can emit legacy-16 schema location", {
     fixed = TRUE
   )
   expect_true(is.na(xml2::xml_attr(xml2::xml_find_first(xml, ".//Group"), "label")))
+})
+
+test_that("generate_testtakers ignores view settings for legacy-16 output", {
+  testtakers <- tibble::tibble(
+    group_id = "G1",
+    login_name = "login1"
+  )
+
+  expect_warning(
+    xml <- generate_testtakers(
+      testtakers,
+      view_settings = list(theme = "Sekundar", code_input_type = "text-field"),
+      testtakers_version = "legacy-16"
+    ),
+    "ignored"
+  )
+
+  expect_length(xml2::xml_find_all(xml, ".//ViewSettings"), 0)
+  expect_true(is.na(xml2::xml_attr(xml2::xml_find_first(xml, ".//Login"), "theme")))
 })
 
 test_that("generate_testtakers rejects mixed booklet and profile children in current mode", {
@@ -251,6 +308,14 @@ test_that("generate_testtakers validates operational target table inputs", {
       custom_texts = list("Pilot")
     ),
     "named list"
+  )
+
+  expect_error(
+    generate_testtakers(
+      tibble::tibble(group_id = "G1", login_name = "login1"),
+      view_settings = list(code_input_type = "buttons")
+    ),
+    "must be one of"
   )
 
   expect_error(
