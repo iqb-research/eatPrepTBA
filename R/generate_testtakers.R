@@ -708,10 +708,6 @@ prepare_testtaker_groups <- function(testtakers) {
         )
       )
 
-      str(ViewSettings)
-      names(ViewSettings)
-      names(ViewSettings$ViewSettings)
-
       c(x, ViewSettings, BookletMerge, ProfileMerge) %>%
         purrr::compact()
     }) %>%
