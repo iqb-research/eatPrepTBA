@@ -9,7 +9,6 @@ generate_testtakers(
   testtakers,
   custom_texts = NULL,
   profiles = NULL,
-  view_settings = NULL,
   app_version = "18.0.0",
   login = NULL,
   testtakers_version = c("18.0", "legacy-16")
@@ -43,16 +42,6 @@ generate_testtakers(
   `filter_locked`, `autoselect_next_block`, `filter_label`,
   `filter_field`, `filter_type`, `filter_value`, `filter_sub_value`, and
   `filter_not`.
-
-- view_settings:
-
-  Optional named list of Testcenter 18.0 login view settings applied to
-  each generated `Login`. Supported entries are `theme`,
-  `code_input = list(type = ..., length = ...)`, top-level
-  `code_input_type` and `code_input_length`, and
-  `monitor_booklet_visibility`. XML-style aliases `codeInput` and
-  `monitorBookletVisibility` are also accepted. Ignored with a warning
-  for `testtakers_version = "legacy-16"`.
 
 - app_version:
 
@@ -104,13 +93,6 @@ replacing texts. The function checks that the list is named, but it does
 not validate the key set against a particular Testcenter version;
 unsupported or misspelled keys are handled by Testcenter.
 
-`view_settings` emits Testcenter 18.0 `ViewSettings` nodes below each
-`Login`, after any `Booklet` or `Profile` children. For example,
-`list(theme = "Sekundar", code_input = list(type = "text-field"))`
-writes `<theme>Sekundar</theme>` and
-`<codeInput><type>text-field</type></codeInput>`. These nodes are not
-emitted for `testtakers_version = "legacy-16"`.
-
 ## Examples
 
 ``` r
@@ -132,17 +114,11 @@ custom_texts <- list(
   login_codeInputTitle = "Enter student code"
 )
 
-current_view_settings <- list(
-  theme = "Sekundar",
-  code_input = list(type = "text-field")
-)
-
 # Wrapper for the current Testcenter 18 testtakers XML specification.
 write_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
   xml <- generate_testtakers(
     testtakers,
-    custom_texts = custom_texts,
-    view_settings = current_view_settings
+    custom_texts = custom_texts
   )
   xml2::write_xml(xml, output)
   output
