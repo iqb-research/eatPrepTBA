@@ -8,6 +8,7 @@ generate_testtakers(
   testtakers,
   custom_texts = NULL,
   profiles = NULL,
+  view_settings = NULL,
   app_version = "18.0.0",
   login = NULL,
   testtakers_version = c("18.0", "legacy-16")
@@ -32,6 +33,14 @@ contain \code{profile_id} when supplied. Optional columns are \code{profile_labe
 \code{booklet_states_columns}, \code{filter_pending}, \code{filter_locked},
 \code{autoselect_next_block}, \code{filter_label}, \code{filter_field}, \code{filter_type},
 \code{filter_value}, \code{filter_sub_value}, and \code{filter_not}.}
+
+\item{view_settings}{Optional named list of Testcenter 18.0 login view
+settings applied to each generated \code{Login}. Supported entries are \code{theme},
+\code{code_input = list(type = ..., length = ...)}, top-level
+\code{code_input_type} and \code{code_input_length}, and
+\code{monitor_booklet_visibility}. XML-style aliases \code{codeInput} and
+\code{monitorBookletVisibility} are also accepted. Ignored with a warning for
+\code{testtakers_version = "legacy-16"}.}
 
 \item{app_version}{Version of the target Testcenter instance. Defaults to
 \code{"18.0.0"}. This is used for legacy raw-GitHub schema URLs; current
@@ -77,6 +86,12 @@ Testcenter placeholders such as \code{\%s} unchanged when replacing texts. The
 function checks that the list is named, but it does not validate the key set
 against a particular Testcenter version; unsupported or misspelled keys are
 handled by Testcenter.
+
+\code{view_settings} emits Testcenter 18.0 \code{ViewSettings} nodes below each
+\code{Login}, after any \code{Booklet} or \code{Profile} children. For example,
+\code{list(theme = "Sekundar", code_input = list(type = "text-field"))} writes
+\verb{<theme>Sekundar</theme>} and \verb{<codeInput><type>text-field</type></codeInput>}.
+These nodes are not emitted for \code{testtakers_version = "legacy-16"}.
 }
 \examples{
 testtakers <- tibble::tibble(
@@ -97,11 +112,17 @@ custom_texts <- list(
   login_codeInputTitle = "Enter student code"
 )
 
+current_view_settings <- list(
+  theme = "Sekundar",
+  code_input = list(type = "text-field")
+)
+
 # Wrapper for the current Testcenter 18 testtakers XML specification.
 write_testtakers_xml <- function(testtakers, output = tempfile(fileext = ".xml")) {
   xml <- generate_testtakers(
     testtakers,
-    custom_texts = custom_texts
+    custom_texts = custom_texts,
+    view_settings = current_view_settings
   )
   xml2::write_xml(xml, output)
   output
