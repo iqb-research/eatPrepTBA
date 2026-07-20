@@ -1,5 +1,17 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9026 \[2026-07-15\]
+
+- Added optional Testcenter 18.0 `ViewSettings` output to
+  [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
+  via `view_settings`, including `theme`, `code_input`, and monitor
+  booklet visibility settings.
+- Ensured `ViewSettings` is emitted as proper nested XML below `Login`
+  and after any `Booklet` or `Profile` children, while `legacy-16`
+  output keeps omitting unsupported current Testcenter nodes.
+- Added regression coverage for current `ViewSettings` XML, legacy
+  omission, and invalid view-setting values.
+
 ## eatPrepTBA 0.9.8.9025 \[2026-07-14\]
 
 - Fixed
