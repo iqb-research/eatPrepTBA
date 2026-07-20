@@ -1,3 +1,9 @@
+# eatPrepTBA 0.9.8.9026 [2026-07-15]
+
+* Added optional Testcenter 18.0 `ViewSettings` output to `generate_testtakers()` via `view_settings`, including `theme`, `code_input`, and monitor booklet visibility settings.
+* Ensured `ViewSettings` is emitted as proper nested XML below `Login` and after any `Booklet` or `Profile` children, while `legacy-16` output keeps omitting unsupported current Testcenter nodes.
+* Added regression coverage for current `ViewSettings` XML, legacy omission, and invalid view-setting values.
+
 # eatPrepTBA 0.9.8.9025 [2026-07-14]
 
 * Fixed `evaluate_psychometrics()` for missing category-code completion when internally generated response rows lacked Testcenter identifier columns, and made the unused-category path robust to incomplete preparation output.
