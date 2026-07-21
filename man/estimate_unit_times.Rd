@@ -37,7 +37,7 @@ Tibble containing various times and timestamps per participant unit and page
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}}
 
 Calculates estimated processing and loading times for units and pages. Excludes units that never
-actually played. Duration units are in milliseconds.
+actually played. Durations are given in milliseconds.
 New columns and nested columns:
 \itemize{
 \item unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet

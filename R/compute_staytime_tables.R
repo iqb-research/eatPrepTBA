@@ -14,13 +14,13 @@
 #' generate_unit_domains() function in this file.
 #' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
 #' ideally corrected for switches etc. Relevant variables: 
-#' booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
+#' booklet_id, IDSTUD, group_id, login_name, login_code,
 #' unit_key, variable_page
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
-#' @param unit_cs Data frame. Unit-wise coding schemes, exported directly from IQB Studio.
+#' @param unit_cs Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via add_coding_scheme().
 #' Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
-#' @param unit_meta Data frame. Unit-wise metadata, exported directly from IQB Studio.
+#' @param unit_meta Data frame. Unit-wise metadata, exported from IQB Studio and enriched via add_metadata().
 #' Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param students_select Vector of strings. If necessary, contains the IDSTUDs of students to
@@ -35,14 +35,18 @@
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
-#' Takes various data sources with unit, item and participant stay times and metadata,
+#' Takes various data sources with unit, page and participant stay times and metadata,
 #' and computes quantiles for use in reports. Uses the layout_staytime_tables function
 #' to layout them for quarto reports.
-#' IMPORTANT: The function assumes that there is one study design for regular schools (RS)
+#' IMPORTANT: 
+#' - Although item IDs are listed in the final outputs, these functions cannot compute 
+#' actual item stay times, as the finest-grained stay times in the log data are page 
+#' stay times. One page often contains several items.
+#' - The function assumes that there is one study design for regular schools (RS)
 #' and one for special needs schools (FS), and that the booklets with FS design can be identified
 #' with certainty by a string which appears as a substring of final_responses$booklet_id entries.
 #' This string is passed to the function as the argument FS_marker.
-#' ALSO: For the function to work properly, the working directory needs to be set to the location of
+#' - For the function to work properly, the working directory needs to be set to the location of
 #' the script you are running it from before running. See example.
 #'
 #' @details
@@ -105,8 +109,6 @@
 #' # Requires packages eatPrepTBA, tidyverse, reactable, and htmltools there.
 #'
 #' @export
- 
-# TODO: Ensure unit_ident is created and used in all datasetss
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -138,7 +140,7 @@ compute_staytime_tables <- function(fach,
     log_times %>%
     tidyr::unnest(unit_page_logs, keep_empty = TRUE) %>%
     dplyr::mutate(
-      item_time = dplyr::case_when(
+      page_time2 = dplyr::case_when(
         .data$unit_has_pages ~ .data$page_time,
         .default = .data$unit_time
       ),
@@ -218,14 +220,14 @@ compute_staytime_tables <- function(fach,
                             "unit_alias", "unit_start_time", "unit_n_play", "unit_time", 
                             "all_load_time", "unit_logs_i", "variable_page", "page_start_time",
                             "page_n_start", "page_time", "page_logs_i", "unit_has_pages", 
-                            "item_time")) %>% # select leftover page logtimes not in resp_page_logtimes
+                            "page_time2")) %>% # find leftover page logtimes not in resp_page_logtimes
     dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
                                               .data$booklet_id, .data$unit_key),
                      by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key")) %>% # select only those
     # unit plays which appear in resp_page_logtimes
     dplyr::mutate(variable_id = ifelse(.data$variable_page == 0, "Stimulus", NA_character_)) %>%
     dplyr::filter(.data$variable_page == 0 & !is.na(.data$page_time)) %>%
-    dplyr::group_by(.data$unit_key, item_id = .data$variable_id, .data$variable_page) %>%
+    dplyr::group_by(.data$unit_key, .data$variable_id, .data$variable_page) %>% # item_id = .data$variable_id, .data$variable_page) %>%
     dplyr::summarise(
       page_n_valid = length(na.omit(.data$page_time)),
       page_median = median(.data$page_time, na.rm = TRUE) / 1000,
@@ -248,7 +250,7 @@ compute_staytime_tables <- function(fach,
                             "unit_alias", "variable_page", "unit_start_time", "unit_n_play",
                             "unit_time", "all_load_time", "unit_logs_i", "page_start_time",
                             "page_n_start", "page_time", "page_logs_i", "unit_has_pages",
-                            "item_time")) %>%
+                            "page_time2")) %>%
     dplyr::semi_join(resp_page_logtimes %>% 
                        dplyr::distinct(.data$group_id, .data$login_name, .data$login_code, 
                                        .data$booklet_id, .data$unit_key),
@@ -278,7 +280,7 @@ compute_staytime_tables <- function(fach,
 
   stim_logs_quant_design <-
     stim_logs_quant_design %>%
-    dplyr::group_by(.data$design, .data$unit_key, item_id = .data$variable_id, .data$variable_page) %>%
+    dplyr::group_by(.data$design, .data$unit_key, .data$variable_id, .data$variable_page) %>% # item_id = .data$variable_id, .data$variable_page) %>%
     dplyr::summarise(
       page_n_valid = length(na.omit(.data$page_time)),
       page_median = median(.data$page_time, na.rm = TRUE) / 1000,
@@ -424,7 +426,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes_page_quant_design,
       stim_logs_quant_design
     ) %>%
-    dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
+    dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta_design,
                      by = "unit_key"
     )
@@ -439,7 +441,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes_page_quant,
       stim_logs_quant %>% mutate(item_id = as.character(item_id))
     ) %>%
-    dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
+    dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta,
                      by = "unit_key") %>%
     dplyr::left_join(p25_all_quant_design,
@@ -500,7 +502,7 @@ compute_staytime_tables <- function(fach,
         # Items
         tab_item <-
           data %>%
-          dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id) %>%
+          dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
           dplyr::mutate(variable_page = .data$variable_page + 1) %>%
           # dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
           layout_staytime_tables(id = "item-table")
@@ -559,7 +561,7 @@ compute_staytime_tables <- function(fach,
   #     .data$login_name, .data$login_code,
   #     unit_key, variable_id, variable_page,
   #     unit_time, unit_n_start, unit_has_pages,
-  #     page_time, page_n_start, item_time
+  #     page_time, page_n_start, page_time2
   #   ) %>%
   #   dplyr::arrange(
   #     unit_key, variable_page

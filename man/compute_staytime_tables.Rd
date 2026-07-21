@@ -32,7 +32,7 @@ generate_unit_domains() function in this file.}
 
 \item{final_responses}{Data frame. Contains the item-wise and respondent-wise coded responses,
 ideally corrected for switches etc. Relevant variables:
-booklet_id, item_id, IDSTUD, group_id, login_name, login_code,
+booklet_id, IDSTUD, group_id, login_name, login_code,
 unit_key, variable_page
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
@@ -59,15 +59,21 @@ This can then be incorporated into a quarto document as described in the example
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-Takes various data sources with unit, item and participant stay times and metadata,
+Takes various data sources with unit, page and participant stay times and metadata,
 and computes quantiles for use in reports. Uses the layout_staytime_tables function
 to layout them for quarto reports.
-IMPORTANT: The function assumes that there is one study design for regular schools (RS)
+IMPORTANT:
+\itemize{
+\item Although item IDs are listed in the final outputs, these functions cannot compute
+actual item stay times, as the finest-grained stay times in the log data are page
+stay times. One page often contains several items.
+\item The function assumes that there is one study design for regular schools (RS)
 and one for special needs schools (FS), and that the booklets with FS design can be identified
 with certainty by a string which appears as a substring of final_responses$booklet_id entries.
 This string is passed to the function as the argument FS_marker.
-ALSO: For the function to work properly, the working directory needs to be set to the location of
+\item For the function to work properly, the working directory needs to be set to the location of
 the script you are running it from before running. See example.
+}
 }
 \details{
 Author: Philipp Franikowski, restructured by Lea Musiolek

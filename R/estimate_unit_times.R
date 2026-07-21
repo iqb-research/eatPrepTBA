@@ -21,7 +21,7 @@
 #' `r lifecycle::badge("stable")`
 #'
 #' Calculates estimated processing and loading times for units and pages. Excludes units that never
-#' actually played. Duration units are in milliseconds.
+#' actually played. Durations are given in milliseconds.
 #' New columns and nested columns:
 #' - unit_start_time: Timestamp of first "PLAYER = RUNNING" log in this unit & booklet
 #' - unit_n_play: Number of playbacks of the unit in this session, incomplete playbacks included
