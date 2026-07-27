@@ -115,8 +115,9 @@
 #' @export
 
 
-# TODO: Insert item_id from unit metadata early on, everywhere it's needed. Use variable_id as hinge
-# and remove it later; it's not essential.
+# TODO: Remove extra rows in final table
+# TODO: Update column checks in the beginning
+# TODO: Make sure variable_id isn't confusing the computation of page staytimes
 
 compute_staytime_tables <- function(fach,
                                     log_times,
