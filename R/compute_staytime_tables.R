@@ -127,6 +127,9 @@ compute_staytime_tables <- function(fach,
                                     students_select,
                                     FS_marker,
                                     output_path) {
+  
+  min_plays = 2 # Minimal necessary plays of the page for an item to be included
+  
   # input validation
   checkmate::assert_character(fach, len=1)
   checkmate::assert_character(FS_marker, len=1)
@@ -134,9 +137,9 @@ compute_staytime_tables <- function(fach,
   checkmate::assert_character(students_select, null.ok = TRUE)
   checkmate::assert_data_frame(log_times)
 
-  # unit_domains_cols <- c("unit_key", "subject", "domain")
-  # checkmate::assert_data_frame(unit_domains)
-  # assert_cols(unit_domains, unit_domains_cols, "unit_domains")
+  unit_domains_cols <- c("unit_key", "subject", "domain")
+  checkmate::assert_data_frame(unit_domains)
+  assert_cols(unit_domains, unit_domains_cols, "unit_domains")
   # 
   # final_responses_cols <- c("booklet_id", "IDSTUD", "group_id", "login_name",
   #                           "login_code", "unit_key", "variable_page")
@@ -252,8 +255,8 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(
-      # Nur Seiten, die mindestens 11 mal bearbeitet wurden
-      .data$page_n_valid > 10
+      # Nur Seiten, die mindestens min_plays mal bearbeitet wurden
+      .data$page_n_valid >= min_plays
     ) %>%
     dplyr::left_join(unit_domains, 
                      by="unit_key")
@@ -278,14 +281,14 @@ compute_staytime_tables <- function(fach,
     dplyr::filter(.data$page_id == 0 & !is.na(.data$page_time2))
 
   if (sum(stim_logs_quant_design$design == "FS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in 1:min_plays) {
       stim_logs_quant_design[nrow(stim_logs_quant_design) + 1,] = NA
       stim_logs_quant_design$unit_key[nrow(stim_logs_quant_design)] = "Platzhalter"
       stim_logs_quant_design$design[nrow(stim_logs_quant_design)] = "FS"
       stim_logs_quant_design$page_time2[nrow(stim_logs_quant_design)] = 0
     }}
   if (sum(stim_logs_quant_design$design == "RS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in 1:min_plays) {
       stim_logs_quant_design[nrow(stim_logs_quant_design) + 1,] = NA
       stim_logs_quant_design$unit_key[nrow(stim_logs_quant_design)] = "Platzhalter"
       stim_logs_quant_design$design[nrow(stim_logs_quant_design)] = "RS"
@@ -305,7 +308,7 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(
-      .data$page_n_valid > 10
+      .data$page_n_valid >= min_plays
     ) %>%
     tidyr::pivot_wider(names_from = .data$design,
                        values_from = c(page_n_valid,
@@ -327,7 +330,7 @@ compute_staytime_tables <- function(fach,
     dplyr::ungroup()
 
   if (sum(resp_page_logtimes$design == "FS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in 1:min_plays) {
       resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
       resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
       resp_page_logtimes$design[nrow(resp_page_logtimes)] = "FS"
@@ -335,7 +338,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes$unit_time[nrow(resp_page_logtimes)] = 0
     }}
   if (sum(resp_page_logtimes$design == "RS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in 1:min_plays) {
       resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
       resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
       resp_page_logtimes$design[nrow(resp_page_logtimes)] = "RS"
@@ -444,7 +447,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes_page_quant_design,
       stim_logs_quant_design
     ) %>%
-    dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE) %>%
+    # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta_design,
                      by = "unit_key"
     )
@@ -455,23 +458,29 @@ compute_staytime_tables <- function(fach,
     dplyr::left_join(unit_domains, 
                      by="unit_key")
 
-  p25_all_quant <-
+  all_quant <-
     dplyr::bind_rows(
       resp_page_logtimes_page_quant,
-      stim_logs_quant %>% mutate(item_id = as.character(item_id))
-    ) %>%
-    dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
+      stim_logs_quant %>% mutate(variable_id = as.character(variable_id))) %>%
+    # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
     dplyr::left_join(resp_page_logtimes_unit_quant_meta,
                      by = "unit_key") %>%
     dplyr::left_join(all_quant_design,
-                     by = c("unit_key", "item_id", "variable_page", "unit_label", "link", 
-                            "unit_estimated"))
-  
+                     by = c("unit_key", "variable_id", "page_id", "unit_label", "link", 
+                            "unit_estimated")) %>%
+    dplyr::left_join(unit_meta_big %>% dplyr::select(.data$unit_key, 
+                                                     .data$item_id, .data$variable_id),
+                     by = c("unit_key", "variable_id")) %>%
+    dplyr::mutate(item_id = dplyr::case_when(
+      .data$variable_id == "Stimulus" ~ "Stimulus",
+      .default = .data$item_id
+    )) %>%
+    dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE)
   # rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, 
   # all_quant_design)
 
   dat_table <-
-    p25_all_quant %>%
+    all_quant %>%
     dplyr::select(
       .data$domain,
       .data$link,
@@ -494,7 +503,7 @@ compute_staytime_tables <- function(fach,
       .data$unit_q95_FS,
       .data$unit_diff95_FS,
       .data$item_id,
-      .data$variable_page,
+      .data$page_id,
       .data$page_median,
       .data$page_q90,
       .data$page_q95,
@@ -503,7 +512,7 @@ compute_staytime_tables <- function(fach,
       .data$page_q95_RS,
       .data$page_median_FS,
       .data$page_q90_FS,
-      .data$page_q95_FS,
+      .data$page_q95_FS
     ) %>%
     dplyr::mutate(
       item_id = ifelse(.data$item_id != "Stimulus", 
@@ -524,9 +533,9 @@ compute_staytime_tables <- function(fach,
         # Items
         tab_item <-
           data %>%
-          dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
-          dplyr::mutate(variable_page = .data$variable_page + 1) %>%
-          # dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF) %>%
+          dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE) %>%
+          dplyr::mutate(page_id = .data$page_id + 1) %>%
+          # dplyr::distinct(.data$link, dplyr::across(dplyr::starts_with("unit")), .data$SPF, .data$item_id) %>%
           layout_staytime_tables(id = "item-table")
 
         save(tab, tab_item, file = stringr::str_glue(
@@ -1081,7 +1090,7 @@ sort_function <- htmlwidgets::JS("function(rowInfo, column, state) {
 }")
 
 colPage <- list(
-  variable_page = reactable::colDef(name = "Seite"),
+  page_id = reactable::colDef(name = "Seite"),
   page_median = reactable::colDef(name = "Median", cell = to_stamp),
   page_q90 = reactable::colDef(name = "Q90", cell = to_stamp),
   page_q95 = reactable::colDef(name = "Q95", cell = to_stamp),
@@ -1093,12 +1102,9 @@ colPage <- list(
   page_q95_FS = reactable::colDef(name = "Q95", cell = to_stamp, show = FALSE),
   item_id = reactable::colDef(name = "Item", style = sort_function,
                               cell = function(value) htmltools::tags$code(value),
-                              width = 120)
-)
+                              width = 120))
 
-no_show_list <- c(
-  "SPF"
-)
+no_show_list <- c("SPF")
 
 colNoShow <-
   no_show_list %>%

@@ -36,12 +36,15 @@ booklet_id, IDSTUD, group_id, login_name, login_code,
 unit_key, variable_page
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
-\item{unit_cs}{Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via add_coding_scheme().
+\item{unit_cs}{Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via
+add_coding_scheme().
 Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
-\item{unit_meta}{Data frame. Unit-wise metadata, exported from IQB Studio and enriched via add_metadata().
-Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, Aufgabenzeit
+\item{unit_meta}{Data frame. Unit-wise metadata, exported from IQB Studio and enriched via
+add_metadata().
+Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata,
+Aufgabenzeit
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{students_select}{Vector of strings. If necessary, contains the IDSTUDs of students to
@@ -53,7 +56,8 @@ booklet is treated as containing a special needs school study design.}
 \item{output_path}{String. Directory to store prepared tables in.}
 }
 \value{
-A tibble. Also saves large tibble with name \verb{tab_\\\\\{domain\\\\\}.RData} under output_path, including quantile dot plots.
+A tibble. Also saves large tibble with name \verb{tab_\\\\\{domain\\\\\}.RData} under output_path,
+including quantile dot plots.
 This can then be incorporated into a quarto document as described in the example below.
 }
 \description{
