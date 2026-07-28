@@ -117,7 +117,7 @@
 
 # TODO: Remove extra rows in final table
 # TODO: Update column checks in the beginning
-# TODO: Make sure variable_id isn't confusing the computation of page staytimes
+# TODO: Unify stim_logs_quant with and without design; make it about page==0, not about response or not
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -390,6 +390,7 @@ compute_staytime_tables <- function(fach,
                        values_from = c(unit_n_valid,
                                        unit_median, unit_q90,
                                        unit_q95))
+  rm(resp_page_logtimes)
 
   # Irrelevante Units rausschmeißen:
   unit_meta <- unit_meta[which(unit_meta$unit_key %in% unit_domains$unit_key), ]
