@@ -117,7 +117,7 @@
 
 # TODO: Remove extra rows in final table
 # TODO: Update column checks in the beginning
-# TODO: Unify stim_logs_quant with and without design; make it about page==0, not about response or not
+# TODO: Remove duplicates of subject and domain columns. Make sure the descendants of the log_times dataset have these columns, and possibly update "join by" sets.
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -196,7 +196,7 @@ compute_staytime_tables <- function(fach,
   final_responses <-
     final_responses[which(final_responses$unit_key %in% unit_domains$unit_key), ] %>%
     dplyr::left_join(unit_domains, 
-                     by="unit_key")
+                     multiple="any")
 
   final_resp <- final_responses %>%
     dplyr::mutate(
@@ -218,34 +218,25 @@ compute_staytime_tables <- function(fach,
                      relationship="many-to-many") 
   # rm(unit_cs_corrected, final_resp)
 
-  resp_page_logtimes <-
+  all_page_logtimes <-
     resp_pages %>%
-    dplyr::left_join(unit_page_logtimes,
+    dplyr::full_join(unit_page_logtimes,
                      by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key",
                             "unit_alias", "page_id"),
-                     multiple="all")
+                     relationship="many-to-many") %>%
+    dplyr::left_join(unit_domains, 
+                     multiple="any")
   # rm(resp_pages)
   
   if (!is.null(students_select)) {
-    resp_page_logtimes <- resp_page_logtimes[resp_page_logtimes$IDSTUD %in% students_select, ]
+    all_page_logtimes <- all_page_logtimes[all_page_logtimes$IDSTUD %in% students_select, ]
   }
 
-  stim_logs_quant <-
-    unit_page_logtimes %>%
-    dplyr::anti_join(resp_page_logtimes,
-                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key", 
-                            "unit_alias", "unit_start_time", "unit_n_play", "unit_time", 
-                            "page_id", "page_start_time",
-                            "page_logs_i", "unit_has_pages", 
-                            "page_time2")) %>% # find leftover page logtimes not in 
-                                                # resp_page_logtimes
-    dplyr::semi_join(resp_page_logtimes %>% dplyr::distinct(.data$group_id, .data$login_name, 
-                                                            .data$login_code,
-                                              .data$booklet_id, .data$unit_key),
-                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key")) %>% 
-                            # select only those unit plays which appear in resp_page_logtimes
-    dplyr::mutate(variable_id = ifelse(.data$page_id == 0, "Stimulus", NA_character_)) %>%
+  page0_logtimes <- all_page_logtimes %>%
     dplyr::filter(.data$page_id == 0 & !is.na(.data$page_time2)) %>%
+    dplyr::mutate(variable_id = ifelse(.data$page_id == 0, "Stimulus", NA_character_))
+   
+  stim_logs_quant <- page0_logtimes %>%
     dplyr::group_by(.data$unit_key, .data$variable_id, .data$page_id) %>% 
                         # item_id = .data$variable_id, .data$variable_page) %>%
     dplyr::summarise(
@@ -258,28 +249,13 @@ compute_staytime_tables <- function(fach,
     dplyr::filter(
       # Nur Seiten, die mindestens min_plays mal bearbeitet wurden
       .data$page_n_valid >= min_plays
-    ) %>%
-    dplyr::left_join(unit_domains, 
-                     by="unit_key")
+    )
 
-  stim_logs_quant_design <-
-    unit_page_logtimes %>%
-    dplyr::anti_join(resp_page_logtimes,
-                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key",
-                            "unit_alias", "page_id", "unit_start_time", "unit_n_play",
-                            "unit_time", "page_start_time",
-                            "page_logs_i", "unit_has_pages",
-                            "page_time2")) %>%
-    dplyr::semi_join(resp_page_logtimes %>% 
-                       dplyr::distinct(.data$group_id, .data$login_name, .data$login_code, 
-                                       .data$booklet_id, .data$unit_key),
-                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key")) %>%
-    dplyr::left_join(resp_page_logtimes %>% 
+  stim_logs_quant_design <- page0_logtimes %>%
+    dplyr::left_join(all_page_logtimes %>% 
                        dplyr::distinct(.data$group_id, .data$login_name, .data$login_code,
                                               .data$booklet_id, .data$unit_key, .data$design),
-                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key")) %>%
-    dplyr::mutate(variable_id = ifelse(.data$page_id == 0, "Stimulus", NA_character_)) %>%
-    dplyr::filter(.data$page_id == 0 & !is.na(.data$page_time2))
+                     by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key"))
 
   if (sum(stim_logs_quant_design$design == "FS", na.rm=TRUE) == 0) {
     for (i in 1:min_plays) {
@@ -308,17 +284,17 @@ compute_staytime_tables <- function(fach,
       page_q95 = quantile(.data$page_time2, .95, na.rm = TRUE) / 1000,
     ) %>%
     dplyr::ungroup() %>%
-    dplyr::filter(
-      .data$page_n_valid >= min_plays
-    ) %>%
+    dplyr::filter(.data$page_n_valid >= min_plays) %>%
     tidyr::pivot_wider(names_from = .data$design,
                        values_from = c(page_n_valid,
                                        page_median,
                                        page_q90,
                                        page_q95))
 
-  resp_page_logtimes_page_quant <-
-    resp_page_logtimes %>%
+  higherpage_logtimes <- all_page_logtimes %>%
+    dplyr::filter(.data$page_id != 0 & !is.na(.data$page_time2))
+  
+  higherpage_logtimes_page_quant <- higherpage_logtimes %>%
     dplyr::distinct(.data$login_code, .data$unit_key, .data$variable_id, .data$page_id, 
                     .data$page_time2) %>%
     dplyr::group_by(.data$unit_key, .data$variable_id, .data$page_id) %>%
@@ -330,26 +306,25 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup()
 
-  if (sum(resp_page_logtimes$design == "FS", na.rm=TRUE) == 0) {
+  if (sum(higherpage_logtimes$design == "FS", na.rm=TRUE) == 0) {
     for (i in 1:min_plays) {
-      resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
-      resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
-      resp_page_logtimes$design[nrow(resp_page_logtimes)] = "FS"
-      resp_page_logtimes$page_time2[nrow(resp_page_logtimes)] = 0
-      resp_page_logtimes$unit_time[nrow(resp_page_logtimes)] = 0
+      higherpage_logtimes[nrow(higherpage_logtimes) + 1,] = NA
+      higherpage_logtimes$unit_key[nrow(higherpage_logtimes)] = "Platzhalter"
+      higherpage_logtimes$design[nrow(higherpage_logtimes)] = "FS"
+      higherpage_logtimes$page_time2[nrow(higherpage_logtimes)] = 0
+      higherpage_logtimes$unit_time[nrow(higherpage_logtimes)] = 0
     }}
-  if (sum(resp_page_logtimes$design == "RS", na.rm=TRUE) == 0) {
+  if (sum(higherpage_logtimes$design == "RS", na.rm=TRUE) == 0) {
     for (i in 1:min_plays) {
-      resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
-      resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
-      resp_page_logtimes$design[nrow(resp_page_logtimes)] = "RS"
-      resp_page_logtimes$page_time2[nrow(resp_page_logtimes)] = 0
-      resp_page_logtimes$unit_time[nrow(resp_page_logtimes)] = 0
+      higherpage_logtimes[nrow(higherpage_logtimes) + 1,] = NA
+      higherpage_logtimes$unit_key[nrow(higherpage_logtimes)] = "Platzhalter"
+      higherpage_logtimes$design[nrow(higherpage_logtimes)] = "RS"
+      higherpage_logtimes$page_time2[nrow(higherpage_logtimes)] = 0
+      higherpage_logtimes$unit_time[nrow(higherpage_logtimes)] = 0
     }
   }
 
-  resp_page_logtimes_page_quant_design <-
-    resp_page_logtimes %>%
+  higherpage_logtimes_page_quant_design <- higherpage_logtimes %>%
     dplyr::distinct(.data$login_code, .data$design, .data$unit_key, .data$variable_id, 
                     .data$page_id, .data$page_time2) %>%
     dplyr::group_by(.data$design, .data$unit_key, .data$variable_id, .data$page_id) %>%
@@ -365,8 +340,7 @@ compute_staytime_tables <- function(fach,
                                        page_median, page_q90,
                                        page_q95))
 
-  resp_page_logtimes_unit_quant <-
-    resp_page_logtimes %>%
+  higherpage_logtimes_unit_quant <- higherpage_logtimes %>%
     dplyr::distinct(.data$login_code, .data$unit_key, .data$unit_time) %>%
     dplyr::group_by(.data$unit_key) %>%
     dplyr::summarise(
@@ -376,8 +350,7 @@ compute_staytime_tables <- function(fach,
       unit_q95 = quantile(.data$unit_time, .95, na.rm = TRUE) / 1000,
     )
 
-  resp_page_logtimes_unit_quant_design <-
-    resp_page_logtimes %>%
+  higherpage_logtimes_unit_quant_design <- higherpage_logtimes %>%
     dplyr::distinct(.data$login_code, .data$design, .data$unit_key, .data$unit_time) %>%
     dplyr::group_by(.data$design, .data$unit_key) %>%
     dplyr::summarise(
@@ -390,9 +363,8 @@ compute_staytime_tables <- function(fach,
                        values_from = c(unit_n_valid,
                                        unit_median, unit_q90,
                                        unit_q95))
-  rm(resp_page_logtimes)
+  # rm(all_page_logtimes, higher_page_logtimes)
 
-  # Irrelevante Units rausschmeißen:
   unit_meta <- unit_meta[which(unit_meta$unit_key %in% unit_domains$unit_key), ]
 
   unit_meta_big_cols <- c("ws_id", "unit_id", "unit_key", "unit_label",
@@ -423,18 +395,18 @@ compute_staytime_tables <- function(fach,
     dplyr::mutate(
       unit_estimated = lubridate::ms(.data$Aufgabenzeit) %>% lubridate::period_to_seconds()) %>%
     dplyr::select(-.data$Aufgabenzeit)
-  # rm(unit_meta)
+  # rm(unit_meta_big)
 
-  resp_page_logtimes_unit_quant_meta <-
-    resp_page_logtimes_unit_quant %>%
+  higherpage_logtimes_unit_quant_meta <-
+    higherpage_logtimes_unit_quant %>%
     dplyr::left_join(meta_logs,
                      by = "unit_key") %>%
     dplyr::mutate(
       unit_diff = .data$unit_q90 - .data$unit_estimated,
       unit_diff95 = .data$unit_q95 - .data$unit_estimated)
 
-  resp_page_logtimes_unit_quant_meta_design <-
-    resp_page_logtimes_unit_quant_design %>%
+  higherpage_logtimes_unit_quant_meta_design <-
+    higherpage_logtimes_unit_quant_design %>%
     dplyr::left_join(meta_logs,
                      by = "unit_key") %>%
     dplyr::mutate(
@@ -446,26 +418,21 @@ compute_staytime_tables <- function(fach,
 
   all_quant_design <-
     dplyr::bind_rows(
-      resp_page_logtimes_page_quant_design,
+      higherpage_logtimes_page_quant_design,
       stim_logs_quant_design
     ) %>%
     # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
-    dplyr::left_join(resp_page_logtimes_unit_quant_meta_design,
-                     by = "unit_key"
-    )
-  # rm(resp_page_logtimes_page_quant_design, stim_logs_quant_design, 
-  # resp_page_logtimes_unit_quant_meta_design)
-
-  resp_page_logtimes_page_quant <- resp_page_logtimes_page_quant %>% 
-    dplyr::left_join(unit_domains, 
-                     by="unit_key")
+    dplyr::left_join(higherpage_logtimes_unit_quant_meta_design,
+                     by = "unit_key")
+  # rm(higherpage_logtimes_page_quant_design, stim_logs_quant_design, 
+  # higherpage_logtimes_unit_quant_meta_design)
 
   all_quant <-
     dplyr::bind_rows(
-      resp_page_logtimes_page_quant,
+      higherpage_logtimes_page_quant,
       stim_logs_quant %>% mutate(variable_id = as.character(variable_id))) %>%
     # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
-    dplyr::left_join(resp_page_logtimes_unit_quant_meta,
+    dplyr::left_join(higherpage_logtimes_unit_quant_meta,
                      by = "unit_key") %>%
     dplyr::left_join(all_quant_design,
                      by = c("unit_key", "variable_id", "page_id", "unit_label", "link", 
@@ -478,7 +445,7 @@ compute_staytime_tables <- function(fach,
       .default = .data$item_id
     )) %>%
     dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE)
-  # rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, 
+  # rm(higherpage_logtimes_page_quant, stim_logs_quant, higherpage_logtimes_unit_quant_meta, 
   # all_quant_design)
 
   dat_table <-
