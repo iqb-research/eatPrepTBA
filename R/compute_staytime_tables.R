@@ -328,7 +328,7 @@ compute_staytime_tables <- function(fach,
                                        page_median, page_q90,
                                        page_q95))
 
-  higherpage_logtimes_unit_quant <- higherpage_logtimes %>%
+  logtimes_unit_quant <- all_page_logtimes %>%
     dplyr::distinct(.data$login_code, .data$unit_key, .data$unit_time, .keep_all=TRUE) %>%
     dplyr::group_by(.data$unit_key, .data$domain, .data$subject) %>%
     dplyr::summarise(
@@ -337,8 +337,26 @@ compute_staytime_tables <- function(fach,
       unit_q90 = quantile(.data$unit_time, .90, na.rm = TRUE) / 1000,
       unit_q95 = quantile(.data$unit_time, .95, na.rm = TRUE) / 1000,
     )
+  
+  if (sum(all_page_logtimes$design == "FS", na.rm=TRUE) == 0) {
+    for (i in 1:min_plays) {
+      all_page_logtimes[nrow(all_page_logtimes) + 1,] = NA
+      all_page_logtimes$unit_key[nrow(all_page_logtimes)] = "Platzhalter"
+      all_page_logtimes$design[nrow(all_page_logtimes)] = "FS"
+      all_page_logtimes$page_time2[nrow(all_page_logtimes)] = 0
+      all_page_logtimes$unit_time[nrow(all_page_logtimes)] = 0
+    }}
+  if (sum(all_page_logtimes$design == "RS", na.rm=TRUE) == 0) {
+    for (i in 1:min_plays) {
+      all_page_logtimes[nrow(all_page_logtimes) + 1,] = NA
+      all_page_logtimes$unit_key[nrow(all_page_logtimes)] = "Platzhalter"
+      all_page_logtimes$design[nrow(all_page_logtimes)] = "RS"
+      all_page_logtimes$page_time2[nrow(all_page_logtimes)] = 0
+      all_page_logtimes$unit_time[nrow(all_page_logtimes)] = 0
+    }
+  }
 
-  higherpage_logtimes_unit_quant_design <- higherpage_logtimes %>%
+  logtimes_unit_quant_design <- all_page_logtimes %>%
     dplyr::distinct(.data$login_code, .data$design, .data$unit_key, .data$unit_time, 
                     .keep_all=TRUE) %>%
     dplyr::group_by(.data$design, .data$unit_key, .data$domain, .data$subject) %>%
@@ -387,15 +405,15 @@ compute_staytime_tables <- function(fach,
       unit_estimated = lubridate::ms(.data$Aufgabenzeit) %>% lubridate::period_to_seconds()) %>%
     dplyr::select(-.data$Aufgabenzeit)
 
-  higherpage_logtimes_unit_quant_meta <-
-    higherpage_logtimes_unit_quant %>%
+  logtimes_unit_quant_meta <-
+    logtimes_unit_quant %>%
     dplyr::left_join(meta_unit_logs) %>%
     dplyr::mutate(
       unit_diff = .data$unit_q90 - .data$unit_estimated,
       unit_diff95 = .data$unit_q95 - .data$unit_estimated)
 
-  higherpage_logtimes_unit_quant_meta_design <-
-    higherpage_logtimes_unit_quant_design %>%
+  logtimes_unit_quant_meta_design <-
+    logtimes_unit_quant_design %>%
     dplyr::left_join(meta_unit_logs) %>%
     dplyr::mutate(
       unit_diff_RS = .data$unit_q90_RS - .data$unit_estimated,
@@ -408,15 +426,15 @@ compute_staytime_tables <- function(fach,
     dplyr::bind_rows(
       higherpage_logtimes_page_quant_design,
       stim_logs_quant_design) %>%
-      dplyr::left_join(higherpage_logtimes_unit_quant_meta_design)
+      dplyr::left_join(logtimes_unit_quant_meta_design)
   # rm(higherpage_logtimes_page_quant_design, stim_logs_quant_design, 
-  # higherpage_logtimes_unit_quant_meta_design)
+  # logtimes_unit_quant_meta_design)
 
   all_quant <-
     dplyr::bind_rows(
       higherpage_logtimes_page_quant,
       stim_logs_quant %>% mutate(variable_id = as.character(variable_id))) %>%
-    dplyr::left_join(higherpage_logtimes_unit_quant_meta) %>%
+    dplyr::left_join(logtimes_unit_quant_meta) %>%
     dplyr::left_join(all_quant_design) %>%
     dplyr::left_join(unit_meta_big) %>%
     dplyr::mutate(item_id = dplyr::case_when(
@@ -426,7 +444,7 @@ compute_staytime_tables <- function(fach,
     dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE) # %>%
     # tidyr::drop_na("unit_key", "domain") %>%
     # dplyr::distinct()
-  # rm(higherpage_logtimes_page_quant, stim_logs_quant, higherpage_logtimes_unit_quant_meta, 
+  # rm(higherpage_logtimes_page_quant, stim_logs_quant, logtimes_unit_quant_meta, 
   # all_quant_design)
 
   dat_table <-
