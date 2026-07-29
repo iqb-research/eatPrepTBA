@@ -13,18 +13,13 @@
 #' Can be generated from the blocks.xlsx used for generating the test booklets, using the 
 #' generate_unit_domains() function in this file.
 #' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
-#' ideally corrected for switches etc. Relevant variables: 
-#' booklet_id, IDSTUD, group_id, login_name, login_code,
-#' unit_key, variable_page
+#' ideally corrected for switches etc.
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_cs Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via 
 #' add_coding_scheme().
-#' Relevant variables: unit_key, unit_codes, variable_label, variable_page, variable_id
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_meta Data frame. Unit-wise metadata, exported from IQB Studio and enriched via 
 #' add_metadata().
-#' Relevant variables: ws_id, unit_id, unit_key, unit_label, unit_metadata, item_metadata, 
-#' Aufgabenzeit
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param students_select Vector of strings. If necessary, contains the IDSTUDs of students to
 #' include in the analysis. Otherwise, NULL
@@ -114,11 +109,8 @@
 #'
 #' @export
 
-
-# TODO: Remove extra rows and duplicates in final table
 # TODO: Uncomment rm lines
 # TODO: Update column checks in the beginning
-# TODO: Update join by in all cases to ensure that items/variables don't get permuted with pages
 
 compute_staytime_tables <- function(fach,
                                     log_times,
@@ -142,12 +134,11 @@ compute_staytime_tables <- function(fach,
   unit_domains_cols <- c("unit_key", "subject", "domain")
   checkmate::assert_data_frame(unit_domains)
   assert_cols(unit_domains, unit_domains_cols, "unit_domains")
-  # 
-  # final_responses_cols <- c("booklet_id", "IDSTUD", "group_id", "login_name",
-  #                           "login_code", "unit_key", "variable_page")
-  # checkmate::assert_data_frame(final_responses)
-  # assert_cols(final_responses, final_responses_cols, "final_responses")
 
+  final_responses_cols <- c("booklet_id", "group_id", "login_name",
+                            "login_code", "unit_key")
+  checkmate::assert_data_frame(final_responses)
+  assert_cols(final_responses, final_responses_cols, "final_responses")
 
   unit_page_logtimes <-
     log_times %>%
@@ -172,9 +163,9 @@ compute_staytime_tables <- function(fach,
     tidyr::unnest(unit_codes, keep_empty = TRUE)
   # rm(unit_cs)
   
-  # unit_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
-  # checkmate::assert_data_frame(unit_cs_big)
-  # assert_cols(unit_cs_big, unit_cs_cols, "unit_cs unnested")
+  unit_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
+  checkmate::assert_data_frame(unit_cs_big)
+  assert_cols(unit_cs_big, unit_cs_cols, "unit_cs unnested")
 
   # Korrektur fuer die Markieritems
   unit_cs_corrected <-
@@ -222,9 +213,9 @@ compute_staytime_tables <- function(fach,
                   "unit_has_pages", "page_time2")
   # rm(resp_pages, unit_page_logtimes)
   
-  if (!is.null(students_select)) {
-    all_page_logtimes <- all_page_logtimes[all_page_logtimes$IDSTUD %in% students_select, ]
-  }
+  # if (!is.null(students_select)) {
+  #   all_page_logtimes <- all_page_logtimes[all_page_logtimes$IDSTUD %in% students_select, ]
+  # }
 
   page0_logtimes <- all_page_logtimes %>%
     dplyr::filter(.data$page_id == 0 & !is.na(.data$page_time2)) %>%
@@ -366,45 +357,46 @@ compute_staytime_tables <- function(fach,
   unit_meta <- unit_meta[which(unit_meta$unit_key %in% unit_domains$unit_key), ]
 
   unit_meta_big_cols <- c("ws_id", "unit_id", "unit_key", "unit_label",
-  "item_id", "variable_id", "Aufgabenzeit")
+  "item_id", "variable_id", "Aufgabenzeit", "variable_page")
 
   unit_meta_big <-
     unit_meta %>%
     dplyr::select(.data$ws_id, .data$unit_id, .data$unit_key, .data$unit_label, 
-                  .data$unit_metadata, .data$item_metadata) %>%
+                  .data$unit_metadata, .data$item_metadata, .data$variable_pages) %>%
     tidyr::unnest(.data$unit_metadata) %>%
     tidyr::unnest(.data$item_metadata) %>%
-    dplyr::select(dplyr::matches(stringr::str_c(unit_meta_big_cols, collapse = "|"))) %>%
+    dplyr::full_join(unit_meta %>% tidyr::unnest(.data$variable_pages),
+                     by = c("unit_id", "unit_key", "unit_label", "ws_id", "variable_ref")) %>%
+    dplyr::distinct(dplyr::across(dplyr::all_of(unit_meta_big_cols))) %>%
     dplyr::mutate(
-      # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden
+      # Achtung: Dieser Link sollte der kuenftige Link zum UeA-Bereich werden (Philipp)
       link = stringr::str_glue(
         "https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview"),
       link_legacy = stringr::str_glue(
-        "https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview")
-    )
+        "https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview"),
+      page_id = .data$variable_page)
   # rm(unit_meta)
   
   checkmate::assert_data_frame(unit_meta_big)
   assert_cols(unit_meta_big, unit_meta_big_cols, "unit_meta unnested")
 
-  meta_logs <-
+  meta_unit_logs <-
     unit_meta_big %>%
     dplyr::distinct(.data$unit_key, .data$unit_label, .data$Aufgabenzeit, .data$link) %>%
     dplyr::mutate(
       unit_estimated = lubridate::ms(.data$Aufgabenzeit) %>% lubridate::period_to_seconds()) %>%
     dplyr::select(-.data$Aufgabenzeit)
-  # rm(unit_meta_big)
 
   higherpage_logtimes_unit_quant_meta <-
     higherpage_logtimes_unit_quant %>%
-    dplyr::left_join(meta_logs) %>%
+    dplyr::left_join(meta_unit_logs) %>%
     dplyr::mutate(
       unit_diff = .data$unit_q90 - .data$unit_estimated,
       unit_diff95 = .data$unit_q95 - .data$unit_estimated)
 
   higherpage_logtimes_unit_quant_meta_design <-
     higherpage_logtimes_unit_quant_design %>%
-    dplyr::left_join(meta_logs) %>%
+    dplyr::left_join(meta_unit_logs) %>%
     dplyr::mutate(
       unit_diff_RS = .data$unit_q90_RS - .data$unit_estimated,
       unit_diff95_RS = .data$unit_q95_RS - .data$unit_estimated,
@@ -415,10 +407,8 @@ compute_staytime_tables <- function(fach,
   all_quant_design <-
     dplyr::bind_rows(
       higherpage_logtimes_page_quant_design,
-      stim_logs_quant_design
-    ) %>%
-    # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
-    dplyr::left_join(higherpage_logtimes_unit_quant_meta_design)
+      stim_logs_quant_design) %>%
+      dplyr::left_join(higherpage_logtimes_unit_quant_meta_design)
   # rm(higherpage_logtimes_page_quant_design, stim_logs_quant_design, 
   # higherpage_logtimes_unit_quant_meta_design)
 
@@ -426,18 +416,16 @@ compute_staytime_tables <- function(fach,
     dplyr::bind_rows(
       higherpage_logtimes_page_quant,
       stim_logs_quant %>% mutate(variable_id = as.character(variable_id))) %>%
-    # dplyr::arrange(.data$unit_key, .data$variable_page, .data$item_id, .by_group=TRUE) %>%
     dplyr::left_join(higherpage_logtimes_unit_quant_meta) %>%
     dplyr::left_join(all_quant_design) %>%
-    dplyr::left_join(unit_meta_big %>% dplyr::select(
-      .data$unit_key, .data$item_id, .data$variable_id)) %>%
+    dplyr::left_join(unit_meta_big) %>%
     dplyr::mutate(item_id = dplyr::case_when(
       .data$variable_id == "Stimulus" ~ "Stimulus",
       .default = .data$item_id
     )) %>%
-    dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE) %>%
-    tidyr::drop_na("item_id", "unit_key", "domain", "page_id") %>%
-    dplyr::distinct()
+    dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE) # %>%
+    # tidyr::drop_na("unit_key", "domain") %>%
+    # dplyr::distinct()
   # rm(higherpage_logtimes_page_quant, stim_logs_quant, higherpage_logtimes_unit_quant_meta, 
   # all_quant_design)
 
@@ -484,7 +472,7 @@ compute_staytime_tables <- function(fach,
 
   # Unit-Tabelle
   dat_table %>%
-    tidyr::nest(data = -.data$domain) %>% #.$data %>% .[[1]] -> data
+    tidyr::nest(data = -.data$domain) %>% # .$data %>% .[[1]] -> data
     dplyr::mutate(
       save = purrr::walk2(.data$data, .data$domain, function(data, domain) {
         tab <-
