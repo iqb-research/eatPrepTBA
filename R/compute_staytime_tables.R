@@ -1,21 +1,20 @@
-#' Computes quantile tables of stay times
+#' Computes quantile tables of stay times and prepares them for rendering.
 #'
 #' Author: Philipp Franikowski, restructured by Lea Musiolek
 #'
-#' @param fach String. Letter denoting the school subject in question.
 #' @param log_times Data frame. Log data with stay times. Result of pulling
 #' log data with eatPrepTBA::get_logs() and then using eatPrepTBA::estimate_unit_times().
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
-#' @param unit_domains Data frame. Three string variables: subject (should equal fach),
-#' domain ('<fach><Kompetenz>'), unit_key. Should contain each relevant unit_key once, and no others.
-#' Important for assigning the right subject and domain to each unit key down the line, and selecting 
-#' only the units that are relevant for the current table. 
+#' @param unit_domains Data frame. Three string variables: subject (<fach> letter 
+#' denoting the subject in question), domain ('<fach><Kompetenz>'), unit_key. 
+#' Should contain each relevant unit_key once, and no others.
+#' Important for assigning the right subject and domain to each unit key down the line, 
+#' and selecting only the units that are relevant for the current table. 
 #' Can be generated from the blocks.xlsx used for generating the test booklets, using the 
 #' generate_unit_domains() function in this file.
 #' @param final_responses Data frame. Contains the item-wise and respondent-wise coded responses,
-#' ideally corrected for switches etc. Relevant variables: 
-#' booklet_id, IDSTUD, group_id, login_name, login_code,
-#' unit_key, variable_page
+#' retrieved using get_responses() and possibly joined with the offline responses, without 
+#' further changes.
 #' Can contain irrelevant units/subjects too, as these get sorted out before use in the function.
 #' @param unit_cs Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via 
 #' add_coding_scheme().
@@ -41,7 +40,7 @@
 #'
 #' Takes various data sources with unit, page and participant stay times and metadata,
 #' and computes quantiles for use in reports. Uses the layout_staytime_tables function
-#' to layout them for quarto reports.
+#' to layout them for quarto reports. Always done for one subject at a time.
 #' IMPORTANT: 
 #' - Although item IDs are listed in the final outputs, these functions cannot compute 
 #' actual item stay times, as the finest-grained stay times in the log data are page 
@@ -79,7 +78,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' fach <- c("F")
+#' fach <- c("F") # String. Letter denoting the school subject in question.
 #' FS_marker <- "S"
 #'
 #' data_path <- "..."
@@ -99,8 +98,7 @@
 #' # (subject and competence type) as 2-letter combination
 #'
 #' setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set wd to current directory
-#' eatPrepTBA::compute_staytime_tables(fach,
-#'                                     log_times,
+#' eatPrepTBA::compute_staytime_tables(log_times,
 #'                                     unit_domains,
 #'                                     final_responses,
 #'                                     unit_cs,
@@ -114,13 +112,16 @@
 #'
 #' @export
 
+# TODO: Remove duplicate rows in final table.
+# TODO: Find IDSTUD in one of the data frames for reliable joining,
+#       and reinstate it for sorting out students if necessary.
+# TODO: Refactor to base whole computation on pages rather than response rows,
+#       items and variables, as the logs only give us stay times per unit and page,
+#       not per item or variable. Entire function should be based around log_times,
+#       not responses. This has been tried in July 2026, but seems to require a 
+#       rebuilding of layout_staytime_tables as well to work properly.  
 
-# TODO: Remove extra rows in final table
-# TODO: Update column checks in the beginning
-# TODO: Make sure variable_id isn't confusing the computation of page staytimes
-
-compute_staytime_tables <- function(fach,
-                                    log_times,
+compute_staytime_tables <- function(log_times,
                                     unit_domains,
                                     final_responses,
                                     unit_cs,
@@ -132,7 +133,6 @@ compute_staytime_tables <- function(fach,
   min_plays = 2 # Minimal necessary plays of the page for an item to be included
   
   # input validation
-  checkmate::assert_character(fach, len=1)
   checkmate::assert_character(FS_marker, len=1)
   checkmate::assert_character(output_path, len=1)
   checkmate::assert_character(students_select, null.ok = TRUE)
@@ -141,12 +141,6 @@ compute_staytime_tables <- function(fach,
   unit_domains_cols <- c("unit_key", "subject", "domain")
   checkmate::assert_data_frame(unit_domains)
   assert_cols(unit_domains, unit_domains_cols, "unit_domains")
-  # 
-  # final_responses_cols <- c("booklet_id", "IDSTUD", "group_id", "login_name",
-  #                           "login_code", "unit_key", "variable_page")
-  # checkmate::assert_data_frame(final_responses)
-  # assert_cols(final_responses, final_responses_cols, "final_responses")
-  
   
   unit_page_logtimes <-
     log_times %>%
@@ -158,7 +152,7 @@ compute_staytime_tables <- function(fach,
       ),
       page_id = dplyr::coalesce(.data$page_id, 0)
     )
-  # rm(log_times)
+  rm(log_times)
   
   # unit_cs umformen: irrelevante Units rausschmeißen
   unit_cs <-
@@ -168,11 +162,11 @@ compute_staytime_tables <- function(fach,
   unit_cs_big <-
     unit_cs %>%
     tidyr::unnest(unit_codes, keep_empty = TRUE)
-  # rm(unit_cs)
+  rm(unit_cs)
   
-  # unit_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
-  # checkmate::assert_data_frame(unit_cs_big)
-  # assert_cols(unit_cs_big, unit_cs_cols, "unit_cs unnested")
+  unit_cs_cols <- c("unit_key", "variable_label", "variable_page", "variable_id")
+  checkmate::assert_data_frame(unit_cs_big)
+  assert_cols(unit_cs_big, unit_cs_cols, "unit_cs unnested")
   
   # Korrektur fuer die Markieritems
   unit_cs_corrected <-
@@ -190,7 +184,7 @@ compute_staytime_tables <- function(fach,
         .default = as.integer(.data$variable_page)
       )
     )
-  # rm(unit_cs_big)
+  rm(unit_cs_big)
   
   # Umformen: irrelevante Units rausschmeißen
   final_responses <-
@@ -206,7 +200,7 @@ compute_staytime_tables <- function(fach,
       ),
       booklet_id = stringr::str_to_upper(.data$booklet_id)
     )
-  # rm(final_responses)
+  rm(final_responses)
   
   resp_pages <-
     final_resp %>%
@@ -216,7 +210,7 @@ compute_staytime_tables <- function(fach,
                      by = c("unit_key", "page_id"),
                      multiple="all",
                      relationship="many-to-many") 
-  # rm(unit_cs_corrected, final_resp)
+  rm(unit_cs_corrected, final_resp)
   
   resp_page_logtimes <-
     resp_pages %>%
@@ -224,7 +218,7 @@ compute_staytime_tables <- function(fach,
                      by = c("group_id", "login_name", "login_code", "booklet_id", "unit_key",
                             "unit_alias", "page_id"),
                      multiple="all")
-  # rm(resp_pages)
+  rm(resp_pages)
   
   if (!is.null(students_select)) {
     resp_page_logtimes <- resp_page_logtimes[resp_page_logtimes$IDSTUD %in% students_select, ]
@@ -413,7 +407,7 @@ compute_staytime_tables <- function(fach,
       link_legacy = stringr::str_glue(
         "https://www.iqb-studio.de/#/a/{.data$ws_id}/{.data$unit_id}/preview")
     )
-  # rm(unit_meta)
+  rm(unit_meta)
   
   checkmate::assert_data_frame(unit_meta_big)
   assert_cols(unit_meta_big, unit_meta_big_cols, "unit_meta unnested")
@@ -424,7 +418,7 @@ compute_staytime_tables <- function(fach,
     dplyr::mutate(
       unit_estimated = lubridate::ms(.data$Aufgabenzeit) %>% lubridate::period_to_seconds()) %>%
     dplyr::select(-.data$Aufgabenzeit)
-  # rm(unit_meta)
+  rm(unit_meta)
   
   resp_page_logtimes_unit_quant_meta <-
     resp_page_logtimes_unit_quant %>%
@@ -454,8 +448,8 @@ compute_staytime_tables <- function(fach,
     dplyr::left_join(resp_page_logtimes_unit_quant_meta_design,
                      by = "unit_key"
     )
-  # rm(resp_page_logtimes_page_quant_design, stim_logs_quant_design, 
-  # resp_page_logtimes_unit_quant_meta_design)
+  rm(resp_page_logtimes_page_quant_design, stim_logs_quant_design, 
+  resp_page_logtimes_unit_quant_meta_design)
   
   resp_page_logtimes_page_quant <- resp_page_logtimes_page_quant %>% 
     dplyr::left_join(unit_domains, 
@@ -479,8 +473,8 @@ compute_staytime_tables <- function(fach,
       .default = .data$item_id
     )) %>%
     dplyr::arrange(.data$unit_key, .data$page_id, .data$item_id, .by_group=TRUE)
-  # rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, 
-  # all_quant_design)
+  rm(resp_page_logtimes_page_quant, stim_logs_quant, resp_page_logtimes_unit_quant_meta, 
+  all_quant_design)
   
   dat_table <-
     all_quant %>%

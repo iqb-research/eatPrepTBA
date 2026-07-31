@@ -2,10 +2,9 @@
 % Please edit documentation in R/compute_staytime_tables.R
 \name{compute_staytime_tables}
 \alias{compute_staytime_tables}
-\title{Computes quantile tables of stay times}
+\title{Computes quantile tables of stay times and prepares them for rendering.}
 \usage{
 compute_staytime_tables(
-  fach,
   log_times,
   unit_domains,
   final_responses,
@@ -17,23 +16,21 @@ compute_staytime_tables(
 )
 }
 \arguments{
-\item{fach}{String. Letter denoting the school subject in question.}
-
 \item{log_times}{Data frame. Log data with stay times. Result of pulling
 log data with eatPrepTBA::get_logs() and then using eatPrepTBA::estimate_unit_times().
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
-\item{unit_domains}{Data frame. Three string variables: subject (should equal fach),
-domain ('\if{html}{\out{<fach>}}\if{html}{\out{<Kompetenz>}}'), unit_key. Should contain each relevant unit_key once, and no others.
-Important for assigning the right subject and domain to each unit key down the line, and selecting
-only the units that are relevant for the current table.
+\item{unit_domains}{Data frame. Three string variables: subject (\if{html}{\out{<fach>}} letter
+denoting the subject in question), domain ('\if{html}{\out{<fach>}}\if{html}{\out{<Kompetenz>}}'), unit_key.
+Should contain each relevant unit_key once, and no others.
+Important for assigning the right subject and domain to each unit key down the line,
+and selecting only the units that are relevant for the current table.
 Can be generated from the blocks.xlsx used for generating the test booklets, using the
 generate_unit_domains() function in this file.}
 
 \item{final_responses}{Data frame. Contains the item-wise and respondent-wise coded responses,
-ideally corrected for switches etc. Relevant variables:
-booklet_id, IDSTUD, group_id, login_name, login_code,
-unit_key, variable_page
+retrieved using get_responses() and possibly joined with the offline responses, without
+further changes.
 Can contain irrelevant units/subjects too, as these get sorted out before use in the function.}
 
 \item{unit_cs}{Data frame. Unit-wise coding schemes, exported from IQB Studio and enriched via
@@ -65,7 +62,7 @@ This can then be incorporated into a quarto document as described in the example
 
 Takes various data sources with unit, page and participant stay times and metadata,
 and computes quantiles for use in reports. Uses the layout_staytime_tables function
-to layout them for quarto reports.
+to layout them for quarto reports. Always done for one subject at a time.
 IMPORTANT:
 \itemize{
 \item Although item IDs are listed in the final outputs, these functions cannot compute
@@ -107,7 +104,7 @@ tab_item
 }
 \examples{
 \dontrun{
-fach <- c("F")
+fach <- c("F") # String. Letter denoting the school subject in question.
 FS_marker <- "S"
 
 data_path <- "..."
@@ -127,8 +124,7 @@ unit_domains <- readRDS(paste(c(data_path, "unit_domains_", fach, ".rds"), colla
 # (subject and competence type) as 2-letter combination
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set wd to current directory
-eatPrepTBA::compute_staytime_tables(fach,
-                                    log_times,
+eatPrepTBA::compute_staytime_tables(log_times,
                                     unit_domains,
                                     final_responses,
                                     unit_cs,

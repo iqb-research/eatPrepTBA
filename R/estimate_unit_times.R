@@ -1,6 +1,7 @@
 #' Estimates loading and stay times for units, unit plays and pages from log data
 #'
 #' @param logs Tibble. Must be a logs tibble retrieved with `get_logs()` or `read_logs()`.
+#'        Ideally not changed since retrieval, to enable extraction of all relevant info.
 #' @param use_unit_alias Boolean value. Determines whether to use unit_alias as unit identifier. If
 #'        FALSE, use unit_key instead, which is the default.
 #'        By default, unit_alias == unit_key (mapping to the Studio unit). In special cases -

@@ -12,7 +12,8 @@ estimate_unit_times(
 )
 }
 \arguments{
-\item{logs}{Tibble. Must be a logs tibble retrieved with \code{get_logs()} or \code{read_logs()}.}
+\item{logs}{Tibble. Must be a logs tibble retrieved with \code{get_logs()} or \code{read_logs()}.
+Ideally not changed since retrieval, to enable extraction of all relevant info.}
 
 \item{use_unit_alias}{Boolean value. Determines whether to use unit_alias as unit identifier. If
 FALSE, use unit_key instead, which is the default.

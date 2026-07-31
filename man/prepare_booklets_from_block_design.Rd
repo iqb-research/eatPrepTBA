@@ -43,8 +43,8 @@ part of \code{booklet_id}. \code{block} contains one booklet position column, su
 \code{"block_4"}. If \code{block_group} is present, rows with the same \code{design} and
 \code{block_group} are combined into one timed testlet and \code{block_group} is used
 as the testlet label. If \code{block_group} is missing or empty, each \code{block}
-becomes its own timed testlet. If \code{leave} is missing or empty in this compact
-format, it defaults to \code{"allowed"}.}
+becomes its own timed testlet. If \code{leave} is missing or empty in this
+compact format, it defaults to \code{"allowed"}.}
 
 \item{booklet_subject_fn}{Optional function that receives \code{booklet_id} and
 returns a subject used to disambiguate blocks that exist for several

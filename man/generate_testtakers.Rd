@@ -76,13 +76,13 @@ children.
 
 \code{generate_testtakers()} returns an XML document only. It does not read input
 files or write \code{testtakers.xml}; wrapper functions should call
-\code{xml2::write_xml()} if a file should be created.
+\code{\link[xml2:write_xml]{xml2::write_xml()}} if a file should be created.
 
 \code{custom_texts} is passed through to the XML as named \code{CustomText} nodes and
 can be an extensive project-specific list. Typical keys override text in the
-booklet player (\code{booklet_*}), group monitor (\code{gm_*}), and login screen
-(\code{login_*}). Values can contain longer or multi-line messages. Keep
-Testcenter placeholders such as \code{\%s} unchanged when replacing texts. The
+booklet player (\verb{booklet_*}), group monitor (\verb{gm_*}), and login screen
+(\verb{login_*}). Values can contain longer or multi-line messages. Keep
+Testcenter placeholders such as \verb{\%s} unchanged when replacing texts. The
 function checks that the list is named, but it does not validate the key set
 against a particular Testcenter version; unsupported or misspelled keys are
 handled by Testcenter.
@@ -143,4 +143,5 @@ write_legacy_testtakers_xml <- function(testtakers, output = tempfile(fileext = 
 }
 
 output_legacy <- write_legacy_testtakers_xml(testtakers)
+
 }
