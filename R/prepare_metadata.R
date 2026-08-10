@@ -320,6 +320,10 @@ read_item_integer_column <- function(data, cols) {
   suppressWarnings(as.integer(read_item_character_column(data, cols)))
 }
 
+read_item_numeric_column <- function(data, cols) {
+  suppressWarnings(as.numeric(read_item_character_column(data, cols)))
+}
+
 read_items_list <- function(unit_metadata) {
   if (!is.null(unit_metadata$items) && length(purrr::compact(unit_metadata$items)) != 0) {
     items_raw <-
@@ -336,13 +340,13 @@ read_items_list <- function(unit_metadata) {
     items_list <- tibble::tibble(
       item_no = as.integer(items_raw$item_no),
       item_id = read_item_character_column(items_raw, "id"),
-      variable_id = read_item_character_column(items_raw, c("variableId", "sourceVariableId")),
-      variable_ref = read_item_character_column(items_raw, c("variableReadOnlyId", "sourceVariableUuid"))
+      variable_id = read_item_character_column(items_raw, c("sourceVariableId", "variableId")),
+      variable_ref = read_item_character_column(items_raw, c("sourceVariableUuid", "variableReadOnlyId"))
     )
 
     optional_item_columns <- list(
       item_uuid = read_item_character_column(items_raw, "uuid"),
-      item_order = read_item_integer_column(items_raw, "order"),
+      item_order = read_item_numeric_column(items_raw, "order"),
       item_description = read_item_character_column(items_raw, "description"),
       item_created = read_item_character_column(items_raw, "createdAt"),
       item_changed = read_item_character_column(items_raw, "changedAt")

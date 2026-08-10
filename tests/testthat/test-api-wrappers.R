@@ -489,6 +489,7 @@ test_that("download and upload wrappers delegate to safe API calls", {
   download_settings <- jsonlite::fromJSON(download_request$query$settings)
 
   expect_equal(download_settings$bookletLabel, "Booklet label")
+  expect_true("bookletSettings" %in% names(download_settings))
   expect_equal(download_settings$unitIdList, 10L)
 })
 

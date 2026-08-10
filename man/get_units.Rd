@@ -24,12 +24,13 @@ A tibble.
 }
 \description{
 This function returns the unit information for multiple units.
-Current Studio Lite item metadata follows the IQB \code{unit-items} specification:
-item-variable links are read from \code{sourceVariableId}/\code{sourceVariableUuid},
-while legacy Studio fields \code{variableId}/\code{variableReadOnlyId} are still
-accepted. Retired internal fields such as \code{position}, \code{locked}, and
-\code{weighting} are ignored. Use \code{item_no} for the row order in the item list,
-\code{item_order} for the Studio/spec \code{order} value, and call
+Current Studio Lite versions store item-variable links as
+\code{sourceVariableId}/\code{sourceVariableUuid}; eatPrepTBA returns them as
+\code{variable_id} and \code{variable_ref}. Older locally stored metadata with
+\code{variableId}/\code{variableReadOnlyId} is still read for backward compatibility.
+Retired internal fields such as \code{position}, \code{locked}, and \code{weighting} are
+ignored. Use \code{item_no} for the row order in the item list, \code{item_order} for
+the Studio/spec \code{order} value, and call
 \code{get_units(..., unit_definition = TRUE)} when page locations via
 \code{variable_pages} are needed.
 }

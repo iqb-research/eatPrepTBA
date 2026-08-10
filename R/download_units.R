@@ -95,10 +95,13 @@ setMethod("download_units",
                   addTestTakersMonitor = add_testtakers_monitor,
                   addTestTakersHot = add_testtakers_hot,
                   passwordLess = password_less,
-                  bookletLabel = booklet_label,
-                  bookletSettings = booklet_settings) %>%
-                purrr::compact() %>%
-                jsonlite::toJSON(auto_unbox = TRUE)
+                  bookletSettings = booklet_settings)
+
+              if (!is.null(booklet_label)) {
+                settings$bookletLabel <- booklet_label
+              }
+
+              settings <- jsonlite::toJSON(settings, auto_unbox = TRUE)
 
               final_path <- stringr::str_glue("{path}/{ws$ws_id}.zip")
 

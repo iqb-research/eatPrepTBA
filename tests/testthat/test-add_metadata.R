@@ -171,6 +171,8 @@ test_that("read item metadata supports current unit-items fields", {
         order = 2L,
         sourceVariableId = "01a",
         sourceVariableUuid = "variable-uuid-01a",
+        variableId = "legacy-01a",
+        variableReadOnlyId = "legacy-variable-uuid-01a",
         description = "Item description",
         createdAt = "2026-08-10T10:00:00.000Z",
         changedAt = "2026-08-10T11:00:00.000Z",
