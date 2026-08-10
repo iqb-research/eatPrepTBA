@@ -334,6 +334,7 @@ test_that("get_coding_report extracts unit metadata from report links", {
         variable = "V1",
         item = "I1",
         validation = "ok",
+        validationProblems = list(list(list(type = "INVALID_RULE", breaking = TRUE, code = "1"))),
         codingType = "auto"
       )
     },
@@ -346,6 +347,9 @@ test_that("get_coding_report extracts unit metadata from report links", {
   expect_equal(out$unit_id, 10L)
   expect_equal(out$unit_key, "U1")
   expect_equal(out$coding_type, "auto")
+  expect_equal(out$validation_problems[[1]]$type, "INVALID_RULE")
+  expect_true(out$validation_problems[[1]]$breaking)
+  expect_equal(out$validation_problems[[1]]$code, "1")
 })
 
 test_that("get_units prepares Studio unit metadata without live API calls", {
@@ -444,6 +448,8 @@ test_that("get_design combines testtakers, booklets, and optional units", {
 })
 
 test_that("download and upload wrappers delegate to safe API calls", {
+  performed <- list()
+
   testthat::local_mocked_bindings(
     list_units = function(workspace) {
       list(list(ws_id = 1, ws_label = "Workspace 1", units = list(list(unit_id = 10, unit_key = "U1"))))
@@ -457,7 +463,10 @@ test_that("download and upload wrappers delegate to safe API calls", {
   testthat::local_mocked_bindings(
     req_body_json = function(req, data, ...) c(req, list(body = data)),
     req_body_multipart = function(req, ...) c(req, list(body = list(...))),
-    req_perform = function(req, ...) req,
+    req_perform = function(req, ...) {
+      performed[[length(performed) + 1L]] <<- req
+      req
+    },
     resp_body_json = function(resp, ...) list(),
     .package = "httr2"
   )
@@ -466,8 +475,22 @@ test_that("download and upload wrappers delegate to safe API calls", {
   writeLines("x", tmp)
 
   expect_no_error(download_codebook(fake_studio_workspace(), path = tempdir(), format = "json"))
-  expect_no_error(download_units(fake_studio_workspace(), path = tempdir(), add_players = FALSE))
+  expect_no_error(download_units(
+    fake_studio_workspace(),
+    path = tempdir(),
+    add_players = FALSE,
+    booklet_label = "Booklet label"
+  ))
   expect_no_error(upload_file(fake_testcenter_workspace(), path = tmp))
+
+  download_request <- performed[vapply(performed, function(req) {
+    isTRUE(req$query$download)
+  }, logical(1))][[1]]
+  download_settings <- jsonlite::fromJSON(download_request$query$settings)
+
+  expect_equal(download_settings$bookletLabel, "Booklet label")
+  expect_true("bookletSettings" %in% names(download_settings))
+  expect_equal(download_settings$unitIdList, 10L)
 })
 
 test_that("change and comment wrappers build settings and use run_safe", {

@@ -17,9 +17,13 @@ A tibble.
 }
 \description{
 This function returns the coding report of the given IQB Studio workspace.
+Current Studio Lite versions may provide \code{validationProblems} in addition to
+the aggregate \code{validation} status. These details are returned as a
+\code{validation_problems} list-column with one tibble per variable and the columns
+\code{type}, \code{breaking}, and \code{code}.
 }
 \section{Functions}{
 \itemize{
-\item \code{get_coding_report(WorkspaceStudio)}: Upload a file in a defined workspace
+\item \code{get_coding_report(WorkspaceStudio)}: Get the coding report for a Studio workspace.
 
 }}

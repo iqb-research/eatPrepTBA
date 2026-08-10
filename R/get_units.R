@@ -7,7 +7,14 @@
 #'
 #' @description
 #' This function returns the unit information for multiple units.
-#'git
+#' Current Studio Lite versions store item-variable links as
+#' `sourceVariableId`/`sourceVariableUuid`; eatPrepTBA returns them as
+#' `variable_id` and `variable_ref`. Older locally stored metadata with
+#' `variableId`/`variableReadOnlyId` is still read for backward compatibility.
+#' Retired internal fields such as `position`, `locked`, and `weighting` are
+#' ignored. Use `item_no` for the row order in the item list, `item_order` for
+#' the Studio/spec `order` value, and call `get_units(..., unit_definition = TRUE)`
+#' when page locations via `variable_pages` are needed.
 #' @return A tibble.
 #' @export
 #'
