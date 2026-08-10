@@ -271,8 +271,12 @@ read_items_profiles <- function(unit_metadata) {
 
   items_profiles_prep <-
     purrr::map2(unit_metadata$items, seq_along(unit_metadata$items), function(x, item) {
-      profile_rows <- x %>%
-        purrr::pluck("profiles") %>%
+      profiles <- purrr::pluck(x, "profiles", .default = NULL)
+      if (is.null(profiles) || length(purrr::compact(profiles)) == 0) {
+        profiles <- purrr::pluck(x, "metadata", .default = NULL)
+      }
+
+      profile_rows <- profiles %>%
         purrr::map(read_profile_entries) %>%
         purrr::reduce(dplyr::bind_rows, .init = tibble::tibble())
 
@@ -294,42 +298,80 @@ read_items_profiles <- function(unit_metadata) {
   return(items_profiles)
 }
 
+read_item_character_column <- function(data, cols) {
+  present_cols <- intersect(cols, names(data))
+  if (length(present_cols) == 0) {
+    return(rep(NA_character_, nrow(data)))
+  }
+
+  values <- purrr::map(present_cols, function(col) {
+    x <- data[[col]]
+    if (is.list(x) && !is.data.frame(x)) {
+      return(purrr::map_chr(x, read_scalar_character))
+    }
+
+    as.character(x)
+  })
+
+  dplyr::coalesce(!!! values)
+}
+
+read_item_integer_column <- function(data, cols) {
+  suppressWarnings(as.integer(read_item_character_column(data, cols)))
+}
+
 read_items_list <- function(unit_metadata) {
   if (!is.null(unit_metadata$items) && length(purrr::compact(unit_metadata$items)) != 0) {
-    items_list <-
+    items_raw <-
       unit_metadata$items %>%
       purrr::map(function(x) {
-        purrr::discard(x, .p = names(x) == "profiles") %>%
+        purrr::discard(x, .p = names(x) %in% c("profiles", "metadata")) %>%
           purrr::map(function(x) if (is.null(x)) NA else x) %>%
           tibble::as_tibble()
       }) %>%
-      tibble::enframe(name = "item") %>%
-      tidyr::unnest(value) %>%
-      dplyr::select(any_of(c(
-        item_uuid = "uuid",
-        item_no = "item",
-        item_id = "id",
-        variable_id = "variableId",
-        variable_ref = "variableReadOnlyId",
-        item_order = "order",
-        item_locked = "locked",
-        item_position = "position",
-        item_weighting = "weighting",
-        item_created = "createdAt",
-        item_changed = "changedAt"
-      )))
+      tibble::enframe(name = "item_no") %>%
+      dplyr::mutate(item_no = dplyr::row_number()) %>%
+      tidyr::unnest(value)
 
-    if (tibble::has_name(items_list, "description")) {
-      items_list <-
-        items_list %>%
-        dplyr::rename(
-          item_description = description
-        )
+    items_list <- tibble::tibble(
+      item_no = as.integer(items_raw$item_no),
+      item_id = read_item_character_column(items_raw, "id"),
+      variable_id = read_item_character_column(items_raw, c("variableId", "sourceVariableId")),
+      variable_ref = read_item_character_column(items_raw, c("variableReadOnlyId", "sourceVariableUuid"))
+    )
+
+    optional_item_columns <- list(
+      item_uuid = read_item_character_column(items_raw, "uuid"),
+      item_order = read_item_integer_column(items_raw, "order"),
+      item_description = read_item_character_column(items_raw, "description"),
+      item_created = read_item_character_column(items_raw, "createdAt"),
+      item_changed = read_item_character_column(items_raw, "changedAt")
+    )
+
+    for (col in names(optional_item_columns)) {
+      values <- optional_item_columns[[col]]
+      if (any(!is.na(values))) {
+        items_list[[col]] <- values
+      }
     }
+
+    items_list <- items_list %>%
+      dplyr::select(dplyr::any_of(c(
+        "item_uuid",
+        "item_no",
+        "item_id",
+        "variable_id",
+        "variable_ref",
+        "item_order",
+        "item_description",
+        "item_created",
+        "item_changed"
+      )))
 
     if (nrow(items_list) == 0) {
       items_list <-
         tibble::tibble(
+          item_no = NA_integer_,
           item_id = NA_character_,
           variable_id = NA_character_
         )
@@ -337,6 +379,7 @@ read_items_list <- function(unit_metadata) {
   } else {
     items_list <-
       tibble::tibble(
+        item_no = NA_integer_,
         item_id = NA_character_,
         variable_id = NA_character_
       )

@@ -4,6 +4,10 @@
 #'
 #' @description
 #' This function returns the coding report of the given IQB Studio workspace.
+#' Current Studio Lite versions may provide `validationProblems` in addition to
+#' the aggregate `validation` status. These details are returned as a
+#' `validation_problems` list-column with one tibble per variable and the columns
+#' `type`, `breaking`, and `code`.
 #'
 #' @return A tibble.
 #' @export
@@ -16,7 +20,60 @@ setGeneric("get_coding_report", function(workspace) {
   standardGeneric("get_coding_report")
 })
 
-#' @describeIn get_coding_report Upload a file in a defined workspace
+empty_validation_problems <- function() {
+  tibble::tibble(
+    type = character(),
+    breaking = logical(),
+    code = character()
+  )
+}
+
+read_validation_problem <- function(problem) {
+  if (is.null(problem) || length(problem) == 0 || all(is.na(problem))) {
+    return(empty_validation_problems())
+  }
+
+  if (is.data.frame(problem)) {
+    problem <- tibble::as_tibble(problem)
+    problem_defaults <- list(
+      type = NA_character_,
+      breaking = NA,
+      code = NA_character_
+    )
+    for (col in setdiff(names(problem_defaults), names(problem))) {
+      problem[[col]] <- problem_defaults[[col]]
+    }
+
+    return(problem %>%
+             dplyr::transmute(
+               type = as.character(.data$type),
+               breaking = as.logical(.data$breaking),
+               code = as.character(.data$code)
+             ))
+  }
+
+  tibble::tibble(
+    type = read_scalar_character(purrr::pluck(problem, "type", .default = NA_character_)),
+    breaking = read_scalar_logical(purrr::pluck(problem, "breaking", .default = NA)),
+    code = read_scalar_character(purrr::pluck(problem, "code", .default = NA_character_))
+  )
+}
+
+read_validation_problems <- function(problems) {
+  if (is.null(problems) || length(problems) == 0 || all(is.na(problems))) {
+    return(empty_validation_problems())
+  }
+
+  if (is.data.frame(problems)) {
+    return(read_validation_problem(problems))
+  }
+
+  purrr::map(problems, read_validation_problem) %>%
+    purrr::reduce(dplyr::bind_rows, .init = empty_validation_problems()) %>%
+    dplyr::filter(!is.na(.data$type) | !is.na(.data$breaking) | !is.na(.data$code))
+}
+
+#' @describeIn get_coding_report Get the coding report for a Studio workspace.
 setMethod("get_coding_report",
           signature = signature(workspace = "WorkspaceStudio"),
           function(workspace) {
@@ -61,7 +118,14 @@ setMethod("get_coding_report",
                        }) %>%
               dplyr::bind_rows()
 
+            if (!tibble::has_name(coding_reports, "validationProblems")) {
+              coding_reports$validationProblems <- vector("list", nrow(coding_reports))
+            }
+
             coding_reports %>%
+              dplyr::mutate(
+                validation_problems = purrr::map(.data$validationProblems, read_validation_problems)
+              ) %>%
               tidyr::extract(
                 unit, into = c("ws_id", "unit_id", "unit_key", "unit_label"),
                 regex = "<a href=#/a/(\\d+)/(\\d+)>([^:]+): (.+)</a>"
@@ -77,6 +141,7 @@ setMethod("get_coding_report",
                 variable_id = variable,
                 item,
                 validation,
+                validation_problems,
                 coding_type = codingType
               )
           })

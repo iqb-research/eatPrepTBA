@@ -7,7 +7,14 @@
 #'
 #' @description
 #' This function returns the unit information for multiple units.
-#'git
+#' Current Studio Lite item metadata follows the IQB `unit-items` specification:
+#' item-variable links are read from `sourceVariableId`/`sourceVariableUuid`,
+#' while legacy Studio fields `variableId`/`variableReadOnlyId` are still
+#' accepted. Retired internal fields such as `position`, `locked`, and
+#' `weighting` are ignored. Use `item_no` for the row order in the item list,
+#' `item_order` for the Studio/spec `order` value, and call
+#' `get_units(..., unit_definition = TRUE)` when page locations via
+#' `variable_pages` are needed.
 #' @return A tibble.
 #' @export
 #'

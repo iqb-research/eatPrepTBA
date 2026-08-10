@@ -162,6 +162,75 @@ test_that("read_items_profiles supports metadata-values 3 vocabulary entries", {
   expect_equal(profiles$value_text, "Primarstufe")
 })
 
+test_that("read item metadata supports current unit-items fields", {
+  unit_metadata <- list(
+    items = list(
+      list(
+        uuid = "3b8bb988-c351-4f27-b5b1-92ef6fbe7098",
+        id = "Sskodeu_a",
+        order = 2L,
+        sourceVariableId = "01a",
+        sourceVariableUuid = "variable-uuid-01a",
+        description = "Item description",
+        createdAt = "2026-08-10T10:00:00.000Z",
+        changedAt = "2026-08-10T11:00:00.000Z",
+        metadata = list(
+          list(
+            profileId = "p60-item",
+            order = 0L,
+            entries = list(metadata_entry(value = "Current item label"))
+          )
+        )
+      )
+    )
+  )
+
+  items <- eatPrepTBA:::read_items_list(unit_metadata)
+  profiles <- eatPrepTBA:::read_items_profiles(unit_metadata)
+
+  expect_equal(items$item_no, 1L)
+  expect_equal(items$item_id, "Sskodeu_a")
+  expect_equal(items$variable_id, "01a")
+  expect_equal(items$variable_ref, "variable-uuid-01a")
+  expect_equal(items$item_order, 2L)
+  expect_equal(items$item_description, "Item description")
+  expect_false(any(c("item_position", "item_locked", "item_weighting") %in% names(items)))
+  expect_equal(profiles$profile_id, "p60-item")
+  expect_equal(profiles$value_text, "Current item label")
+})
+
+test_that("read item metadata still tolerates legacy item fields", {
+  unit_metadata <- list(
+    items = list(
+      list(
+        uuid = "3b8bb988-c351-4f27-b5b1-92ef6fbe7098",
+        id = "Sskodeu_a",
+        order = 0L,
+        locked = FALSE,
+        position = NA_character_,
+        weighting = NA_real_,
+        variableId = "01a",
+        variableReadOnlyId = "variable-uuid-01a",
+        profiles = list(
+          list(
+            profileId = "p60-item",
+            isCurrent = TRUE,
+            entries = list(metadata_entry(value = "Legacy item label"))
+          )
+        )
+      )
+    )
+  )
+
+  items <- eatPrepTBA:::read_items_list(unit_metadata)
+  profiles <- eatPrepTBA:::read_items_profiles(unit_metadata)
+
+  expect_equal(items$variable_id, "01a")
+  expect_equal(items$variable_ref, "variable-uuid-01a")
+  expect_false(any(c("item_position", "item_locked", "item_weighting") %in% names(items)))
+  expect_equal(profiles$value_text, "Legacy item label")
+})
+
 test_that("read_items_profiles tolerates items without profiles", {
   unit_metadata <- list(
     items = list(
