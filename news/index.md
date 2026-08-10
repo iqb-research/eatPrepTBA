@@ -1,5 +1,25 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9027 \[2026-08-10\]
+
+- Updated Studio Lite item-metadata preparation for current IQB
+  `unit-items` output by reading `sourceVariableId` and
+  `sourceVariableUuid`, while keeping legacy `variableId` and
+  `variableReadOnlyId` input compatible.
+- Stopped carrying retired internal Studio item fields such as
+  `item_position`, `item_locked`, and `item_weighting`; use `item_no`
+  for item-list order, `item_order` for the Studio/spec `order` value,
+  and `variable_pages` from `get_units(..., unit_definition = TRUE)` for
+  page locations.
+- Added structured `validation_problems` output to
+  [`get_coding_report()`](https://iqb-research.github.io/eatPrepTBA/reference/get_coding_report.md)
+  for Studio Lite `validationProblems[]` details while preserving the
+  aggregate `validation` status.
+- Added `booklet_label` to
+  [`download_units()`](https://iqb-research.github.io/eatPrepTBA/reference/download_units.md)
+  so Studio Lite 18.0 can fill the generated booklet `Metadata/Label`,
+  and documented the current `<booklet-id>_testtaker.xml` filename.
+
 ## eatPrepTBA 0.9.8.9026 \[2026-07-15\]
 
 - Added optional Testcenter 18.0 `ViewSettings` output to

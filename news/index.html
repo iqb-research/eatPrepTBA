@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9026</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,13 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9027" id="eatpreptba-0989027-2026-08-10">eatPrepTBA 0.9.8.9027 [2026-08-10]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989027-2026-08-10"></a></h2>
+<ul><li>Updated Studio Lite item-metadata preparation for current IQB <code>unit-items</code> output by reading <code>sourceVariableId</code> and <code>sourceVariableUuid</code>, while keeping legacy <code>variableId</code> and <code>variableReadOnlyId</code> input compatible.</li>
+<li>Stopped carrying retired internal Studio item fields such as <code>item_position</code>, <code>item_locked</code>, and <code>item_weighting</code>; use <code>item_no</code> for item-list order, <code>item_order</code> for the Studio/spec <code>order</code> value, and <code>variable_pages</code> from <code>get_units(..., unit_definition = TRUE)</code> for page locations.</li>
+<li>Added structured <code>validation_problems</code> output to <code><a href="../reference/get_coding_report.html">get_coding_report()</a></code> for Studio Lite <code>validationProblems[]</code> details while preserving the aggregate <code>validation</code> status.</li>
+<li>Added <code>booklet_label</code> to <code><a href="../reference/download_units.html">download_units()</a></code> so Studio Lite 18.0 can fill the generated booklet <code>Metadata/Label</code>, and documented the current <code>&lt;booklet-id&gt;_testtaker.xml</code> filename.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9026" id="eatpreptba-0989026-2026-07-15">eatPrepTBA 0.9.8.9026 [2026-07-15]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989026-2026-07-15"></a></h2>
 <ul><li>Added optional Testcenter 18.0 <code>ViewSettings</code> output to <code><a href="../reference/generate_testtakers.html">generate_testtakers()</a></code> via <code>view_settings</code>, including <code>theme</code>, <code>code_input</code>, and monitor booklet visibility settings.</li>
