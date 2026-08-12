@@ -1,3 +1,13 @@
+# eatPrepTBA 0.9.8.9028 [2026-08-12]
+
+* Started a shared log-analysis layer with `summarise_log_inventory()` for cheap event inventories and `summarise_log_environment()` for robust `LOADCOMPLETE` parsing of browser, OS, device, screen size, orientation, and initial load time.
+* Added `detect_log_anomalies()` and `summarise_log_qc()` for structural log reliability checks, including malformed or conflicting `LOADCOMPLETE` rows, loading/running inconsistencies, connection loss, unresolved focus loss, runtime errors, timestamp problems, and page counter inconsistencies.
+* Added state-specific log summaries for connections, focus, player states, page states, and response/presentation progress via `summarise_log_connections()`, `summarise_log_focus()`, `summarise_log_player()`, `summarise_log_pages()`, and `summarise_log_progress()`.
+* Added optional log enrichment helpers `add_unit_sizes()`, `summarise_system_checks()`, and `add_system_check_summary()` for joining `compute_sizes()` output and summarising system-check data from `get_system_checks()` or `read_system_checks()`.
+* Added a `Log-Daten` vignette and pkgdown reference entries for the new log-analysis workflow.
+* Fixed log-analysis edge cases found in review: `summarise_log_environment()` now keeps sessions without `LOADCOMPLETE`, valid `LOADCOMPLETE` JSON with empty string fields is parsed correctly, repeated focus-loss events no longer shorten loss intervals, page completeness distinguishes reaching the last page number from observing every numeric page number, and final boolean flags default to `FALSE` when no corresponding events were logged.
+* Restored support for CSV-escaped `LOADCOMPLETE` payloads with doubled quotes while preserving valid empty JSON strings, and allowed log summary functions to return global summaries when no session identifier columns are available.
+
 # eatPrepTBA 0.9.8.9027 [2026-08-10]
 
 * Updated Studio Lite item-metadata preparation for current IQB `unit-items` output by reading `sourceVariableId` and `sourceVariableUuid`, while keeping legacy `variableId` and `variableReadOnlyId` input compatible.
