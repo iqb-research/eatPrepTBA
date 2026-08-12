@@ -133,3 +133,180 @@ test_that("prepare_logs reuses shared parsers for LOADCOMPLETE and quoted CONNEC
   expect_equal(out$load_time[1], 30926)
   expect_equal(out$connection[2], "POLLING")
 })
+
+test_that("detect_log_anomalies reports environment and player anomalies", {
+  loadcomplete_1 <- paste0(
+    "LOADCOMPLETE : ",
+    "\"{\\\"browserVersion\\\":\\\"18.3\\\",",
+    "\\\"browserName\\\":\\\"Safari\\\",",
+    "\\\"osName\\\":\\\"iOS 18.6.2\\\",",
+    "\\\"device\\\":\\\"Apple iPad tablet\\\",",
+    "\\\"screenSizeWidth\\\":820,",
+    "\\\"screenSizeHeight\\\":1180,",
+    "\\\"loadTime\\\":30926}\""
+  )
+  loadcomplete_2 <- paste0(
+    "LOADCOMPLETE : ",
+    "\"{\\\"browserVersion\\\":\\\"126.0\\\",",
+    "\\\"browserName\\\":\\\"Chrome\\\",",
+    "\\\"osName\\\":\\\"Windows 11\\\",",
+    "\\\"device\\\":\\\"Windows desktop\\\",",
+    "\\\"screenSizeWidth\\\":1920,",
+    "\\\"screenSizeHeight\\\":1080,",
+    "\\\"loadTime\\\":1000}\""
+  )
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    unit_alias = "U1",
+    ts = c(100, 200, 300, 400, 500),
+    log_entry = c(
+      loadcomplete_1,
+      loadcomplete_2,
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  out <- detect_log_anomalies(logs)
+
+  expect_true("multiple_loadcomplete_in_session" %in% out$anomaly_code)
+  expect_true("conflicting_loadcomplete" %in% out$anomaly_code)
+  expect_true("player_running_without_loading" %in% out$anomaly_code)
+  expect_true("loading_without_running" %in% out$anomaly_code)
+  expect_true("repeated_loading" %in% out$anomaly_code)
+  expect_true("last_event_is_loading" %in% out$anomaly_code)
+})
+
+test_that("detect_log_anomalies reports missing and malformed LOADCOMPLETE", {
+  missing_logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = 100,
+    log_entry = "PLAYER = RUNNING"
+  )
+  malformed_logs <- tibble::tibble(
+    group_id = "G2",
+    login_name = "L2",
+    login_code = "C2",
+    booklet_id = "B2",
+    ts = 100,
+    log_entry = "LOADCOMPLETE : not-json"
+  )
+
+  missing <- detect_log_anomalies(missing_logs)
+  malformed <- detect_log_anomalies(malformed_logs)
+
+  expect_true("missing_loadcomplete" %in% missing$anomaly_code)
+  expect_true("malformed_loadcomplete" %in% malformed$anomaly_code)
+})
+
+test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, and page anomalies", {
+  loadcomplete <- paste0(
+    "LOADCOMPLETE : ",
+    "\"{\\\"browserVersion\\\":\\\"18.3\\\",",
+    "\\\"browserName\\\":\\\"Safari\\\",",
+    "\\\"osName\\\":\\\"iOS 18.6.2\\\",",
+    "\\\"device\\\":\\\"Apple iPad tablet\\\",",
+    "\\\"screenSizeWidth\\\":820,",
+    "\\\"screenSizeHeight\\\":1180,",
+    "\\\"loadTime\\\":30926}\""
+  )
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    unit_alias = "U1",
+    ts = c(100, 200, 300, 400, 500, 600, 550, 0, 700, 800, 900, 1000, 1100),
+    log_entry = c(
+      loadcomplete,
+      "CONNECTION : \"OK\"",
+      "CONNECTION : \"LOST\"",
+      "CONNECTION : \"POLLING\"",
+      "CONNECTION : \"LOST\"",
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS_NOT\"",
+      "PLAYER = LOADING",
+      "Runtime Error: PLAYER_FAILED",
+      "PAGE_COUNT = 2",
+      "PAGE_COUNT = 3",
+      "CURRENT_PAGE_NR = 4",
+      "CONNECTION : \"LOST\""
+    )
+  )
+
+  out <- detect_log_anomalies(
+    logs,
+    focus_loss_threshold_ms = 50,
+    connection_transition_threshold = 1
+  )
+
+  expect_true("connection_lost" %in% out$anomaly_code)
+  expect_true("many_connection_transitions" %in% out$anomaly_code)
+  expect_true("last_connection_lost" %in% out$anomaly_code)
+  expect_true("focus_lost_never_regained" %in% out$anomaly_code)
+  expect_true("repeated_focus_lost_before_regain" %in% out$anomaly_code)
+  expect_true("runtime_error" %in% out$anomaly_code)
+  expect_true("timestamp_decreases_in_input" %in% out$anomaly_code)
+  expect_true("zero_timestamp" %in% out$anomaly_code)
+  expect_true("page_count_inconsistent" %in% out$anomaly_code)
+  expect_true("page_nr_exceeds_page_count" %in% out$anomaly_code)
+})
+
+test_that("detect_log_anomalies can include unknown log types as info", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = c(100, 200),
+    log_entry = c("LOADCOMPLETE : not-json", "SOME_PLAYER_EVENT : \"x\"")
+  )
+
+  out_without <- detect_log_anomalies(logs)
+  out_with <- detect_log_anomalies(logs, include_unknown_events = TRUE)
+
+  expect_false("unknown_log_type" %in% out_without$anomaly_code)
+  expect_true("unknown_log_type" %in% out_with$anomaly_code)
+})
+
+test_that("summarise_log_qc condenses anomalies and keeps ok sessions", {
+  loadcomplete <- paste0(
+    "LOADCOMPLETE : ",
+    "\"{\\\"browserVersion\\\":\\\"18.3\\\",",
+    "\\\"browserName\\\":\\\"Safari\\\",",
+    "\\\"osName\\\":\\\"iOS 18.6.2\\\",",
+    "\\\"device\\\":\\\"Apple iPad tablet\\\",",
+    "\\\"screenSizeWidth\\\":820,",
+    "\\\"screenSizeHeight\\\":1180,",
+    "\\\"loadTime\\\":30926}\""
+  )
+  logs <- tibble::tibble(
+    group_id = c("G1", "G2", "G2"),
+    login_name = c("L1", "L2", "L2"),
+    login_code = c("C1", "C2", "C2"),
+    booklet_id = c("B1", "B2", "B2"),
+    ts = c(100, 100, 200),
+    log_entry = c(loadcomplete, loadcomplete, "Runtime Error: PLAYER_FAILED")
+  )
+
+  anomalies <- detect_log_anomalies(logs)
+  out <- summarise_log_qc(logs, anomalies = anomalies)
+
+  ok_row <- out[out$login_name == "L1", ]
+  critical_row <- out[out$login_name == "L2", ]
+
+  expect_equal(ok_row$log_qc_flag, "ok")
+  expect_equal(ok_row$n_anomalies, 0)
+  expect_equal(critical_row$log_qc_flag, "critical")
+  expect_true(critical_row$has_critical_anomaly)
+  expect_true(stringr::str_detect(critical_row$anomaly_codes, "runtime_error"))
+})
