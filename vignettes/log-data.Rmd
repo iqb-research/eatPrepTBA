@@ -334,6 +334,11 @@ geschätzt.
 > `PLAYER = RUNNING`, Runtime-Fehler oder ein letzter Zustand `LOST` können
 > Zeitintervalle unbrauchbar machen.
 
+Wenn aus den geschätzten Zeiten Berichtstabellen mit Quantilen erzeugt werden
+sollen, ist `compute_staytime_tables()` ein nachgelagerter Schritt. Die Funktion
+setzt auf vorbereiteten Zeitdaten aus `estimate_unit_times()` auf und kombiniert
+sie mit Domänen-, Antwort-, Kodier- und Metadaten für Quarto-Reports.
+
 ## Unitgrößen ergänzen
 
 Wenn Unitgrößen verfügbar sind, sollten sie als Output von `compute_sizes()`
@@ -476,7 +481,9 @@ Für reale Studien hat sich folgende Reihenfolge bewährt:
 8. Optional Systemchecks ergänzen: `get_system_checks()` oder
    `read_system_checks()`, danach `summarise_system_checks()` und
    `add_system_check_summary()`.
-9. Analyseentscheidungen dokumentieren: Welche Anomalien führen zu Ausschluss,
+9. Optional Berichtstabellen vorbereiten: `compute_staytime_tables()` auf Basis
+   der mit `estimate_unit_times()` geschätzten Zeitdaten.
+10. Analyseentscheidungen dokumentieren: Welche Anomalien führen zu Ausschluss,
    Sensitivitätsanalyse oder nur zu einem Hinweis?
 
 > **Empfohlen:** Für Berichte sollte mindestens eine Session-Tabelle mit
