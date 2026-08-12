@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9027</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9028</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,7 +19,8 @@
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/prepare-codebooks.html">Prepare Codebooks</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/log-data.html">Log-Daten</a></li>
+    <li><a class="dropdown-item" href="../articles/prepare-codebooks.html">Prepare Codebooks</a></li>
     <li><a class="dropdown-item" href="../articles/working-with-iqb-apis.html">How eatPrepTBA communicates with IQB APIs</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -36,6 +37,16 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9028" id="eatpreptba-0989028-2026-08-12">eatPrepTBA 0.9.8.9028 [2026-08-12]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989028-2026-08-12"></a></h2>
+<ul><li>Started a shared log-analysis layer with <code><a href="../reference/summarise_log_inventory.html">summarise_log_inventory()</a></code> for cheap event inventories and <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code> for robust <code>LOADCOMPLETE</code> parsing of browser, OS, device, screen size, orientation, and initial load time.</li>
+<li>Added <code><a href="../reference/detect_log_anomalies.html">detect_log_anomalies()</a></code> and <code><a href="../reference/summarise_log_qc.html">summarise_log_qc()</a></code> for structural log reliability checks, including malformed or conflicting <code>LOADCOMPLETE</code> rows, loading/running inconsistencies, connection loss, unresolved focus loss, runtime errors, timestamp problems, and page counter inconsistencies.</li>
+<li>Added state-specific log summaries for connections, focus, player states, page states, and response/presentation progress via <code><a href="../reference/summarise_log_connections.html">summarise_log_connections()</a></code>, <code><a href="../reference/summarise_log_focus.html">summarise_log_focus()</a></code>, <code><a href="../reference/summarise_log_player.html">summarise_log_player()</a></code>, <code><a href="../reference/summarise_log_pages.html">summarise_log_pages()</a></code>, and <code><a href="../reference/summarise_log_progress.html">summarise_log_progress()</a></code>.</li>
+<li>Added optional log enrichment helpers <code><a href="../reference/add_unit_sizes.html">add_unit_sizes()</a></code>, <code><a href="../reference/summarise_system_checks.html">summarise_system_checks()</a></code>, and <code><a href="../reference/add_system_check_summary.html">add_system_check_summary()</a></code> for joining <code><a href="../reference/compute_sizes.html">compute_sizes()</a></code> output and summarising system-check data from <code><a href="../reference/get_system_checks.html">get_system_checks()</a></code> or <code><a href="../reference/read_system_checks.html">read_system_checks()</a></code>.</li>
+<li>Added a <code>Log-Daten</code> vignette and pkgdown reference entries for the new log-analysis workflow.</li>
+<li>Fixed log-analysis edge cases found in review: <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code> now keeps sessions without <code>LOADCOMPLETE</code>, valid <code>LOADCOMPLETE</code> JSON with empty string fields is parsed correctly, repeated focus-loss events no longer shorten loss intervals, page completeness distinguishes reaching the last page number from observing every numeric page number, and final boolean flags default to <code>FALSE</code> when no corresponding events were logged.</li>
+<li>Restored support for CSV-escaped <code>LOADCOMPLETE</code> payloads with doubled quotes while preserving valid empty JSON strings, and allowed log summary functions to return global summaries when no session identifier columns are available.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9027" id="eatpreptba-0989027-2026-08-10">eatPrepTBA 0.9.8.9027 [2026-08-10]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989027-2026-08-10"></a></h2>
 <ul><li>Updated Studio Lite item-metadata preparation for current IQB <code>unit-items</code> output by reading <code>sourceVariableId</code> and <code>sourceVariableUuid</code>, while keeping legacy <code>variableId</code> and <code>variableReadOnlyId</code> input compatible.</li>

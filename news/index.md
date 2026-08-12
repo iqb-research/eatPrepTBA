@@ -1,5 +1,55 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9028 \[2026-08-12\]
+
+- Started a shared log-analysis layer with
+  [`summarise_log_inventory()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_inventory.md)
+  for cheap event inventories and
+  [`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+  for robust `LOADCOMPLETE` parsing of browser, OS, device, screen size,
+  orientation, and initial load time.
+- Added
+  [`detect_log_anomalies()`](https://iqb-research.github.io/eatPrepTBA/reference/detect_log_anomalies.md)
+  and
+  [`summarise_log_qc()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_qc.md)
+  for structural log reliability checks, including malformed or
+  conflicting `LOADCOMPLETE` rows, loading/running inconsistencies,
+  connection loss, unresolved focus loss, runtime errors, timestamp
+  problems, and page counter inconsistencies.
+- Added state-specific log summaries for connections, focus, player
+  states, page states, and response/presentation progress via
+  [`summarise_log_connections()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_connections.md),
+  [`summarise_log_focus()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_focus.md),
+  [`summarise_log_player()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_player.md),
+  [`summarise_log_pages()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_pages.md),
+  and
+  [`summarise_log_progress()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_progress.md).
+- Added optional log enrichment helpers
+  [`add_unit_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/add_unit_sizes.md),
+  [`summarise_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_system_checks.md),
+  and
+  [`add_system_check_summary()`](https://iqb-research.github.io/eatPrepTBA/reference/add_system_check_summary.md)
+  for joining
+  [`compute_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_sizes.md)
+  output and summarising system-check data from
+  [`get_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/get_system_checks.md)
+  or
+  [`read_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/read_system_checks.md).
+- Added a `Log-Daten` vignette and pkgdown reference entries for the new
+  log-analysis workflow.
+- Fixed log-analysis edge cases found in review:
+  [`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+  now keeps sessions without `LOADCOMPLETE`, valid `LOADCOMPLETE` JSON
+  with empty string fields is parsed correctly, repeated focus-loss
+  events no longer shorten loss intervals, page completeness
+  distinguishes reaching the last page number from observing every
+  numeric page number, and final boolean flags default to `FALSE` when
+  no corresponding events were logged.
+- Restored support for CSV-escaped `LOADCOMPLETE` payloads with doubled
+  quotes while preserving valid empty JSON strings, and allowed log
+  summary functions to return global summaries when no session
+  identifier columns are available.
+
 ## eatPrepTBA 0.9.8.9027 \[2026-08-10\]
 
 - Updated Studio Lite item-metadata preparation for current IQB

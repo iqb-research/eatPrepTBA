@@ -181,6 +181,33 @@ Functions to check units, prepare material for administration and coding
 - [`upload_file()`](https://iqb-research.github.io/eatPrepTBA/reference/upload_file.md)
   : Upload file
 
+### Analyse Testcenter log data
+
+- [`summarise_log_inventory()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_inventory.md)
+  : Summarise log event types
+- [`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+  : Summarise LOADCOMPLETE environment logs
+- [`detect_log_anomalies()`](https://iqb-research.github.io/eatPrepTBA/reference/detect_log_anomalies.md)
+  : Detect potentially unreliable log patterns
+- [`summarise_log_qc()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_qc.md)
+  : Summarise log quality anomalies by session
+- [`summarise_log_connections()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_connections.md)
+  : Summarise connection state logs
+- [`summarise_log_focus()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_focus.md)
+  : Summarise focus state logs
+- [`summarise_log_player()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_player.md)
+  : Summarise player state logs
+- [`summarise_log_pages()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_pages.md)
+  : Summarise page state logs
+- [`summarise_log_progress()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_progress.md)
+  : Summarise response and presentation progress logs
+- [`add_unit_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/add_unit_sizes.md)
+  : Add unit resource sizes to log-derived unit data
+- [`summarise_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_system_checks.md)
+  : Summarise system check data
+- [`add_system_check_summary()`](https://iqb-research.github.io/eatPrepTBA/reference/add_system_check_summary.md)
+  : Add system check summaries to log-derived data
+
 ### Code responses and work with coded responses and logs from IQB Testcenter
 
 - [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
@@ -208,6 +235,7 @@ Functions to check units, prepare material for administration and coding
 
 - [Introduction to the IQB-Studio with
   eatPrepTBA](https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.md):
+- [Log-Daten](https://iqb-research.github.io/eatPrepTBA/articles/log-data.md):
 - [Prepare
   Codebooks](https://iqb-research.github.io/eatPrepTBA/articles/prepare-codebooks.md):
 - [How eatPrepTBA communicates with IQB

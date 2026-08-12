@@ -4,6 +4,7 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/LICENSE.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/index.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/articles/log-data.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/prepare-codebooks.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/articles/working-with-iqb-apis.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/authors.html</loc></url>
@@ -21,6 +22,8 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_groups.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_source_tree.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_system_check_summary.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/add_unit_sizes.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/change_unit_settings.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/change_units_settings.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/code_responses.html</loc></url>
@@ -30,6 +33,7 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/compute_sizes.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/configure_booklet.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/detect_log_anomalies.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/download_codebook.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/download_responses.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/download_units.html</loc></url>
@@ -81,6 +85,15 @@
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/read_system_checks.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/read_testtakers.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/restrict_testlet.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_connections.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_focus.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_inventory.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_pages.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_player.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_progress.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_qc.html</loc></url>
+<url><loc>https://iqb-research.github.io/eatPrepTBA/reference/summarise_system_checks.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/test_coding_scheme.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.html</loc></url>
 <url><loc>https://iqb-research.github.io/eatPrepTBA/reference/upload_file.html</loc></url>
