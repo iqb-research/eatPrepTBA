@@ -140,6 +140,35 @@ test_that("summarise_log_environment parses valid LOADCOMPLETE JSON with empty s
   expect_true(is.na(out$loadcomplete_parse_error))
 })
 
+test_that("summarise_log_environment parses CSV-escaped LOADCOMPLETE JSON with doubled quotes", {
+  csv_escaped_loadcomplete <- paste0(
+    'LOADCOMPLETE : "',
+    '{""browserName"":""Safari"",""device"":"""",""loadTime"":1}',
+    '"'
+  )
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = 100,
+    log_entry = csv_escaped_loadcomplete
+  )
+
+  out <- summarise_log_environment(logs)
+  prepared <- prepare_logs(logs, log_events = "loadcomplete")
+
+  expect_equal(out$n_loadcomplete_events, 1)
+  expect_equal(out$n_loadcomplete_parsed, 1)
+  expect_true(out$loadcomplete_parse_ok)
+  expect_equal(out$browser_name, "Safari")
+  expect_true(is.na(out$device))
+  expect_equal(out$load_time, 1)
+  expect_true(is.na(out$loadcomplete_parse_error))
+  expect_equal(prepared$browser_name, "Safari")
+  expect_equal(prepared$load_time, 1)
+})
+
 test_that("summarise_log_environment keeps malformed LOADCOMPLETE rows diagnosable", {
   logs <- tibble::tibble(
     group_id = "G1",
@@ -255,6 +284,29 @@ test_that("detect_log_anomalies reports missing and malformed LOADCOMPLETE", {
 
   expect_true("missing_loadcomplete" %in% missing$anomaly_code)
   expect_true("malformed_loadcomplete" %in% malformed$anomaly_code)
+})
+
+test_that("log environment, anomaly, and qc summaries support missing session columns", {
+  loadcomplete <- 'LOADCOMPLETE : {"browserName":"Safari","loadTime":1}'
+  logs <- tibble::tibble(
+    ts = c(100, 200),
+    log_entry = c(loadcomplete, "PLAYER = RUNNING")
+  )
+
+  environment <- summarise_log_environment(logs)
+  anomalies <- detect_log_anomalies(logs)
+  qc <- summarise_log_qc(logs, anomalies = anomalies)
+
+  expect_equal(nrow(environment), 1)
+  expect_equal(environment$n_loadcomplete_events, 1)
+  expect_equal(environment$n_loadcomplete_parsed, 1)
+  expect_equal(environment$browser_name, "Safari")
+
+  expect_s3_class(anomalies, "tbl_df")
+  expect_false(any(c("group_id", "login_name", "booklet_id") %in% names(anomalies)))
+
+  expect_equal(nrow(qc), 1)
+  expect_true("log_qc_flag" %in% names(qc))
 })
 
 test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, and page anomalies", {

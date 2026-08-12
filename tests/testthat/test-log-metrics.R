@@ -31,6 +31,42 @@ test_that("summarise_log_connections counts states and transitions per session",
   expect_false(g2$last_connection_state_lost)
 })
 
+test_that("log metric summaries support missing session and unit columns", {
+  logs <- tibble::tibble(
+    ts = c(100, 200, 300, 400, 500, 600),
+    log_entry = c(
+      "CONNECTION : \"LOST\"",
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS\"",
+      "PLAYER = RUNNING",
+      "PAGE_COUNT = 1",
+      "RESPONSE_PROGRESS = complete"
+    )
+  )
+
+  connections <- summarise_log_connections(logs)
+  focus <- summarise_log_focus(logs)
+  player <- summarise_log_player(logs)
+  pages <- summarise_log_pages(logs)
+  progress <- summarise_log_progress(logs)
+
+  expect_equal(nrow(connections), 1)
+  expect_equal(connections$n_connection_events, 1)
+  expect_true(connections$has_connection_lost)
+
+  expect_equal(nrow(focus), 1)
+  expect_equal(focus$total_focus_lost_time, 100)
+
+  expect_equal(nrow(player), 1)
+  expect_equal(player$n_player_running, 1)
+
+  expect_equal(nrow(pages), 1)
+  expect_equal(pages$page_count, 1)
+
+  expect_equal(nrow(progress), 1)
+  expect_true(progress$response_final_complete)
+})
+
 test_that("summarise_log_focus computes raw focus loss durations and unresolved losses", {
   logs <- tibble::tibble(
     group_id = "G1",

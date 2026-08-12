@@ -204,6 +204,41 @@ log_group_by_cols <- function(data, cols) {
   dplyr::group_by(data, dplyr::across(dplyr::all_of(cols)))
 }
 
+log_assert_cols <- function(data, cols, arg) {
+  if (length(cols) == 0) {
+    return(invisible(data))
+  }
+
+  assert_cols(data, cols, arg)
+}
+
+log_distinct_cols <- function(data, cols) {
+  if (length(cols) == 0) {
+    return(tibble::tibble(.rows = 1L))
+  }
+
+  dplyr::distinct(data, dplyr::across(dplyr::all_of(cols)))
+}
+
+log_left_join_cols <- function(x, y, by) {
+  if (length(by) == 0) {
+    y_extra <- y[setdiff(names(y), names(x))]
+
+    if (nrow(y_extra) == 0L) {
+      y_extra <- y_extra[rep(NA_integer_, nrow(x)), , drop = FALSE]
+      return(dplyr::bind_cols(x, y_extra))
+    }
+
+    if (nrow(x) == nrow(y_extra) || nrow(x) == 1L || nrow(y_extra) == 0L) {
+      return(dplyr::bind_cols(x, y_extra))
+    }
+
+    cli::cli_abort("Cannot combine global log summaries with different row counts.")
+  }
+
+  dplyr::left_join(x, y, by = by)
+}
+
 log_empty_anomalies <- function(context_cols = character()) {
   context <- tibble::as_tibble(stats::setNames(
     rep(list(character()), length(context_cols)),
@@ -333,6 +368,27 @@ log_parse_json_deep <- function(payload, max_depth = 5L) {
   value
 }
 
+log_parse_loadcomplete_payload <- function(payload) {
+  parsed <- log_parse_json_deep(payload)
+
+  if (!inherits(parsed, "eatPrepTBA_log_parse_error")) {
+    return(parsed)
+  }
+
+  if (!stringr::str_detect(payload, "\"\"")) {
+    return(parsed)
+  }
+
+  decoded_payload <- stringr::str_replace_all(payload, "\"\"", "\"")
+  decoded <- log_parse_json_deep(decoded_payload)
+
+  if (inherits(decoded, "eatPrepTBA_log_parse_error")) {
+    return(parsed)
+  }
+
+  decoded
+}
+
 log_scalar_character <- function(x) {
   if (is.null(x) || length(x) == 0 || all(is.na(x))) {
     return(NA_character_)
@@ -391,7 +447,7 @@ log_parse_loadcomplete_entry <- function(log_entry) {
   }
 
   payload <- log_clean_loadcomplete_payload(log_entry)
-  parsed <- log_parse_json_deep(payload)
+  parsed <- log_parse_loadcomplete_payload(payload)
 
   if (inherits(parsed, "eatPrepTBA_log_parse_error")) {
     parsed_empty$loadcomplete_parse_error <- parsed$message
@@ -626,10 +682,9 @@ summarise_log_environment <- function(logs, session_cols = NULL) {
     session_cols <- log_session_cols(logs)
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
 
-  sessions <- logs %>%
-    dplyr::distinct(dplyr::across(dplyr::all_of(session_cols)))
+  sessions <- log_distinct_cols(logs, session_cols)
 
   loadcomplete <- log_loadcomplete_rows(logs)
   has_ts <- "ts" %in% names(loadcomplete)
@@ -646,7 +701,7 @@ summarise_log_environment <- function(logs, session_cols = NULL) {
         .data$.ts_num,
         .data$.log_row
       ) %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(session_cols)))
+      log_group_by_cols(session_cols)
 
     summary <- loadcomplete %>%
       dplyr::summarise(
@@ -681,8 +736,7 @@ summarise_log_environment <- function(logs, session_cols = NULL) {
       )
   }
 
-  sessions %>%
-    dplyr::left_join(summary, by = session_cols) %>%
+  log_left_join_cols(sessions, summary, by = session_cols) %>%
     dplyr::mutate(
       n_loadcomplete_events = dplyr::coalesce(.data$n_loadcomplete_events, 0L),
       n_loadcomplete_parsed = dplyr::coalesce(.data$n_loadcomplete_parsed, 0L),
@@ -743,7 +797,7 @@ detect_log_anomalies <- function(logs,
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
   checkmate::assert_character(unit_cols, null.ok = TRUE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
   if (length(unit_cols) > 0) {
     assert_cols(logs, unit_cols, "logs")
   }
@@ -767,13 +821,9 @@ detect_log_anomalies <- function(logs,
     )
 
   env <- summarise_log_environment(logs, session_cols = session_cols)
-  sessions <- if (length(session_cols) > 0) {
-    dplyr::distinct(logs, dplyr::across(dplyr::all_of(session_cols)))
-  } else {
-    tibble::tibble(.rows = 1L)
-  }
+  sessions <- log_distinct_cols(logs, session_cols)
 
-  env_joined <- dplyr::left_join(sessions, env, by = session_cols)
+  env_joined <- log_left_join_cols(sessions, env, by = session_cols)
 
   missing_loadcomplete <- env_joined %>%
     dplyr::filter(is.na(.data$n_loadcomplete_events) | .data$n_loadcomplete_events == 0L) %>%
@@ -841,7 +891,7 @@ detect_log_anomalies <- function(logs,
     dplyr::summarise(first_player_ts = log_min_or_na(.data$.ts_num), .groups = "drop")
 
   loadcomplete_after_unit_start <- env_joined %>%
-    dplyr::left_join(first_player, by = session_cols) %>%
+    log_left_join_cols(first_player, by = session_cols) %>%
     dplyr::filter(
       !is.na(.data$loadcomplete_first_ts),
       !is.na(.data$first_player_ts),
@@ -1249,20 +1299,16 @@ summarise_log_qc <- function(logs, anomalies = NULL, session_cols = NULL, ...) {
     session_cols <- log_session_cols(logs)
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
 
   if (is.null(anomalies)) {
     anomalies <- detect_log_anomalies(logs, session_cols = session_cols, ...)
   }
   checkmate::assert_tibble(anomalies)
   assert_cols(anomalies, c("anomaly_code", "severity"), "anomalies")
-  assert_cols(anomalies, session_cols, "anomalies")
+  log_assert_cols(anomalies, session_cols, "anomalies")
 
-  sessions <- if (length(session_cols) > 0) {
-    dplyr::distinct(logs, dplyr::across(dplyr::all_of(session_cols)))
-  } else {
-    tibble::tibble(.rows = 1L)
-  }
+  sessions <- log_distinct_cols(logs, session_cols)
 
   counts <- anomalies %>%
     dplyr::mutate(severity = as.character(.data$severity)) %>%
@@ -1276,8 +1322,7 @@ summarise_log_qc <- function(logs, anomalies = NULL, session_cols = NULL, ...) {
       .groups = "drop"
     )
 
-  sessions %>%
-    dplyr::left_join(counts, by = session_cols) %>%
+  log_left_join_cols(sessions, counts, by = session_cols) %>%
     dplyr::mutate(
       n_anomalies = dplyr::coalesce(.data$n_anomalies, 0L),
       n_critical = dplyr::coalesce(.data$n_critical, 0L),

@@ -134,7 +134,7 @@ summarise_log_connections <- function(logs, session_cols = NULL) {
     session_cols <- log_session_cols(logs)
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
 
   base <- log_metric_groups(logs, session_cols)
   prep <- log_metric_event_data(logs) %>%
@@ -211,7 +211,7 @@ summarise_log_focus <- function(logs,
     session_cols <- log_session_cols(logs)
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
 
   base <- log_metric_groups(logs, session_cols)
   prep <- log_metric_event_data(logs) %>%
@@ -291,7 +291,7 @@ summarise_log_player <- function(logs, session_cols = NULL, unit_cols = NULL) {
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
   checkmate::assert_character(unit_cols, null.ok = TRUE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
   if (length(unit_cols) > 0) {
     assert_cols(logs, unit_cols, "logs")
   }
@@ -368,7 +368,7 @@ summarise_log_pages <- function(logs, session_cols = NULL, unit_cols = NULL) {
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
   checkmate::assert_character(unit_cols, null.ok = TRUE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
   if (length(unit_cols) > 0) {
     assert_cols(logs, unit_cols, "logs")
   }
@@ -468,7 +468,7 @@ summarise_log_progress <- function(logs, session_cols = NULL, unit_cols = NULL) 
   }
   checkmate::assert_character(session_cols, null.ok = FALSE)
   checkmate::assert_character(unit_cols, null.ok = TRUE)
-  assert_cols(logs, session_cols, "logs")
+  log_assert_cols(logs, session_cols, "logs")
   if (length(unit_cols) > 0) {
     assert_cols(logs, unit_cols, "logs")
   }
