@@ -1,5 +1,6 @@
 # eatPrepTBA 0.9.8.9027 [2026-08-10]
 
+* Started a shared log-analysis layer with `summarise_log_inventory()` for cheap event inventories and `summarise_log_environment()` for robust `LOADCOMPLETE` parsing of browser, OS, device, screen size, orientation, and initial load time.
 * Updated Studio Lite item-metadata preparation for current IQB `unit-items` output by reading `sourceVariableId` and `sourceVariableUuid`, while keeping legacy `variableId` and `variableReadOnlyId` input compatible.
 * Stopped carrying retired internal Studio item fields such as `item_position`, `item_locked`, and `item_weighting`; use `item_no` for item-list order, `item_order` for the Studio/spec `order` value, and `variable_pages` from `get_units(..., unit_definition = TRUE)` for page locations.
 * Added structured `validation_problems` output to `get_coding_report()` for Studio Lite `validationProblems[]` details while preserving the aggregate `validation` status.
