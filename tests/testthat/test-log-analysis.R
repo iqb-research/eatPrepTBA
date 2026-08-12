@@ -90,6 +90,56 @@ test_that("summarise_log_environment parses escaped and nested LOADCOMPLETE payl
   expect_equal(out$load_time, 30926)
 })
 
+test_that("summarise_log_environment keeps sessions without LOADCOMPLETE", {
+  loadcomplete <- paste0(
+    "LOADCOMPLETE : ",
+    jsonlite::toJSON(
+      list(browserName = "Safari", device = "iPad", loadTime = 100),
+      auto_unbox = TRUE
+    )
+  )
+  logs <- tibble::tibble(
+    group_id = c("G1", "G1"),
+    login_name = c("L1", "L2"),
+    login_code = c("C1", "C2"),
+    booklet_id = c("B1", "B1"),
+    ts = c(100, 100),
+    log_entry = c(loadcomplete, "PLAYER = RUNNING")
+  )
+
+  out <- summarise_log_environment(logs)
+  missing <- out[out$login_name == "L2", ]
+
+  expect_equal(nrow(out), 2)
+  expect_equal(missing$n_loadcomplete_events, 0)
+  expect_equal(missing$n_loadcomplete_parsed, 0)
+  expect_false(missing$loadcomplete_parse_ok)
+  expect_false(missing$loadcomplete_multiple)
+  expect_false(missing$loadcomplete_conflicting)
+  expect_true(is.na(missing$browser_name))
+})
+
+test_that("summarise_log_environment parses valid LOADCOMPLETE JSON with empty strings", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = 100,
+    log_entry = 'LOADCOMPLETE : {"browserName":"Safari","device":"","loadTime":1}'
+  )
+
+  out <- summarise_log_environment(logs)
+
+  expect_equal(out$n_loadcomplete_events, 1)
+  expect_equal(out$n_loadcomplete_parsed, 1)
+  expect_true(out$loadcomplete_parse_ok)
+  expect_equal(out$browser_name, "Safari")
+  expect_true(is.na(out$device))
+  expect_equal(out$load_time, 1)
+  expect_true(is.na(out$loadcomplete_parse_error))
+})
+
 test_that("summarise_log_environment keeps malformed LOADCOMPLETE rows diagnosable", {
   logs <- tibble::tibble(
     group_id = "G1",
@@ -259,6 +309,30 @@ test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, a
   expect_true("zero_timestamp" %in% out$anomaly_code)
   expect_true("page_count_inconsistent" %in% out$anomaly_code)
   expect_true("page_nr_exceeds_page_count" %in% out$anomaly_code)
+})
+
+test_that("detect_log_anomalies flags long focus loss across repeated HAS_NOT events", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS\""
+    )
+  )
+
+  out <- detect_log_anomalies(logs, focus_loss_threshold_ms = 150)
+  long_focus <- out[out$anomaly_code == "very_long_focus_loss", ]
+
+  expect_true("repeated_focus_lost_before_regain" %in% out$anomaly_code)
+  expect_equal(nrow(long_focus), 1)
+  expect_equal(long_focus$ts_start, 100)
+  expect_equal(long_focus$ts_end, 300)
+  expect_equal(long_focus$evidence, "duration_ms=200")
 })
 
 test_that("detect_log_anomalies can include unknown log types as info", {

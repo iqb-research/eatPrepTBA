@@ -5,6 +5,7 @@
 * Added state-specific log summaries for connections, focus, player states, page states, and response/presentation progress via `summarise_log_connections()`, `summarise_log_focus()`, `summarise_log_player()`, `summarise_log_pages()`, and `summarise_log_progress()`.
 * Added optional log enrichment helpers `add_unit_sizes()`, `summarise_system_checks()`, and `add_system_check_summary()` for joining `compute_sizes()` output and summarising system-check data from `get_system_checks()` or `read_system_checks()`.
 * Added a `Log-Daten` vignette and pkgdown reference entries for the new log-analysis workflow.
+* Fixed log-analysis edge cases found in review: `summarise_log_environment()` now keeps sessions without `LOADCOMPLETE`, valid `LOADCOMPLETE` JSON with empty string fields is parsed correctly, repeated focus-loss events no longer shorten loss intervals, page completeness distinguishes reaching the last page number from observing every numeric page number, and final boolean flags default to `FALSE` when no corresponding events were logged.
 
 # eatPrepTBA 0.9.8.9027 [2026-08-10]
 

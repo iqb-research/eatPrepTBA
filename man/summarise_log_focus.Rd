@@ -21,6 +21,8 @@ A tibble with one row per session.
 \description{
 \ifelse{html}{\out{<a href="https://lifecycle.r-lib.org/articles/stages.html#experimental"><img src="figures/lifecycle-experimental.svg" alt="[Experimental]" /></a>}}{\strong{[Experimental]}}
 
-Summarises raw \code{FOCUS} events per session. Durations are computed from
-\code{FOCUS = HAS_NOT} until the next raw \code{FOCUS = HAS} event.
+Summarises raw \code{FOCUS} events per session. Durations are computed from the
+first \code{FOCUS = HAS_NOT} in a focus-loss interval until the next raw
+\code{FOCUS = HAS} event. Repeated \code{HAS_NOT} events before regain are counted
+separately but do not shorten the interval.
 }

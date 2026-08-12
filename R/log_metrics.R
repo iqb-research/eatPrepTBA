@@ -68,6 +68,48 @@ log_count_state <- function(x, state) {
   sum(x == state, na.rm = TRUE)
 }
 
+log_is_whole_number <- function(x) {
+  !is.na(x) & abs(x - round(x)) < sqrt(.Machine$double.eps)
+}
+
+log_page_nr_values <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  x <- x[log_is_whole_number(x)]
+  sort(unique(as.integer(round(x))))
+}
+
+log_page_count_is_usable <- function(page_count, page_count_consistent) {
+  isTRUE(page_count_consistent) &&
+    length(page_count) == 1L &&
+    log_is_whole_number(page_count) &&
+    page_count >= 1
+}
+
+log_observed_pages_complete <- function(observed_page_nrs, page_count, page_count_consistent) {
+  if (!log_page_count_is_usable(page_count, page_count_consistent)) {
+    return(NA)
+  }
+
+  all(seq_len(as.integer(round(page_count))) %in% observed_page_nrs)
+}
+
+log_observed_page_nr_gaps <- function(observed_page_nrs, page_count, page_count_consistent) {
+  if (!log_page_count_is_usable(page_count, page_count_consistent)) {
+    return(NA)
+  }
+
+  any(!seq_len(as.integer(round(page_count))) %in% observed_page_nrs)
+}
+
+log_missing_page_nrs <- function(observed_page_nrs, page_count, page_count_consistent) {
+  if (!log_page_count_is_usable(page_count, page_count_consistent)) {
+    return(NA_character_)
+  }
+
+  missing <- setdiff(seq_len(as.integer(round(page_count))), observed_page_nrs)
+  log_collapse_values(missing, max_values = 20L)
+}
+
 #' Summarise connection state logs
 #'
 #' @param logs Tibble. Logs retrieved with [get_logs()] or read with [read_logs()].
@@ -135,7 +177,7 @@ summarise_log_connections <- function(logs, session_cols = NULL) {
       n_connection_polling = log_metric_zero(.data$n_connection_polling),
       n_connection_websocket = log_metric_zero(.data$n_connection_websocket),
       has_connection_lost = .data$n_connection_lost > 0L,
-      last_connection_state_lost = .data$last_connection_state == "LOST"
+      last_connection_state_lost = dplyr::coalesce(.data$last_connection_state == "LOST", FALSE)
     )
 }
 
@@ -150,8 +192,10 @@ summarise_log_connections <- function(logs, session_cols = NULL) {
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
-#' Summarises raw `FOCUS` events per session. Durations are computed from
-#' `FOCUS = HAS_NOT` until the next raw `FOCUS = HAS` event.
+#' Summarises raw `FOCUS` events per session. Durations are computed from the
+#' first `FOCUS = HAS_NOT` in a focus-loss interval until the next raw
+#' `FOCUS = HAS` event. Repeated `HAS_NOT` events before regain are counted
+#' separately but do not shorten the interval.
 #'
 #' @return A tibble with one row per session.
 #'
@@ -173,23 +217,7 @@ summarise_log_focus <- function(logs,
   prep <- log_metric_event_data(logs) %>%
     dplyr::mutate(focus_state = stringr::str_to_upper(log_parse_event_value(.data$log_entry, "FOCUS"))) %>%
     dplyr::filter(.data$log_type_upper == "FOCUS", .data$focus_state %in% c("HAS_NOT", "HAS")) %>%
-    dplyr::arrange(
-      dplyr::across(dplyr::any_of(session_cols)),
-      .data$.ts_num,
-      .data$.log_row
-    ) %>%
-    log_group_by_cols(session_cols) %>%
-    dplyr::mutate(
-      next_focus_state = dplyr::lead(.data$focus_state),
-      next_focus_ts = dplyr::lead(.data$.ts_num),
-      focus_lost_duration = dplyr::case_when(
-        .data$focus_state == "HAS_NOT" & .data$next_focus_state == "HAS" ~ .data$next_focus_ts - .data$.ts_num,
-        TRUE ~ NA_real_
-      ),
-      has_focus_at_or_after = rev(cumsum(rev(.data$focus_state == "HAS")) > 0L),
-      has_later_focus_regain = dplyr::lead(.data$has_focus_at_or_after, default = FALSE)
-    ) %>%
-    dplyr::ungroup()
+    log_annotate_focus_logs(session_cols)
 
   summary <- prep %>%
     log_group_by_cols(session_cols) %>%
@@ -319,7 +347,11 @@ summarise_log_player <- function(logs, session_cols = NULL, unit_cols = NULL) {
 #' `r lifecycle::badge("experimental")`
 #'
 #' Summarises raw `CURRENT_PAGE_ID`, `CURRENT_PAGE_NR`, and `PAGE_COUNT` events
-#' per session/unit.
+#' per session/unit. `reached_last_page_nr` only checks whether the maximum
+#' observed page number reached the reported page count. `observed_pages_complete`
+#' is stricter and is only `TRUE` when all integer page numbers from 1 to
+#' `PAGE_COUNT` were observed and the page count was consistent; otherwise it is
+#' `FALSE` for visible gaps or `NA` when completeness cannot be judged.
 #'
 #' @return A tibble with one row per session/unit.
 #'
@@ -359,6 +391,7 @@ summarise_log_pages <- function(logs, session_cols = NULL, unit_cols = NULL) {
       n_page_count_events = sum(.data$log_type_upper == "PAGE_COUNT", na.rm = TRUE),
       observed_page_ids = log_collapse_values(.data$current_page_id, max_values = 20L),
       observed_page_nrs = log_collapse_values(.data$current_page_nr, max_values = 20L),
+      .observed_page_nr_values = list(log_page_nr_values(.data$current_page_nr)),
       n_observed_page_nrs = log_n_distinct_non_missing(.data$current_page_nr),
       first_current_page_nr = suppressWarnings(as.numeric(
         log_first_by_time(as.character(.data$current_page_nr), .data$.ts_num, .data$.log_row)
@@ -387,10 +420,23 @@ summarise_log_pages <- function(logs, session_cols = NULL, unit_cols = NULL) {
       page_nr_exceeds_page_count = !is.na(.data$max_current_page_nr) &
         !is.na(.data$max_page_count) &
         .data$max_current_page_nr > .data$max_page_count,
-      observed_pages_complete = !is.na(.data$max_current_page_nr) &
+      reached_last_page_nr = !is.na(.data$max_current_page_nr) &
         !is.na(.data$max_page_count) &
-        .data$max_current_page_nr >= .data$max_page_count
-    )
+        .data$max_current_page_nr >= .data$max_page_count,
+      observed_pages_complete = purrr::pmap_lgl(
+        list(.data$.observed_page_nr_values, .data$page_count, .data$page_count_consistent),
+        log_observed_pages_complete
+      ),
+      observed_page_nr_gaps = purrr::pmap_lgl(
+        list(.data$.observed_page_nr_values, .data$page_count, .data$page_count_consistent),
+        log_observed_page_nr_gaps
+      ),
+      missing_page_nrs = purrr::pmap_chr(
+        list(.data$.observed_page_nr_values, .data$page_count, .data$page_count_consistent),
+        log_missing_page_nrs
+      )
+    ) %>%
+    dplyr::select(-".observed_page_nr_values")
 }
 
 #' Summarise response and presentation progress logs
@@ -462,7 +508,7 @@ summarise_log_progress <- function(logs, session_cols = NULL, unit_cols = NULL) 
       n_presentation_progress_events = log_metric_zero(.data$n_presentation_progress_events),
       response_reached_complete = !is.na(.data$response_complete_ts),
       presentation_reached_complete = !is.na(.data$presentation_complete_ts),
-      response_final_complete = .data$final_response_progress == "complete",
-      presentation_final_complete = .data$final_presentation_progress == "complete"
+      response_final_complete = dplyr::coalesce(.data$final_response_progress == "complete", FALSE),
+      presentation_final_complete = dplyr::coalesce(.data$final_presentation_progress == "complete", FALSE)
     )
 }

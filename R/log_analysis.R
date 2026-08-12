@@ -295,11 +295,15 @@ log_empty_loadcomplete <- function(n = 0L) {
 log_clean_loadcomplete_payload <- function(log_entry) {
   payload <- trimws(stringr::str_remove(
     log_entry,
-    "^LOADCOMPLETE\\s*[:=]\\s*"
+    stringr::regex("^\"?LOADCOMPLETE\"?\\s*[:=]\\s*", ignore_case = TRUE)
   ))
-  payload <- stringr::str_remove_all(payload, "^\"|\"$")
-  payload <- stringr::str_replace_all(payload, "\\\\\"", "\"")
-  payload <- stringr::str_replace_all(payload, "\"\"", "\"")
+  payload <- trimws(payload)
+
+  if (stringr::str_detect(payload, "^\".*\"$")) {
+    payload <- stringr::str_sub(payload, 2L, -2L)
+    payload <- stringr::str_replace_all(payload, "\\\\\"", "\"")
+  }
+
   payload
 }
 
@@ -445,6 +449,30 @@ log_parse_loadcomplete <- function(log_entry) {
   purrr::map_dfr(log_entry, log_parse_loadcomplete_entry)
 }
 
+log_empty_environment_summary <- function(n = 0L) {
+  tibble::tibble(
+    n_loadcomplete_events = rep(NA_integer_, n),
+    n_loadcomplete_parsed = rep(NA_integer_, n),
+    loadcomplete_parse_ok = rep(NA, n),
+    loadcomplete_multiple = rep(NA, n),
+    loadcomplete_conflicting = rep(NA, n),
+    loadcomplete_first_ts = rep(NA_real_, n),
+    loadcomplete_last_ts = rep(NA_real_, n),
+    loadcomplete_parse_error = rep(NA_character_, n),
+    browser_name = rep(NA_character_, n),
+    browser_version = rep(NA_character_, n),
+    os_name = rep(NA_character_, n),
+    os_family = rep(NA_character_, n),
+    os_version = rep(NA_character_, n),
+    device = rep(NA_character_, n),
+    device_class = rep(NA_character_, n),
+    screen_size_width = rep(NA_real_, n),
+    screen_size_height = rep(NA_real_, n),
+    screen_orientation = rep(NA_character_, n),
+    load_time = rep(NA_real_, n)
+  )
+}
+
 log_loadcomplete_rows <- function(logs) {
   checkmate::assert_tibble(logs)
   assert_cols(logs, "log_entry", "logs")
@@ -461,6 +489,46 @@ log_loadcomplete_rows <- function(logs) {
   }
 
   dplyr::bind_cols(rows, log_parse_loadcomplete(rows$log_entry))
+}
+
+log_next_focus_regain_ts <- function(focus_state, ts) {
+  ts <- suppressWarnings(as.numeric(ts))
+  out <- rep(NA_real_, length(focus_state))
+  next_regain <- NA_real_
+
+  for (i in rev(seq_along(focus_state))) {
+    out[[i]] <- next_regain
+    if (focus_state[[i]] == "HAS" && !is.na(ts[[i]])) {
+      next_regain <- ts[[i]]
+    }
+  }
+
+  out
+}
+
+log_annotate_focus_logs <- function(logs, session_cols) {
+  logs %>%
+    dplyr::arrange(
+      dplyr::across(dplyr::any_of(session_cols)),
+      .data$.ts_num,
+      .data$.log_row
+    ) %>%
+    log_group_by_cols(session_cols) %>%
+    dplyr::mutate(
+      previous_focus_state = dplyr::lag(.data$focus_state),
+      next_focus_state = dplyr::lead(.data$focus_state),
+      next_focus_ts = dplyr::lead(.data$.ts_num),
+      next_focus_regain_ts = log_next_focus_regain_ts(.data$focus_state, .data$.ts_num),
+      focus_loss_start = .data$focus_state == "HAS_NOT" &
+        (is.na(.data$previous_focus_state) | .data$previous_focus_state != "HAS_NOT"),
+      focus_lost_duration = dplyr::case_when(
+        .data$focus_loss_start & !is.na(.data$next_focus_regain_ts) ~
+          .data$next_focus_regain_ts - .data$.ts_num,
+        TRUE ~ NA_real_
+      ),
+      has_later_focus_regain = !is.na(.data$next_focus_regain_ts)
+    ) %>%
+    dplyr::ungroup()
 }
 
 #' Summarise log event types
@@ -544,7 +612,8 @@ summarise_log_inventory <- function(logs) {
 #' Extracts browser, operating system, device, screen size, orientation, and
 #' initial `LOADCOMPLETE` load time. Multiple `LOADCOMPLETE` rows per session
 #' are retained as diagnostics via count and conflict columns while the first
-#' non-missing value per field is returned.
+#' non-missing value per field is returned. Sessions without `LOADCOMPLETE`
+#' are retained with zero event counts and missing environment fields.
 #'
 #' @return A tibble with one row per session.
 #'
@@ -559,84 +628,67 @@ summarise_log_environment <- function(logs, session_cols = NULL) {
   checkmate::assert_character(session_cols, null.ok = FALSE)
   assert_cols(logs, session_cols, "logs")
 
+  sessions <- logs %>%
+    dplyr::distinct(dplyr::across(dplyr::all_of(session_cols)))
+
   loadcomplete <- log_loadcomplete_rows(logs)
   has_ts <- "ts" %in% names(loadcomplete)
 
   if (nrow(loadcomplete) == 0) {
-    out <- tibble::tibble(
-      n_loadcomplete_events = integer(),
-      n_loadcomplete_parsed = integer(),
-      loadcomplete_parse_ok = logical(),
-      loadcomplete_multiple = logical(),
-      loadcomplete_conflicting = logical(),
-      loadcomplete_first_ts = numeric(),
-      loadcomplete_last_ts = numeric(),
-      loadcomplete_parse_error = character(),
-      browser_name = character(),
-      browser_version = character(),
-      os_name = character(),
-      os_family = character(),
-      os_version = character(),
-      device = character(),
-      device_class = character(),
-      screen_size_width = numeric(),
-      screen_size_height = numeric(),
-      screen_orientation = character(),
-      load_time = numeric()
-    )
-
-    if (length(session_cols) > 0) {
-      out <- dplyr::bind_cols(logs[0, session_cols], out)
-    }
-
-    return(out)
-  }
-
-  loadcomplete <- loadcomplete %>%
-    dplyr::mutate(
-      .ts_num = if (has_ts) suppressWarnings(as.numeric(.data$ts)) else NA_real_
-    ) %>%
-    dplyr::arrange(
-      dplyr::across(dplyr::any_of(session_cols)),
-      .data$.ts_num,
-      .data$.log_row
-    )
-
-  if (length(session_cols) > 0) {
+    summary <- dplyr::bind_cols(logs[0, session_cols], log_empty_environment_summary())
+  } else {
     loadcomplete <- loadcomplete %>%
+      dplyr::mutate(
+        .ts_num = if (has_ts) suppressWarnings(as.numeric(.data$ts)) else NA_real_
+      ) %>%
+      dplyr::arrange(
+        dplyr::across(dplyr::any_of(session_cols)),
+        .data$.ts_num,
+        .data$.log_row
+      ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(session_cols)))
+
+    summary <- loadcomplete %>%
+      dplyr::summarise(
+        n_loadcomplete_events = dplyr::n(),
+        n_loadcomplete_parsed = sum(.data$loadcomplete_parse_ok, na.rm = TRUE),
+        loadcomplete_parse_ok = any(.data$loadcomplete_parse_ok %in% TRUE),
+        loadcomplete_multiple = .data$n_loadcomplete_events > 1L,
+        loadcomplete_conflicting = any(c(
+          log_n_distinct_non_missing(.data$browser_name),
+          log_n_distinct_non_missing(.data$browser_version),
+          log_n_distinct_non_missing(.data$os_name),
+          log_n_distinct_non_missing(.data$device),
+          log_n_distinct_non_missing(.data$screen_size_width),
+          log_n_distinct_non_missing(.data$screen_size_height),
+          log_n_distinct_non_missing(.data$load_time)
+        ) > 1L),
+        loadcomplete_first_ts = log_min_or_na(.data$.ts_num),
+        loadcomplete_last_ts = log_max_or_na(.data$.ts_num),
+        loadcomplete_parse_error = log_first_non_missing(.data$loadcomplete_parse_error),
+        browser_name = log_first_non_missing(.data$browser_name),
+        browser_version = log_first_non_missing(.data$browser_version),
+        os_name = log_first_non_missing(.data$os_name),
+        os_family = log_first_non_missing(.data$os_family),
+        os_version = log_first_non_missing(.data$os_version),
+        device = log_first_non_missing(.data$device),
+        device_class = log_first_non_missing(.data$device_class),
+        screen_size_width = log_first_non_missing(.data$screen_size_width),
+        screen_size_height = log_first_non_missing(.data$screen_size_height),
+        screen_orientation = log_first_non_missing(.data$screen_orientation),
+        load_time = log_first_non_missing(.data$load_time),
+        .groups = "drop"
+      )
   }
 
-  loadcomplete %>%
-    dplyr::summarise(
-      n_loadcomplete_events = dplyr::n(),
-      n_loadcomplete_parsed = sum(.data$loadcomplete_parse_ok, na.rm = TRUE),
-      loadcomplete_parse_ok = any(.data$loadcomplete_parse_ok %in% TRUE),
-      loadcomplete_multiple = .data$n_loadcomplete_events > 1L,
-      loadcomplete_conflicting = any(c(
-        log_n_distinct_non_missing(.data$browser_name),
-        log_n_distinct_non_missing(.data$browser_version),
-        log_n_distinct_non_missing(.data$os_name),
-        log_n_distinct_non_missing(.data$device),
-        log_n_distinct_non_missing(.data$screen_size_width),
-        log_n_distinct_non_missing(.data$screen_size_height),
-        log_n_distinct_non_missing(.data$load_time)
-      ) > 1L),
-      loadcomplete_first_ts = log_min_or_na(.data$.ts_num),
-      loadcomplete_last_ts = log_max_or_na(.data$.ts_num),
-      loadcomplete_parse_error = log_first_non_missing(.data$loadcomplete_parse_error),
-      browser_name = log_first_non_missing(.data$browser_name),
-      browser_version = log_first_non_missing(.data$browser_version),
-      os_name = log_first_non_missing(.data$os_name),
-      os_family = log_first_non_missing(.data$os_family),
-      os_version = log_first_non_missing(.data$os_version),
-      device = log_first_non_missing(.data$device),
-      device_class = log_first_non_missing(.data$device_class),
-      screen_size_width = log_first_non_missing(.data$screen_size_width),
-      screen_size_height = log_first_non_missing(.data$screen_size_height),
-      screen_orientation = log_first_non_missing(.data$screen_orientation),
-      load_time = log_first_non_missing(.data$load_time),
-      .groups = "drop"
+  sessions %>%
+    dplyr::left_join(summary, by = session_cols) %>%
+    dplyr::mutate(
+      n_loadcomplete_events = dplyr::coalesce(.data$n_loadcomplete_events, 0L),
+      n_loadcomplete_parsed = dplyr::coalesce(.data$n_loadcomplete_parsed, 0L),
+      loadcomplete_parse_ok = dplyr::coalesce(.data$loadcomplete_parse_ok, FALSE),
+      loadcomplete_multiple = dplyr::coalesce(.data$loadcomplete_multiple, FALSE),
+      loadcomplete_conflicting = dplyr::coalesce(.data$loadcomplete_conflicting, FALSE)
     )
 }
 
@@ -963,19 +1015,7 @@ detect_log_anomalies <- function(logs,
 
   focus_logs <- logs_prep %>%
     dplyr::filter(.data$log_type_upper == "FOCUS", .data$focus_state %in% c("HAS_NOT", "HAS")) %>%
-    dplyr::arrange(
-      dplyr::across(dplyr::any_of(session_cols)),
-      .data$.ts_num,
-      .data$.log_row
-    ) %>%
-    log_group_by_cols(session_cols) %>%
-    dplyr::mutate(
-      next_focus_state = dplyr::lead(.data$focus_state),
-      next_focus_ts = dplyr::lead(.data$.ts_num),
-      has_focus_at_or_after = rev(cumsum(rev(.data$focus_state == "HAS")) > 0L),
-      has_later_focus_regain = dplyr::lead(.data$has_focus_at_or_after, default = FALSE)
-    ) %>%
-    dplyr::ungroup()
+    log_annotate_focus_logs(session_cols)
 
   focus_lost_never_regained <- focus_logs %>%
     dplyr::filter(.data$focus_state == "HAS_NOT", !.data$has_later_focus_regain) %>%
@@ -1005,19 +1045,18 @@ detect_log_anomalies <- function(logs,
 
   very_long_focus_loss <- focus_logs %>%
     dplyr::filter(
-      .data$focus_state == "HAS_NOT",
-      .data$next_focus_state == "HAS",
-      !is.na(.data$next_focus_ts),
-      .data$next_focus_ts - .data$.ts_num > focus_loss_threshold_ms
+      .data$focus_loss_start,
+      !is.na(.data$focus_lost_duration),
+      .data$focus_lost_duration > focus_loss_threshold_ms
     ) %>%
     dplyr::transmute(
       dplyr::across(dplyr::any_of(context_cols)),
       anomaly_code = "very_long_focus_loss",
       severity = "warning",
       ts_start = .data$.ts_num,
-      ts_end = .data$next_focus_ts,
+      ts_end = .data$next_focus_regain_ts,
       n_events = 1L,
-      evidence = paste0("duration_ms=", .data$next_focus_ts - .data$.ts_num),
+      evidence = paste0("duration_ms=", .data$focus_lost_duration),
       message = "Focus was lost for longer than focus_loss_threshold_ms."
     )
 

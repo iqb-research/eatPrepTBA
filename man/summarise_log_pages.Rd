@@ -22,5 +22,9 @@ A tibble with one row per session/unit.
 \ifelse{html}{\out{<a href="https://lifecycle.r-lib.org/articles/stages.html#experimental"><img src="figures/lifecycle-experimental.svg" alt="[Experimental]" /></a>}}{\strong{[Experimental]}}
 
 Summarises raw \code{CURRENT_PAGE_ID}, \code{CURRENT_PAGE_NR}, and \code{PAGE_COUNT} events
-per session/unit.
+per session/unit. \code{reached_last_page_nr} only checks whether the maximum
+observed page number reached the reported page count. \code{observed_pages_complete}
+is stricter and is only \code{TRUE} when all integer page numbers from 1 to
+\code{PAGE_COUNT} were observed and the page count was consistent; otherwise it is
+\code{FALSE} for visible gaps or \code{NA} when completeness cannot be judged.
 }

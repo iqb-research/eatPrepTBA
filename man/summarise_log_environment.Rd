@@ -22,5 +22,6 @@ A tibble with one row per session.
 Extracts browser, operating system, device, screen size, orientation, and
 initial \code{LOADCOMPLETE} load time. Multiple \code{LOADCOMPLETE} rows per session
 are retained as diagnostics via count and conflict columns while the first
-non-missing value per field is returned.
+non-missing value per field is returned. Sessions without \code{LOADCOMPLETE}
+are retained with zero event counts and missing environment fields.
 }

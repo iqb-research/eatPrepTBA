@@ -28,6 +28,7 @@ test_that("summarise_log_connections counts states and transitions per session",
 
   expect_equal(g2$n_connection_events, 0)
   expect_false(g2$has_connection_lost)
+  expect_false(g2$last_connection_state_lost)
 })
 
 test_that("summarise_log_focus computes raw focus loss durations and unresolved losses", {
@@ -58,6 +59,29 @@ test_that("summarise_log_focus computes raw focus loss durations and unresolved 
   expect_equal(out$n_repeated_focus_lost_before_regain, 1)
   expect_true(out$has_focus_loss)
   expect_true(out$has_unresolved_focus_loss)
+})
+
+test_that("summarise_log_focus measures repeated focus loss until regain", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS_NOT\"",
+      "FOCUS : \"HAS\""
+    )
+  )
+
+  out <- summarise_log_focus(logs, focus_loss_threshold_ms = 150)
+
+  expect_equal(out$n_focus_loss_intervals, 1)
+  expect_equal(out$total_focus_lost_time, 200)
+  expect_equal(out$max_focus_lost_time, 200)
+  expect_equal(out$n_very_long_focus_loss, 1)
+  expect_equal(out$n_repeated_focus_lost_before_regain, 1)
 })
 
 test_that("summarise_log_player counts player states per session and unit", {
@@ -122,9 +146,40 @@ test_that("summarise_log_pages captures page counts and inconsistencies", {
   expect_equal(u1$max_current_page_nr, 2)
   expect_true(u1$page_count_consistent)
   expect_true(u1$observed_pages_complete)
+  expect_true(u1$reached_last_page_nr)
+  expect_false(u1$observed_page_nr_gaps)
+  expect_true(is.na(u1$missing_page_nrs))
   expect_false(u1$page_nr_exceeds_page_count)
 
   expect_true(u2$page_nr_exceeds_page_count)
+  expect_true(u2$reached_last_page_nr)
+  expect_false(u2$observed_pages_complete)
+  expect_true(u2$observed_page_nr_gaps)
+  expect_equal(u2$missing_page_nrs, "1, 2")
+})
+
+test_that("summarise_log_pages distinguishes reaching the last page from complete observation", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    unit_alias = "U1",
+    ts = c(100, 200),
+    log_entry = c(
+      "PAGE_COUNT = 3",
+      "CURRENT_PAGE_NR = 3"
+    )
+  )
+
+  out <- summarise_log_pages(logs)
+
+  expect_equal(out$observed_page_nrs, "3")
+  expect_true(out$reached_last_page_nr)
+  expect_false(out$observed_pages_complete)
+  expect_true(out$observed_page_nr_gaps)
+  expect_equal(out$missing_page_nrs, "1, 2")
 })
 
 test_that("summarise_log_progress returns final response and presentation progress", {
@@ -156,4 +211,26 @@ test_that("summarise_log_progress returns final response and presentation progre
   expect_true(out$presentation_reached_complete)
   expect_true(out$response_final_complete)
   expect_true(out$presentation_final_complete)
+})
+
+test_that("summarise_log_progress returns false final flags without progress events", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    unit_alias = "U1",
+    ts = 100,
+    log_entry = "PLAYER = RUNNING"
+  )
+
+  out <- summarise_log_progress(logs)
+
+  expect_equal(out$n_response_progress_events, 0)
+  expect_equal(out$n_presentation_progress_events, 0)
+  expect_false(out$response_reached_complete)
+  expect_false(out$presentation_reached_complete)
+  expect_false(out$response_final_complete)
+  expect_false(out$presentation_final_complete)
 })

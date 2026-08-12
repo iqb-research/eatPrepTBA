@@ -280,6 +280,8 @@ pages %>%
   select(
     group_id, login_name, booklet_id, unit_key,
     observed_page_nrs, page_count,
+    reached_last_page_nr, observed_pages_complete,
+    observed_page_nr_gaps, missing_page_nrs,
     page_count_consistent, page_nr_exceeds_page_count
   )
 
@@ -290,6 +292,13 @@ progress %>%
     response_reached_complete, presentation_reached_complete
   )
 ```
+
+Bei Seiten ist `reached_last_page_nr` bewusst schwächer als
+`observed_pages_complete`: Es zeigt nur, ob die höchste beobachtete Seitennummer
+die berichtete Seitenzahl erreicht hat. `observed_pages_complete` wird nur dann
+`TRUE`, wenn alle ganzzahligen Seitennummern von 1 bis `PAGE_COUNT` tatsächlich
+in den Logs beobachtet wurden; bei nicht beurteilbarer Seitenzählung bleibt der
+Wert `NA`.
 
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
