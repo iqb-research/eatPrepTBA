@@ -14,6 +14,12 @@
 #' @param block_self_switch Boolean value. Were subjects able to switch to the next block themselves,
 #'        or did they have to wait for the time to run out / the test conductor to switch blocks?
 #'        This is relevant for finding lost focus events.
+#' @param include_environment Boolean value. If TRUE, session-level browser,
+#'        operating system, device, screen, and initial load-time metadata from
+#'        `LOADCOMPLETE` logs are joined to the unit-time output via
+#'        [summarise_log_environment()]. Sessions without `LOADCOMPLETE` are kept
+#'        without warnings and receive missing environment fields plus diagnostic
+#'        count flags.
 #'
 #' @return Tibble containing various times and timestamps per unit and page
 #'
@@ -70,13 +76,18 @@
 #' - unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 #' - unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 #'   use_unit_alias
+#' - Environment columns from [summarise_log_environment()] if
+#'   `include_environment = TRUE`, including `browser_name`, `browser_version`,
+#'   `os_name`, `device`, screen-size fields, `load_time`, and LOADCOMPLETE
+#'   diagnostic columns.
 #'
 #' Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.
 #'
 #' @export
 #'
 estimate_unit_times <- function(logs, use_unit_alias=FALSE,
-                                full_design=NULL, block_self_switch=FALSE) {
+                                full_design=NULL, block_self_switch=FALSE,
+                                include_environment=TRUE) {
   cli_setting()
 
   logs_cols <- c("unit_alias", "unit_key", "ts", "log_entry", "booklet_id")
@@ -86,6 +97,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
 
   checkmate::assert_logical(use_unit_alias, len = 1)
   checkmate::assert_logical(block_self_switch, len = 1)
+  checkmate::assert_logical(include_environment, len = 1)
 
 
   if (use_unit_alias) {
@@ -457,5 +469,30 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       all_ts %>% dplyr::select(dplyr::all_of(c(groups_unit, "unit_alias", "unit_key", "unit_ident"))),
       by = groups_unit,
       multiple = "any")
+
+  if (include_environment) {
+    unit_logs <- add_log_environment_to_unit_times(
+      unit_logs = unit_logs,
+      logs = logs,
+      session_cols = groups_booklet
+    )
+  }
+
   return(unit_logs)
+}
+
+add_log_environment_to_unit_times <- function(unit_logs, logs, session_cols) {
+  environment <- summarise_log_environment(logs, session_cols = session_cols)
+  environment_cols <- setdiff(names(environment), session_cols)
+  environment_cols <- setdiff(environment_cols, names(unit_logs))
+
+  if (length(environment_cols) == 0L) {
+    return(unit_logs)
+  }
+
+  dplyr::left_join(
+    unit_logs,
+    environment[, c(session_cols, environment_cols), drop = FALSE],
+    by = session_cols
+  )
 }

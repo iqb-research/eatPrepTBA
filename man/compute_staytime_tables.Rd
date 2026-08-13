@@ -13,7 +13,9 @@ compute_staytime_tables(
   unit_meta,
   students_select,
   FS_marker,
-  output_path
+  output_path,
+  min_page_n_valid = 2L,
+  response_filter = c("coded", "all")
 )
 }
 \arguments{
@@ -46,6 +48,16 @@ include in the analysis. Otherwise, NULL}
 booklet is treated as containing a special needs school study design.}
 
 \item{output_path}{String. Directory to store prepared tables in.}
+
+\item{min_page_n_valid}{Integer. Minimum number of non-missing page stay
+times required for page-level quantiles. The default, 2, keeps sparse
+but real observed page times visible in exploratory stay-time reports.
+Set to 11 to reproduce the legacy rule that pages needed more than ten
+observed stay times.}
+
+\item{response_filter}{Character. If "coded", keep the legacy behavior and
+use only coded, used, non-example response rows. If "all", retain all
+response rows after unit filtering.}
 }
 \value{
 A tibble. Also saves large tibble with name \code{tab_\{domain\}.RData} under output_path, including quantile dot plots.

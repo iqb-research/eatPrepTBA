@@ -639,6 +639,63 @@ test_that("compute_staytime_tables validates Aufgabenzeit after metadata expansi
   )
 })
 
+test_that("filter_staytime_responses keeps legacy coded rows by default", {
+  final_responses <- tibble::tibble(
+    id_used = c(TRUE, TRUE, TRUE, FALSE, NA),
+    code_type = c("MANUAL", "EXAMPLE", "NO_CODING", "MANUAL", NA),
+    code_id = c(1L, 1L, 1L, 1L, NA),
+    variable_source_type = c("BASE", "BASE", "BASE", "BASE", NA),
+    unit_key = paste0("U", 1:5)
+  )
+
+  coded <- eatPrepTBA:::filter_staytime_responses(final_responses, "coded")
+  all_rows <- eatPrepTBA:::filter_staytime_responses(final_responses, "all")
+
+  expect_equal(coded$unit_key, "U1")
+  expect_equal(nrow(all_rows), nrow(final_responses))
+})
+
+test_that("compute_staytime_tables validates new staytime options early", {
+  expect_error(
+    compute_staytime_tables(
+      fach = "D",
+      log_times = tibble::tibble(),
+      unit_domains = tibble::tibble(unit_key = "U1", subject = "D", domain = "D1"),
+      final_responses = tibble::tibble(),
+      units_cs = tibble::tibble(),
+      unit_meta = tibble::tibble(),
+      students_select = NULL,
+      FS_marker = "S",
+      output_path = tempdir(),
+      response_filter = "everything"
+    ),
+    "should be one of"
+  )
+
+  expect_error(
+    compute_staytime_tables(
+      fach = "D",
+      log_times = tibble::tibble(),
+      unit_domains = tibble::tibble(unit_key = "U1", subject = "D", domain = "D1"),
+      final_responses = tibble::tibble(),
+      units_cs = tibble::tibble(),
+      unit_meta = tibble::tibble(),
+      students_select = NULL,
+      FS_marker = "S",
+      output_path = tempdir(),
+      min_page_n_valid = 0
+    ),
+    "min_page_n_valid"
+  )
+})
+
+test_that("compute_staytime_tables default keeps sparse observed page times visible", {
+  formals <- formals(compute_staytime_tables)
+
+  expect_equal(formals$min_page_n_valid, 2L)
+  expect_equal(eval(formals$response_filter), c("coded", "all"))
+})
+
 test_that("test_coding_scheme returns the available check list", {
   old_reporter <- testthat::get_reporter()
   on.exit(testthat::set_reporter(old_reporter), add = TRUE)

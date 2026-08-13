@@ -494,3 +494,92 @@ test_that("estimate_unit_times handles run_no_load cases correctly", {
   expect_false(u2_row$unit_playbacks[[1]]$run_no_load_i[[1]],
                info = "u2's first playback should have run_no_load_i = FALSE")
 })
+
+test_that("estimate_unit_times joins LOADCOMPLETE environment by default", {
+  loadcomplete <- paste0(
+    "LOADCOMPLETE : ",
+    jsonlite::toJSON(
+      list(
+        browserVersion = "18.3",
+        browserName = "Safari",
+        osName = "iOS 18.6.2",
+        device = "Apple iPad tablet",
+        screenSizeWidth = 820,
+        screenSizeHeight = 1180,
+        loadTime = 7165
+      ),
+      auto_unbox = TRUE
+    )
+  )
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(50, 100, 200, 300),
+    log_entry = c(
+      loadcomplete,
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs)
+
+  expect_true(all(c(
+    "browser_name", "browser_version", "os_name", "device", "load_time",
+    "n_loadcomplete_events", "loadcomplete_parse_ok"
+  ) %in% names(result)))
+  expect_equal(result$browser_name, "Safari")
+  expect_equal(result$browser_version, "18.3")
+  expect_equal(result$device_class, "tablet")
+  expect_equal(result$load_time, 7165)
+  expect_equal(result$n_loadcomplete_events, 1)
+  expect_true(result$loadcomplete_parse_ok)
+})
+
+test_that("estimate_unit_times keeps sessions without LOADCOMPLETE quiet and diagnosable", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  expect_warning(result <- estimate_unit_times(logs), NA)
+
+  expect_true("browser_name" %in% names(result))
+  expect_true(is.na(result$browser_name))
+  expect_equal(result$n_loadcomplete_events, 0)
+  expect_false(result$loadcomplete_parse_ok)
+})
+
+test_that("estimate_unit_times can omit environment columns", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+
+  expect_false("browser_name" %in% names(result))
+  expect_false("n_loadcomplete_events" %in% names(result))
+})
