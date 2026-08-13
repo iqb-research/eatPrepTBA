@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9028</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,13 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9029" id="eatpreptba-0989029-2026-08-13">eatPrepTBA 0.9.8.9029 [2026-08-13]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989029-2026-08-13"></a></h2>
+<ul><li>Added <code><a href="../reference/estimate_audio_video_plays.html">estimate_audio_video_plays()</a></code> for extracting audio and video playback counts from response JSONs with robust handling for missing, malformed, nested, or non-media responses.</li>
+<li>Let <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> join robust <code>LOADCOMPLETE</code> environment summaries by default via <code>include_environment = TRUE</code>, while keeping sessions without <code>LOADCOMPLETE</code> quiet and diagnosable through the existing summary columns.</li>
+<li>Added explicit <code>min_page_n_valid</code> and <code>response_filter</code> options to <code><a href="../reference/compute_staytime_tables.html">compute_staytime_tables()</a></code>, using a more inclusive default of two observed page stay times while keeping coded-response filtering as the default response-row policy.</li>
+<li>Updated the log-data vignette to show the environment columns now available from <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> and to document the stay-time threshold recommendation.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9028" id="eatpreptba-0989028-2026-08-12">eatPrepTBA 0.9.8.9028 [2026-08-12]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989028-2026-08-12"></a></h2>
 <ul><li>Started a shared log-analysis layer with <code><a href="../reference/summarise_log_inventory.html">summarise_log_inventory()</a></code> for cheap event inventories and <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code> for robust <code>LOADCOMPLETE</code> parsing of browser, OS, device, screen size, orientation, and initial load time.</li>

@@ -21,7 +21,7 @@ This string is passed to the function as the argument FS_marker."><meta property
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9028</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,9 @@ This string is passed to the function as the argument FS_marker.</p>
 <span>  <span class="va">unit_meta</span>,</span>
 <span>  <span class="va">students_select</span>,</span>
 <span>  <span class="va">FS_marker</span>,</span>
-<span>  <span class="va">output_path</span></span>
+<span>  <span class="va">output_path</span>,</span>
+<span>  min_page_n_valid <span class="op">=</span> <span class="fl">2L</span>,</span>
+<span>  response_filter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"coded"</span>, <span class="st">"all"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -128,6 +130,20 @@ booklet is treated as containing a special needs school study design.</p></dd>
 
 <dt id="arg-output-path">output_path<a class="anchor" aria-label="anchor" href="#arg-output-path"></a></dt>
 <dd><p>String. Directory to store prepared tables in.</p></dd>
+
+
+<dt id="arg-min-page-n-valid">min_page_n_valid<a class="anchor" aria-label="anchor" href="#arg-min-page-n-valid"></a></dt>
+<dd><p>Integer. Minimum number of non-missing page stay
+times required for page-level quantiles. The default, 2, keeps sparse
+but real observed page times visible in exploratory stay-time reports.
+Set to 11 to reproduce the legacy rule that pages needed more than ten
+observed stay times.</p></dd>
+
+
+<dt id="arg-response-filter">response_filter<a class="anchor" aria-label="anchor" href="#arg-response-filter"></a></dt>
+<dd><p>Character. If "coded", keep the legacy behavior and
+use only coded, used, non-example response rows. If "all", retain all
+response rows after unit filtering.</p></dd>
 
 </dl></div>
     <div class="section level2">

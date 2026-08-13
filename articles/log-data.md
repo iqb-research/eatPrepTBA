@@ -418,6 +418,13 @@ die zentrale Funktion. Sie berechnet unter anderem:
 - `focus_events`: Fokusverluste innerhalb von Unit-Verläufen
 - `unit_page_logs`: Seitenzeiten, wenn `CURRENT_PAGE_ID` vorhanden ist
 
+Standardmäßig hängt
+[`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
+die Session-Environment-Spalten aus
+[`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+an. Mit `include_environment = FALSE` bleibt die Ausgabe auf die Zeit-
+und Ereignisspalten beschränkt.
+
 ``` r
 
 unit_times <- estimate_unit_times(logs)
@@ -429,19 +436,27 @@ unit_times %>%
   select(
     group_id, login_name, booklet_id, unit_key,
     unit_n_play, unit_time, unit_loadtime,
-    n_run_no_load, n_failed_loadings
+    n_run_no_load, n_failed_loadings,
+    browser_name, device_class, load_time,
+    n_loadcomplete_events
   )
-#> # A tibble: 1 × 9
+#> # A tibble: 1 × 13
 #>   group_id login_name booklet_id unit_key unit_n_play unit_time unit_loadtime
 #>   <chr>    <chr>      <chr>      <chr>          <int>     <dbl>         <dbl>
 #> 1 G1       L1         B1         U1                 1      2600           300
-#> # ℹ 2 more variables: n_run_no_load <int>, n_failed_loadings <int>
+#> # ℹ 6 more variables: n_run_no_load <int>, n_failed_loadings <int>,
+#> #   browser_name <chr>, device_class <chr>, load_time <dbl>,
+#> #   n_loadcomplete_events <int>
 ```
 
 `unit_loadtime` ist nicht dasselbe wie `LOADCOMPLETE$loadTime`.
 `load_time` aus `LOADCOMPLETE` beschreibt die initiale
 Browser-/Player-Ladeinformation einer Session. `unit_loadtime` wird aus
-den Player-Zuständen einer konkreten Unit geschätzt.
+den Player-Zuständen einer konkreten Unit geschätzt. Wenn bereits eine
+eigene Session-Tabelle mit
+[`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+aufgebaut wird, kann `include_environment = FALSE` gesetzt und die
+Environment-Tabelle später gezielt gejoint werden.
 
 > **Empfohlen:** Zeitvariablen sollten erst nach
 > [`summarise_log_qc()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_qc.md)
@@ -459,6 +474,17 @@ Zeitdaten aus
 [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
 auf und kombiniert sie mit Domänen-, Antwort-, Kodier- und Metadaten für
 Quarto-Reports.
+
+> **Empfohlen:** Der Default `min_page_n_valid = 2` hält auch dünn
+> besetzte, aber real beobachtete Seitenzeiten in explorativen
+> Staytime-Berichten sichtbar. Für konservative finale Berichte oder
+> Reproduktion älterer Ausgaben sollte die verwendete Schwelle
+> dokumentiert werden; `min_page_n_valid = 11` entspricht der früheren
+> Regel “mehr als zehn Beobachtungen”. Der Default
+> `response_filter = "coded"` bleibt für reguläre Berichte sinnvoll.
+> Verwenden Sie `response_filter = "all"` nur bewusst, wenn auch
+> Beispiel-, uncodierte oder nicht verwendete Antwortzeilen in die
+> Prüfung eingehen sollen.
 
 ## Unitgrößen ergänzen
 
@@ -637,7 +663,7 @@ Für reale Studien hat sich folgende Reihenfolge bewährt:
     [`read_logs()`](https://iqb-research.github.io/eatPrepTBA/reference/read_logs.md).
 2.  Log-Typen inventarisieren:
     [`summarise_log_inventory()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_inventory.md).
-3.  Geräte und Umgebung extrahieren:
+3.  Geräte und Umgebung als Session-Tabelle extrahieren:
     [`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md).
 4.  Anomalien prüfen:
     [`detect_log_anomalies()`](https://iqb-research.github.io/eatPrepTBA/reference/detect_log_anomalies.md)
@@ -652,6 +678,9 @@ Für reale Studien hat sich folgende Reihenfolge bewährt:
     [`summarise_log_progress()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_progress.md).
 6.  Zeitintervalle berechnen:
     [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md).
+    Die Environment-Spalten werden standardmäßig mitgeführt; bei
+    separater Session-Tabelle kann `include_environment = FALSE` gesetzt
+    werden.
 7.  Optional Unitgrößen ergänzen:
     [`compute_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_sizes.md)
     und

@@ -106,6 +106,12 @@ columns:
 - unit_ident: Either a copy of unit_alias or unit_key, depending on the
   value of use_unit_alias
 
+- Environment columns from
+  [summarise_log_environment()](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
+  if `include_environment = TRUE`, including `browser_name`,
+  `browser_version`, `os_name`, `device`, screen-size fields,
+  `load_time`, and LOADCOMPLETE diagnostic columns.
+
 Data grouped by group, login, booklet, and a unit identifier which
 depends on use_unit_alias.
 
@@ -116,7 +122,8 @@ estimate_unit_times(
   logs,
   use_unit_alias = FALSE,
   full_design = NULL,
-  block_self_switch = FALSE
+  block_self_switch = FALSE,
+  include_environment = TRUE
 )
 ```
 
@@ -152,6 +159,15 @@ estimate_unit_times(
   themselves, or did they have to wait for the time to run out / the
   test conductor to switch blocks? This is relevant for finding lost
   focus events.
+
+- include_environment:
+
+  Boolean value. If TRUE, session-level browser, operating system,
+  device, screen, and initial load-time metadata from `LOADCOMPLETE`
+  logs are joined to the unit-time output via
+  [summarise_log_environment()](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md).
+  Sessions without `LOADCOMPLETE` are kept without warnings and receive
+  missing environment fields plus diagnostic count flags.
 
 ## Value
 

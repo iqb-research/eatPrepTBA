@@ -1,5 +1,27 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9029 \[2026-08-13\]
+
+- Added
+  [`estimate_audio_video_plays()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_audio_video_plays.md)
+  for extracting audio and video playback counts from response JSONs
+  with robust handling for missing, malformed, nested, or non-media
+  responses.
+- Let
+  [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
+  join robust `LOADCOMPLETE` environment summaries by default via
+  `include_environment = TRUE`, while keeping sessions without
+  `LOADCOMPLETE` quiet and diagnosable through the existing summary
+  columns.
+- Added explicit `min_page_n_valid` and `response_filter` options to
+  [`compute_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.md),
+  using a more inclusive default of two observed page stay times while
+  keeping coded-response filtering as the default response-row policy.
+- Updated the log-data vignette to show the environment columns now
+  available from
+  [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
+  and to document the stay-time threshold recommendation.
+
 ## eatPrepTBA 0.9.8.9028 \[2026-08-12\]
 
 - Started a shared log-analysis layer with

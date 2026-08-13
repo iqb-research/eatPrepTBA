@@ -54,6 +54,10 @@ page_start_time_i: Timestamp of CURRENT_PAGE_ID = ... (page load completion)
 unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 use_unit_alias
+Environment columns from summarise_log_environment() if
+include_environment = TRUE, including browser_name, browser_version,
+os_name, device, screen-size fields, load_time, and LOADCOMPLETE
+diagnostic columns.
 
 
 Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias."><meta property="og:description" content="
@@ -111,6 +115,10 @@ page_start_time_i: Timestamp of CURRENT_PAGE_ID = ... (page load completion)
 unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 use_unit_alias
+Environment columns from summarise_log_environment() if
+include_environment = TRUE, including browser_name, browser_version,
+os_name, device, screen-size fields, load_time, and LOADCOMPLETE
+diagnostic columns.
 
 
 Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias."><meta property="og:image" content="https://iqb-research.github.io/eatPrepTBA/logo.png"></head><body>
@@ -121,7 +129,7 @@ Data grouped by group, login, booklet, and a unit identifier which depends on us
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9028</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -203,6 +211,10 @@ or the end of the booklet (i. e. the final timestamp within the current booklet 
 <li><p>unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble</p></li>
 <li><p>unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 use_unit_alias</p></li>
+<li><p>Environment columns from <a href="summarise_log_environment.html">summarise_log_environment()</a> if
+<code>include_environment = TRUE</code>, including <code>browser_name</code>, <code>browser_version</code>,
+<code>os_name</code>, <code>device</code>, screen-size fields, <code>load_time</code>, and LOADCOMPLETE
+diagnostic columns.</p></li>
 </ul><p>Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.</p>
     </div>
 
@@ -212,7 +224,8 @@ use_unit_alias</p></li>
 <span>  <span class="va">logs</span>,</span>
 <span>  use_unit_alias <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  full_design <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  block_self_switch <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  block_self_switch <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_environment <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -244,6 +257,15 @@ and all columns to be joined with logs. Relevant for finding lost focus events.<
 <dd><p>Boolean value. Were subjects able to switch to the next block themselves,
 or did they have to wait for the time to run out / the test conductor to switch blocks?
 This is relevant for finding lost focus events.</p></dd>
+
+
+<dt id="arg-include-environment">include_environment<a class="anchor" aria-label="anchor" href="#arg-include-environment"></a></dt>
+<dd><p>Boolean value. If TRUE, session-level browser,
+operating system, device, screen, and initial load-time metadata from
+<code>LOADCOMPLETE</code> logs are joined to the unit-time output via
+<a href="summarise_log_environment.html">summarise_log_environment()</a>. Sessions without <code>LOADCOMPLETE</code> are kept
+without warnings and receive missing environment fields plus diagnostic
+count flags.</p></dd>
 
 </dl></div>
     <div class="section level2">

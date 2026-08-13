@@ -221,6 +221,9 @@ Functions to check units, prepare material for administration and coding
 - [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
   **\[experimental\]** : Estimates loading and stay times for units,
   unit plays and pages from log data
+- [`estimate_audio_video_plays()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_audio_video_plays.md)
+  **\[experimental\]** : Estimate audio and video play counts from
+  response JSONs
 - [`evaluate_psychometrics()`](https://iqb-research.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
   : Evaluates frequencies and discrimination parameters of codes and
   categories

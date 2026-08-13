@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9028</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -621,6 +621,10 @@ Unit-Verläufen</li>
 <code>unit_page_logs</code>: Seitenzeiten, wenn
 <code>CURRENT_PAGE_ID</code> vorhanden ist</li>
 </ul>
+<p>Standardmäßig hängt <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> die
+Session-Environment-Spalten aus <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code>
+an. Mit <code>include_environment = FALSE</code> bleibt die Ausgabe auf
+die Zeit- und Ereignisspalten beschränkt.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">unit_times</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_unit_times.html">estimate_unit_times</a></span><span class="op">(</span><span class="va">logs</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
@@ -628,19 +632,26 @@ Unit-Verläufen</li>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">group_id</span>, <span class="va">login_name</span>, <span class="va">booklet_id</span>, <span class="va">unit_key</span>,</span>
 <span>    <span class="va">unit_n_play</span>, <span class="va">unit_time</span>, <span class="va">unit_loadtime</span>,</span>
-<span>    <span class="va">n_run_no_load</span>, <span class="va">n_failed_loadings</span></span>
+<span>    <span class="va">n_run_no_load</span>, <span class="va">n_failed_loadings</span>,</span>
+<span>    <span class="va">browser_name</span>, <span class="va">device_class</span>, <span class="va">load_time</span>,</span>
+<span>    <span class="va">n_loadcomplete_events</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 9</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 13</span></span></span>
 <span><span class="co">#&gt;   group_id login_name booklet_id unit_key unit_n_play unit_time unit_loadtime</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> G1       L1         B1         U1                 1      <span style="text-decoration: underline;">2</span>600           300</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: n_run_no_load &lt;int&gt;, n_failed_loadings &lt;int&gt;</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 6 more variables: n_run_no_load &lt;int&gt;, n_failed_loadings &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   browser_name &lt;chr&gt;, device_class &lt;chr&gt;, load_time &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   n_loadcomplete_events &lt;int&gt;</span></span></span></code></pre></div>
 <p><code>unit_loadtime</code> ist nicht dasselbe wie
 <code>LOADCOMPLETE$loadTime</code>. <code>load_time</code> aus
 <code>LOADCOMPLETE</code> beschreibt die initiale
 Browser-/Player-Ladeinformation einer Session.
 <code>unit_loadtime</code> wird aus den Player-Zuständen einer konkreten
-Unit geschätzt.</p>
+Unit geschätzt. Wenn bereits eine eigene Session-Tabelle mit
+<code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code> aufgebaut wird, kann
+<code>include_environment = FALSE</code> gesetzt und die
+Environment-Tabelle später gezielt gejoint werden.</p>
 <blockquote>
 <p><strong>Empfohlen:</strong> Zeitvariablen sollten erst nach
 <code><a href="../reference/summarise_log_qc.html">summarise_log_qc()</a></code> und <code><a href="../reference/detect_log_anomalies.html">detect_log_anomalies()</a></code>
@@ -653,6 +664,19 @@ erzeugt werden sollen, ist <code><a href="../reference/compute_staytime_tables.h
 nachgelagerter Schritt. Die Funktion setzt auf vorbereiteten Zeitdaten
 aus <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> auf und kombiniert sie mit
 Domänen-, Antwort-, Kodier- und Metadaten für Quarto-Reports.</p>
+<blockquote>
+<p><strong>Empfohlen:</strong> Der Default
+<code>min_page_n_valid = 2</code> hält auch dünn besetzte, aber real
+beobachtete Seitenzeiten in explorativen Staytime-Berichten sichtbar.
+Für konservative finale Berichte oder Reproduktion älterer Ausgaben
+sollte die verwendete Schwelle dokumentiert werden;
+<code>min_page_n_valid = 11</code> entspricht der früheren Regel “mehr
+als zehn Beobachtungen”. Der Default
+<code>response_filter = "coded"</code> bleibt für reguläre Berichte
+sinnvoll. Verwenden Sie <code>response_filter = "all"</code> nur
+bewusst, wenn auch Beispiel-, uncodierte oder nicht verwendete
+Antwortzeilen in die Prüfung eingehen sollen.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="unitgrößen-ergänzen">Unitgrößen ergänzen<a class="anchor" aria-label="anchor" href="#unitgr%C3%B6%C3%9Fen-erg%C3%A4nzen"></a>
@@ -812,7 +836,7 @@ und günstiger, weil sie genau definierte Aggregationen liefern.</p>
 <code><a href="../reference/read_logs.html">read_logs()</a></code>.</li>
 <li>Log-Typen inventarisieren:
 <code><a href="../reference/summarise_log_inventory.html">summarise_log_inventory()</a></code>.</li>
-<li>Geräte und Umgebung extrahieren:
+<li>Geräte und Umgebung als Session-Tabelle extrahieren:
 <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code>.</li>
 <li>Anomalien prüfen: <code><a href="../reference/detect_log_anomalies.html">detect_log_anomalies()</a></code> und
 <code><a href="../reference/summarise_log_qc.html">summarise_log_qc()</a></code>.</li>
@@ -820,7 +844,10 @@ und günstiger, weil sie genau definierte Aggregationen liefern.</p>
 <code><a href="../reference/summarise_log_focus.html">summarise_log_focus()</a></code>, <code><a href="../reference/summarise_log_player.html">summarise_log_player()</a></code>,
 <code><a href="../reference/summarise_log_pages.html">summarise_log_pages()</a></code> und
 <code><a href="../reference/summarise_log_progress.html">summarise_log_progress()</a></code>.</li>
-<li>Zeitintervalle berechnen: <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code>.</li>
+<li>Zeitintervalle berechnen: <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code>. Die
+Environment-Spalten werden standardmäßig mitgeführt; bei separater
+Session-Tabelle kann <code>include_environment = FALSE</code> gesetzt
+werden.</li>
 <li>Optional Unitgrößen ergänzen: <code><a href="../reference/compute_sizes.html">compute_sizes()</a></code> und
 <code><a href="../reference/add_unit_sizes.html">add_unit_sizes()</a></code>.</li>
 <li>Optional Systemchecks ergänzen: <code><a href="../reference/get_system_checks.html">get_system_checks()</a></code>
