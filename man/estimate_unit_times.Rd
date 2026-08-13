@@ -8,7 +8,8 @@ estimate_unit_times(
   logs,
   use_unit_alias = FALSE,
   full_design = NULL,
-  block_self_switch = FALSE
+  block_self_switch = FALSE,
+  include_environment = TRUE
 )
 }
 \arguments{
@@ -29,6 +30,13 @@ and all columns to be joined with logs. Relevant for finding lost focus events.}
 \item{block_self_switch}{Boolean value. Were subjects able to switch to the next block themselves,
 or did they have to wait for the time to run out / the test conductor to switch blocks?
 This is relevant for finding lost focus events.}
+
+\item{include_environment}{Boolean value. If TRUE, session-level browser,
+operating system, device, screen, and initial load-time metadata from
+\code{LOADCOMPLETE} logs are joined to the unit-time output via
+\link[=summarise_log_environment]{summarise_log_environment()}. Sessions without \code{LOADCOMPLETE} are kept
+without warnings and receive missing environment fields plus diagnostic
+count flags.}
 }
 \value{
 Tibble containing various times and timestamps per unit and page
@@ -95,6 +103,10 @@ or the end of the booklet (i. e. the final timestamp within the current booklet 
 \item unit_has_pages: Boolean, marks whether there is a unit_page_logs tibble
 \item unit_ident: Either a copy of unit_alias or unit_key, depending on the value of
 use_unit_alias
+\item Environment columns from \link[=summarise_log_environment]{summarise_log_environment()} if
+\code{include_environment = TRUE}, including \code{browser_name}, \code{browser_version},
+\code{os_name}, \code{device}, screen-size fields, \code{load_time}, and LOADCOMPLETE
+diagnostic columns.
 }
 
 Data grouped by group, login, booklet, and a unit identifier which depends on use_unit_alias.

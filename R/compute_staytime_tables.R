@@ -23,6 +23,14 @@
 #' @param FS_marker String. If this string appears in final_responses$booklet_id, then the respective
 #' booklet is treated as containing a special needs school study design.
 #' @param output_path String. Directory to store prepared tables in.
+#' @param min_page_n_valid Integer. Minimum number of non-missing page stay
+#'        times required for page-level quantiles. The default, 2, keeps sparse
+#'        but real observed page times visible in exploratory stay-time reports.
+#'        Set to 11 to reproduce the legacy rule that pages needed more than ten
+#'        observed stay times.
+#' @param response_filter Character. If "coded", keep the legacy behavior and
+#'        use only coded, used, non-example response rows. If "all", retain all
+#'        response rows after unit filtering.
 #'
 #' @return A tibble. Also saves large tibble with name `tab_\\{domain\\}.RData` under output_path, including quantile dot plots.
 #' This can then be incorporated into a quarto document as described in the example below.
@@ -105,13 +113,19 @@ compute_staytime_tables <- function(fach,
                                     unit_meta,
                                     students_select,
                                     FS_marker,
-                                    output_path) {
+                                    output_path,
+                                    min_page_n_valid = 2L,
+                                    response_filter = c("coded", "all")) {
+  response_filter <- match.arg(response_filter)
+
   # input validation
   checkmate::assert_character(fach, len =1)
   checkmate::assert_character(FS_marker, len =1)
   checkmate::assert_character(output_path, len =1)
   checkmate::assert_character(students_select, null.ok = TRUE)
+  checkmate::assert_integerish(min_page_n_valid, len = 1, lower = 1)
   checkmate::assert_data_frame(log_times)
+  min_page_n_valid <- as.integer(min_page_n_valid)
 
   unit_domains_cols <- c("unit_key", "subject", "domain")
   checkmate::assert_data_frame(unit_domains)
@@ -176,12 +190,7 @@ compute_staytime_tables <- function(fach,
     dplyr::left_join(unit_domains, by="unit_key")
 
   final_resp <-
-    final_responses[
-      complete.cases(final_responses[, c("id_used", "code_type",
-                                         "code_id", "variable_source_type")]) &
-        final_responses$id_used == TRUE &
-        final_responses$code_type != "EXAMPLE" &
-        final_responses$code_type != "NO_CODING", ] %>%
+    filter_staytime_responses(final_responses, response_filter) %>%
     dplyr::mutate(
       design = case_when(
         str_detect(booklet_id, FS_marker) ~ "FS",
@@ -224,8 +233,8 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(
-      # Nur Seiten, die mindestens 11 mal bearbeitet wurden
-      page_n_valid > 10
+      # Nur Seiten, die mindestens min_page_n_valid mal bearbeitet wurden
+      page_n_valid >= min_page_n_valid
     ) %>%
     dplyr::left_join(unit_domains, by="unit_key")
 
@@ -241,14 +250,14 @@ compute_staytime_tables <- function(fach,
     filter(variable_page == 0 & !is.na(page_time))
 
   if (sum(stim_logs_quant_design$design == "FS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in seq_len(min_page_n_valid)) {
       stim_logs_quant_design[nrow(stim_logs_quant_design) + 1,] = NA
       stim_logs_quant_design$unit_key[nrow(stim_logs_quant_design)] = "Platzhalter"
       stim_logs_quant_design$design[nrow(stim_logs_quant_design)] = "FS"
       stim_logs_quant_design$page_time[nrow(stim_logs_quant_design)] = 0
     }}
   if (sum(stim_logs_quant_design$design == "RS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in seq_len(min_page_n_valid)) {
       stim_logs_quant_design[nrow(stim_logs_quant_design) + 1,] = NA
       stim_logs_quant_design$unit_key[nrow(stim_logs_quant_design)] = "Platzhalter"
       stim_logs_quant_design$design[nrow(stim_logs_quant_design)] = "RS"
@@ -267,7 +276,7 @@ compute_staytime_tables <- function(fach,
     ) %>%
     dplyr::ungroup() %>%
     dplyr::filter(
-      page_n_valid > 10
+      page_n_valid >= min_page_n_valid
     ) %>%
     tidyr::pivot_wider(names_from = design,
                        values_from = c(page_n_valid,
@@ -288,7 +297,7 @@ compute_staytime_tables <- function(fach,
     dplyr::ungroup()
 
   if (sum(resp_page_logtimes$design == "FS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in seq_len(min_page_n_valid)) {
       resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
       resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
       resp_page_logtimes$design[nrow(resp_page_logtimes)] = "FS"
@@ -296,7 +305,7 @@ compute_staytime_tables <- function(fach,
       resp_page_logtimes$unit_time[nrow(resp_page_logtimes)] = 0
     }}
   if (sum(resp_page_logtimes$design == "RS", na.rm=TRUE) == 0) {
-    for (i in 1:11) {
+    for (i in seq_len(min_page_n_valid)) {
       resp_page_logtimes[nrow(resp_page_logtimes) + 1,] = NA
       resp_page_logtimes$unit_key[nrow(resp_page_logtimes)] = "Platzhalter"
       resp_page_logtimes$design[nrow(resp_page_logtimes)] = "RS"
@@ -537,6 +546,19 @@ compute_staytime_tables <- function(fach,
   #   )
   #
   # save(p25_times, file = paste(c(data_path, "p25_times_", fach, ".RData"), collapse=""))
+}
+
+filter_staytime_responses <- function(final_responses, response_filter) {
+  if (response_filter == "all") {
+    return(final_responses)
+  }
+
+  final_responses[
+    complete.cases(final_responses[, c("id_used", "code_type",
+                                       "code_id", "variable_source_type")]) &
+      final_responses$id_used == TRUE &
+      final_responses$code_type != "EXAMPLE" &
+      final_responses$code_type != "NO_CODING", ]
 }
 
 

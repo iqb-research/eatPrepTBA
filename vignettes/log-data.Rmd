@@ -311,6 +311,10 @@ Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
 - `focus_events`: Fokusverluste innerhalb von Unit-Verläufen
 - `unit_page_logs`: Seitenzeiten, wenn `CURRENT_PAGE_ID` vorhanden ist
 
+Standardmäßig hängt `estimate_unit_times()` die Session-Environment-Spalten
+aus `summarise_log_environment()` an. Mit `include_environment = FALSE` bleibt
+die Ausgabe auf die Zeit- und Ereignisspalten beschränkt.
+
 ```{r unit-times-compute, results='hide', message=FALSE, warning=FALSE}
 unit_times <- estimate_unit_times(logs)
 ```
@@ -320,14 +324,18 @@ unit_times %>%
   select(
     group_id, login_name, booklet_id, unit_key,
     unit_n_play, unit_time, unit_loadtime,
-    n_run_no_load, n_failed_loadings
+    n_run_no_load, n_failed_loadings,
+    browser_name, device_class, load_time,
+    n_loadcomplete_events
   )
 ```
 
 `unit_loadtime` ist nicht dasselbe wie `LOADCOMPLETE$loadTime`. `load_time` aus
 `LOADCOMPLETE` beschreibt die initiale Browser-/Player-Ladeinformation einer
 Session. `unit_loadtime` wird aus den Player-Zuständen einer konkreten Unit
-geschätzt.
+geschätzt. Wenn bereits eine eigene Session-Tabelle mit
+`summarise_log_environment()` aufgebaut wird, kann `include_environment = FALSE`
+gesetzt und die Environment-Tabelle später gezielt gejoint werden.
 
 > **Empfohlen:** Zeitvariablen sollten erst nach `summarise_log_qc()` und
 > `detect_log_anomalies()` interpretiert werden. Anomalien wie fehlendes
@@ -338,6 +346,15 @@ Wenn aus den geschätzten Zeiten Berichtstabellen mit Quantilen erzeugt werden
 sollen, ist `compute_staytime_tables()` ein nachgelagerter Schritt. Die Funktion
 setzt auf vorbereiteten Zeitdaten aus `estimate_unit_times()` auf und kombiniert
 sie mit Domänen-, Antwort-, Kodier- und Metadaten für Quarto-Reports.
+
+> **Empfohlen:** Der Default `min_page_n_valid = 2` hält auch dünn besetzte, aber
+> real beobachtete Seitenzeiten in explorativen Staytime-Berichten sichtbar. Für
+> konservative finale Berichte oder Reproduktion älterer Ausgaben sollte die
+> verwendete Schwelle dokumentiert werden; `min_page_n_valid = 11` entspricht der
+> früheren Regel "mehr als zehn Beobachtungen". Der Default
+> `response_filter = "coded"` bleibt für reguläre Berichte sinnvoll. Verwenden Sie
+> `response_filter = "all"` nur bewusst, wenn auch Beispiel-, uncodierte oder
+> nicht verwendete Antwortzeilen in die Prüfung eingehen sollen.
 
 ## Unitgrößen ergänzen
 
@@ -471,12 +488,15 @@ Für reale Studien hat sich folgende Reihenfolge bewährt:
 
 1. Rohdaten einlesen: `get_logs()` oder `read_logs()`.
 2. Log-Typen inventarisieren: `summarise_log_inventory()`.
-3. Geräte und Umgebung extrahieren: `summarise_log_environment()`.
+3. Geräte und Umgebung als Session-Tabelle extrahieren:
+   `summarise_log_environment()`.
 4. Anomalien prüfen: `detect_log_anomalies()` und `summarise_log_qc()`.
 5. Zustände verdichten: `summarise_log_connections()`,
    `summarise_log_focus()`, `summarise_log_player()`,
    `summarise_log_pages()` und `summarise_log_progress()`.
-6. Zeitintervalle berechnen: `estimate_unit_times()`.
+6. Zeitintervalle berechnen: `estimate_unit_times()`. Die Environment-Spalten
+   werden standardmäßig mitgeführt; bei separater Session-Tabelle kann
+   `include_environment = FALSE` gesetzt werden.
 7. Optional Unitgrößen ergänzen: `compute_sizes()` und `add_unit_sizes()`.
 8. Optional Systemchecks ergänzen: `get_system_checks()` oder
    `read_system_checks()`, danach `summarise_system_checks()` und
