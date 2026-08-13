@@ -103,6 +103,7 @@ reference:
   - prepare_unpacked_codes
   - complete_design
   - estimate_unit_times
+  - estimate_audio_video_plays
   - evaluate_psychometrics
   - compute_staytime_tables
   - layout_staytime_tables
