@@ -49,7 +49,7 @@ aus exportierten CSV-Dateien gelesen werden.
 
 ``` r
 
-login <- login_testcenter(keyring = TRUE, app_version = "18.0.0")
+login <- login_testcenter(keyring = TRUE)
 workspace <- access_workspace(login, ws_id = 123)
 
 logs <- get_logs(workspace, groups = "Gruppenname")

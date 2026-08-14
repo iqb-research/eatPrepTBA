@@ -169,7 +169,7 @@ kommen, wenn überhaupt, eher Systemcheck-Daten in Frage.</p>
 <p>Logs können entweder direkt aus einem Testcenter-Workspace geladen
 oder aus exportierten CSV-Dateien gelesen werden.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_testcenter.html">login_testcenter</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="st">"18.0.0"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_testcenter.html">login_testcenter</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">workspace</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span><span class="va">login</span>, ws_id <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">logs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_logs.html">get_logs</a></span><span class="op">(</span><span class="va">workspace</span>, groups <span class="op">=</span> <span class="st">"Gruppenname"</span><span class="op">)</span></span></code></pre></div>
