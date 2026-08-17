@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9029</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9030</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,7 +53,8 @@
 <span>  testlets <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  app_version <span class="op">=</span> <span class="st">"16.0.2"</span>,</span>
 <span>  login <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  booklet_config_version <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18.0"</span>, <span class="st">"legacy-16"</span><span class="op">)</span></span>
+<span>  booklet_config_version <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18.0"</span>, <span class="st">"legacy-16"</span><span class="op">)</span>,</span>
+<span>  custom_texts <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -97,6 +98,12 @@
 <dd><p>Booklet configuration version. <code>"18.0"</code> emits
 the current Testcenter booklet configuration keys. <code>"legacy-16"</code> emits the
 legacy key set used by older Testcenter 16 workflows.</p></dd>
+
+
+<dt id="arg-custom-texts">custom_texts<a class="anchor" aria-label="anchor" href="#arg-custom-texts"></a></dt>
+<dd><p>Optional named list of Testcenter custom text keys and
+replacement strings. These are emitted as booklet-level <code>CustomText</code> nodes
+directly after <code>Metadata</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

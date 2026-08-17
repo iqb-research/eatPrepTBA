@@ -1,5 +1,15 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9030 \[2026-08-17\]
+
+### new features
+
+- Added booklet-level `CustomTexts` output to
+  [`generate_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklet.md)
+  via `custom_texts` and to
+  [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)
+  via the optional `booklet_custom_texts` list-column.
+
 ## eatPrepTBA 0.9.8.9029 \[2026-08-13\]
 
 ### new features

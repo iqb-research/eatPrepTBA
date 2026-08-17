@@ -20,11 +20,12 @@ generate_booklets(
 
   Must be a tibble with the columns `booklet_id`, `booklet_label`, and
   `booklet_units`.Optionally, the columns `booklet_description`
-  (character) and `booklet_configuration` (list) can be added. The
-  (list) column `booklet_units` is a nested tibble with columns
-  `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain
-  the columns `testlet_restrictions` and `testlets`. Finally, the (list)
-  column `units` is again a nested tibble with columns `unit_key`,
+  (character), `booklet_configuration` (list), and
+  `booklet_custom_texts` (named list) can be added. The (list) column
+  `booklet_units` is a nested tibble with columns `testlet_id`,
+  `testlet_label`, and `units`. Optionally, it can contain the columns
+  `testlet_restrictions` and `testlets`. Finally, the (list) column
+  `units` is again a nested tibble with columns `unit_key`,
   `unit_alias`, `unit_label`, and `unit_labelshort`. The optional
   `testlets` column can contain nested tibbles with the same structure
   as `booklet_units`.
