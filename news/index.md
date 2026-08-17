@@ -2,6 +2,8 @@
 
 ## eatPrepTBA 0.9.8.9029 \[2026-08-13\]
 
+### new features
+
 - Added
   [`estimate_audio_video_plays()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_audio_video_plays.md)
   for extracting audio and video playback counts from response JSONs
@@ -17,12 +19,17 @@
   [`compute_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.md),
   using a more inclusive default of two observed page stay times while
   keeping coded-response filtering as the default response-row policy.
+
+### documentation
+
 - Updated the log-data vignette to show the environment columns now
   available from
   [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
   and to document the stay-time threshold recommendation.
 
 ## eatPrepTBA 0.9.8.9028 \[2026-08-12\]
+
+### new features
 
 - Started a shared log-analysis layer with
   [`summarise_log_inventory()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_inventory.md)
@@ -57,8 +64,9 @@
   [`get_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/get_system_checks.md)
   or
   [`read_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/read_system_checks.md).
-- Added a `Log-Daten` vignette and pkgdown reference entries for the new
-  log-analysis workflow.
+
+### bug fixes
+
 - Fixed log-analysis edge cases found in review:
   [`summarise_log_environment()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_log_environment.md)
   now keeps sessions without `LOADCOMPLETE`, valid `LOADCOMPLETE` JSON
@@ -72,7 +80,25 @@
   summary functions to return global summaries when no session
   identifier columns are available.
 
+### documentation
+
+- Added a `Log-Daten` vignette and pkgdown reference entries for the new
+  log-analysis workflow.
+
 ## eatPrepTBA 0.9.8.9027 \[2026-08-10\]
+
+### new features
+
+- Added structured `validation_problems` output to
+  [`get_coding_report()`](https://iqb-research.github.io/eatPrepTBA/reference/get_coding_report.md)
+  for Studio Lite `validationProblems[]` details while preserving the
+  aggregate `validation` status.
+- Added `booklet_label` to
+  [`download_units()`](https://iqb-research.github.io/eatPrepTBA/reference/download_units.md)
+  so Studio Lite 18.0 can fill the generated booklet `Metadata/Label`,
+  and documented the current `<booklet-id>_testtaker.xml` filename.
+
+### changes
 
 - Updated Studio Lite item-metadata preparation for current IQB
   `unit-items` output by reading `sourceVariableId` and
@@ -83,28 +109,30 @@
   for item-list order, `item_order` for the Studio/spec `order` value,
   and `variable_pages` from `get_units(..., unit_definition = TRUE)` for
   page locations.
-- Added structured `validation_problems` output to
-  [`get_coding_report()`](https://iqb-research.github.io/eatPrepTBA/reference/get_coding_report.md)
-  for Studio Lite `validationProblems[]` details while preserving the
-  aggregate `validation` status.
-- Added `booklet_label` to
-  [`download_units()`](https://iqb-research.github.io/eatPrepTBA/reference/download_units.md)
-  so Studio Lite 18.0 can fill the generated booklet `Metadata/Label`,
-  and documented the current `<booklet-id>_testtaker.xml` filename.
 
 ## eatPrepTBA 0.9.8.9026 \[2026-07-15\]
+
+### new features
 
 - Added optional Testcenter 18.0 `ViewSettings` output to
   [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
   via `view_settings`, including `theme`, `code_input`, and monitor
   booklet visibility settings.
+
+### changes
+
 - Ensured `ViewSettings` is emitted as proper nested XML below `Login`
   and after any `Booklet` or `Profile` children, while `legacy-16`
   output keeps omitting unsupported current Testcenter nodes.
+
+### tests
+
 - Added regression coverage for current `ViewSettings` XML, legacy
   omission, and invalid view-setting values.
 
 ## eatPrepTBA 0.9.8.9025 \[2026-07-14\]
+
+### bug fixes
 
 - Fixed
   [`evaluate_psychometrics()`](https://iqb-research.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
@@ -116,11 +144,23 @@
   separately from genuinely ambiguous links.
 - Skipped unlinked item rows with missing `variable_id` when deriving
   item-level stay-time summaries.
+
+### tests
+
 - Added regression coverage for psychometric summaries with categories
   that are present in the coding scheme but absent from observed
   responses.
 
 ## eatPrepTBA 0.9.8.9024 \[2026-07-13\]
+
+### new features
+
+- Added current testtakers XML support for `booklet_state`,
+  `login_monitor_code`, `booklet_states_columns`, and
+  `filter_sub_value`, and guarded against current-mode logins that mix
+  `Booklet` and `Profile` children.
+
+### changes
 
 - Updated
   [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
@@ -130,16 +170,15 @@
 - Raised the default
   [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
   `app_version` to `"18.0.0"`.
-- Added current testtakers XML support for `booklet_state`,
-  `login_monitor_code`, `booklet_states_columns`, and
-  `filter_sub_value`, and guarded against current-mode logins that mix
-  `Booklet` and `Profile` children.
 - Clarified
   [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
   documentation around the required target table format used by
   project-specific wrappers, and added input checks for required values,
   named custom texts, profile references, and consistent login
   definitions.
+
+### documentation
+
 - Expanded
   [`generate_testtakers()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_testtakers.md)
   documentation and examples for large project-specific `custom_texts`
@@ -147,12 +186,16 @@
 
 ## eatPrepTBA 0.9.8.9023 \[2026-07-08\]
 
+### new features
+
 - Updated metadata preparation to read IQB `metadata-values` 3.0
   structures, including `order`, `raw`, `asText`, language-coded text
   values, vocabulary `annotation`, and `order = -1` hidden profiles,
   while keeping legacy `isCurrent` and `valueAsText` support.
 
 ## eatPrepTBA 0.9.8.9022 \[2026-07-05\]
+
+### documentation
 
 - Added a vignette showing how eatPrepTBA communicates with IQB Studio
   APIs through `httr2`, including browser developer tools, bearer-token
@@ -162,6 +205,17 @@
   by the API vignette.
 
 ## eatPrepTBA 0.9.8.9021 \[2026-07-03\]
+
+### new features
+
+- Added compact `times` sheet support to
+  [`prepare_booklets_from_block_design()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_booklets_from_block_design.md)
+  with `design`, `block`, `seconds`, and optional `block_group` and
+  `leave` columns. Missing or empty `block_group` values fall back to
+  the block name, and missing or empty `leave` values default to
+  `"allowed"`.
+
+### changes
 
 - Updated
   [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)
@@ -179,14 +233,10 @@
 - Rejected nested `TimeMax` restrictions during booklet generation
   because nested time constraints are not supported reliably by
   Testcenter.
-- Added compact `times` sheet support to
-  [`prepare_booklets_from_block_design()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_booklets_from_block_design.md)
-  with `design`, `block`, `seconds`, and optional `block_group` and
-  `leave` columns. Missing or empty `block_group` values fall back to
-  the block name, and missing or empty `leave` values default to
-  `"allowed"`.
 
 ## eatPrepTBA 0.9.8.9020 \[2026-06-26\]
+
+### changes
 
 - Added and refined input validation across API helpers, XML generation,
   stay-time table preparation, response coding inputs, and shared
@@ -196,6 +246,8 @@
   and structured empty coded outputs.
 
 ## eatPrepTBA 0.9.8.9019 \[2026-06-26\]
+
+### new features
 
 - Added
   [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
@@ -211,61 +263,86 @@
 - These helpers are particularly useful for BKT-like question-slot
   preparation, where coded responses are stored across
   `question_*_content` columns rather than in one `coded` column.
-- Made the
-  [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
-  progress indicator visible immediately and persistent during long JSON
-  parsing runs.
 - Added `keep_empty_rows = TRUE` as the default for
   [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md),
   preserving one empty output row for source rows that do not produce
   unpacked JSON records, and renamed the payload-level empty-cell
   argument to `keep_empty_payloads`.
-- Relaxed
-  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
-  input validation so ordinary data frames are accepted and normalised
-  internally to tibbles.
 - Extended `prepare_unpacked_codes(keep_uncoded = TRUE)` to preserve
   source rows that have no target response record, so identifiers such
   as `unit_key` survive BKT-like preparation.
 
+### changes
+
+- Made the
+  [`unpack_response_jsons()`](https://iqb-research.github.io/eatPrepTBA/reference/unpack_response_jsons.md)
+  progress indicator visible immediately and persistent during long JSON
+  parsing runs.
+- Relaxed
+  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+  input validation so ordinary data frames are accepted and normalised
+  internally to tibbles.
+
 ## eatPrepTBA 0.9.8.9018 \[2026-06-16\]
+
+### bug fixes
 
 - Fixed
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
   for booklet XMLs where `Unit` elements already carry `testlet_id` or
   `testlet_label` attributes, avoiding duplicate-column failures while
   preserving testlet information.
+
+### tests
+
 - Added regression tests for
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
   with pre-existing testlet attributes on standalone and nested units.
 
 ## eatPrepTBA 0.9.8.9017 \[2026-06-11\]
 
+### new features
+
 - Added `recode_omissions_to_not_reached` to
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   so users can choose whether trailing omission sequences at the end of
   a testlet are recoded as not reached.
+
+### changes
+
 - Kept
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   not-reached detection within each `testlet_no`.
 
 ## eatPrepTBA 0.9.8.9016 \[2026-06-11\]
 
+### changes
+
 - Added and corrected input validation across response coding,
   booklet/testtaker generation, metadata, settings, and psychometric
   helper functions.
+
+### internal
+
 - Removed the redundant plain-text `Author` field from `DESCRIPTION`;
   contributor metadata is now maintained via `Authors@R`.
 
 ## eatPrepTBA 0.9.8.9015 \[2026-06-11\]
 
+### documentation
+
 - Refreshed the getting-started vignette with IQB Studio login,
   workspace, unit metadata, and coding-scheme walkthroughs.
 - Added anonymized example unit data and Studio screenshots used by the
   vignette.
+
+### internal
+
 - Kept the shared RStudio project file tracked in the repository.
 
 ## eatPrepTBA 0.9.8.9014 \[2026-06-05\]
+
+### new features
 
 - Added shape-aware diagnostics in
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
@@ -275,26 +352,23 @@
   for changed Testcenter response slot ids. The new `diagnostics`
   argument controls compact, full, or suppressed feedback without
   changing output behavior.
+- Let `diagnostics = "none"` suppress missing-payload announcements and
+  animated preparation progress while keeping stable preparation
+  checkpoint messages.
+- Added stable checkpoint messages while reading and combining multiple
+  response files.
+- Added stable checkpoint messages while checking response payload
+  structure before response slot diagnostics are printed.
+
+### changes
+
 - Refined response slot diagnostics to classify subform/state response
   containers separately from standard Testcenter wrapper slots.
 - Made compact response slot diagnostics less alarming and less silent
   by confirming OK standard slots and pointing to `diagnostics = "full"`
   when id examples are shortened.
-- Let `diagnostics = "none"` suppress missing-payload announcements and
-  animated preparation progress while keeping stable preparation
-  checkpoint messages.
 - Kept elapsed-time response preparation completion messages for all
   response diagnostics modes.
-- Added stable checkpoint messages while reading and combining multiple
-  response files.
-- Added stable checkpoint messages while checking response payload
-  structure before response slot diagnostics are printed.
-- Treated the known coded-response slot id `responses` as a special
-  response slot, which can occur for stored coded responses such as
-  StarS Player data, instead of warning that it is unexpected.
-- Restored default response preparation progress indicators for compact
-  and full diagnostics while keeping `diagnostics = "none"` free of
-  animated progress.
 - Aligned response report preparation and raw empty-payload
   announcements in
   [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
@@ -303,25 +377,47 @@
   with the `diagnostics` modes used by
   [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md).
 
+### bug fixes
+
+- Treated the known coded-response slot id `responses` as a special
+  response slot, which can occur for stored coded responses such as
+  StarS Player data, instead of warning that it is unexpected.
+- Restored default response preparation progress indicators for compact
+  and full diagnostics while keeping `diagnostics = "none"` free of
+  animated progress.
+
 ## eatPrepTBA 0.9.8.9013 \[2026-06-05\]
 
-- Added broad `testthat` coverage for XML readers/generators, response
-  and log preparation, metadata/codebook helpers, S4 workspace/login
-  methods, mocked API wrappers, and analysis routines.
+### bug fixes
+
 - Fixed
   [`compute_sizes()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_sizes.md)
   by assigning the intermediate dependency-size table before summarising
   resource sizes.
 - Made codebook preparation helpers robust to single-variable and
   single-code JSON structures.
+
+### documentation
+
+- Corrected `WorkspaceTestcenter` slot documentation.
+
+### tests
+
+- Added broad `testthat` coverage for XML readers/generators, response
+  and log preparation, metadata/codebook helpers, S4 workspace/login
+  methods, mocked API wrappers, and analysis routines.
+
+### internal
+
 - Declared the `methods` dependency used by S4 class exports and
   constructors.
-- Corrected `WorkspaceTestcenter` slot documentation.
 - Reduced `R CMD check` diagnostics for startup messages, Rd files,
   imports, and data-masked column names.
 - Added a GitHub Actions workflow for Codecov coverage uploads.
 
 ## eatPrepTBA 0.9.8.9012 \[2026-06-02\]
+
+### bug fixes
 
 - Made
   [`prepare_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coding_scheme.md)
@@ -337,11 +433,16 @@
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
   working for both flat `Units > Unit` and nested
   `Units > Testlet > Unit` booklet structures.
+
+### tests
+
 - Added regression tests for missing coding schemes, incomplete schemer
   columns, multi-parameter rules, mixed rule-position types, and
   coded-response joins.
 
 ## eatPrepTBA 0.9.8.9011 \[2026-06-01\]
+
+### new features
 
 - Added focus lost/regained event extraction to
   [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md),
@@ -350,10 +451,15 @@
   explicit `run_no_load` handling.
 - Added warnings when block information from `full_design` cannot be
   joined for automatic block-switch detection.
+
+### tests
+
 - Added regression tests for focus-event durations, automatic
   block-switch handling, failed loading counts, and missing load starts.
 
 ## eatPrepTBA 0.9.8.9010 \[2026-05-28\]
+
+### bug fixes
 
 - Fixed
   [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
@@ -361,27 +467,44 @@
   profile when Studio returns stale `isCurrent` flags. This preserves
   item metadata such as `Variablenbezeichnung` even when the relevant
   profile is marked as not current in the returned properties JSON.
+
+### tests
+
 - Added regression tests for metadata profiles with stale `isCurrent`
   values.
+
+### internal
+
 - Removed a deprecated dplyr usage in
   [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
   that produced a lifecycle warning when deriving `unit_has_uuids`.
 
 ## eatPrepTBA 0.9.8.9009 \[2026-05-13\]
 
+### new features
+
 - Added
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md)
   for retrieving raw response reports from the Testcenter response
   endpoint.
-- Updated
-  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
-  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md),
-  and response documentation for the current response report format.
 - Added `geometry_variables` and `geometry_variables_ts` columns to
   [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   and
   [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
   for Testcenter `geometryVariableCodes` payloads.
+- Added aggregate info and warning messages for empty response payloads,
+  skipped automatic coding rows, filtered response units, and empty
+  response report results.
+
+### changes
+
+- Updated
+  [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md),
+  [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md),
+  and response documentation for the current response report format.
+
+### bug fixes
+
 - Preserved response rows with empty nested response data so units
   without stored responses remain visible in
   [`download_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/download_responses.md),
@@ -398,42 +521,60 @@
   before coding-scheme preparation so design-based missing completion in
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   remains responsible for those cases.
-- Added aggregate info and warning messages for empty response payloads,
-  skipped automatic coding rows, filtered response units, and empty
-  response report results.
+
+### tests
+
 - Added regression tests for response reports with empty nested response
   data.
 
 ## eatPrepTBA 0.9.8.9008 \[2026-05-05\]
 
+### new features
+
 - Added
   [`compute_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/compute_staytime_tables.md)
   for preparing stay-time quantile tables and related report output.
+- Restored and documented
+  [`layout_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/layout_staytime_tables.md),
+  including a pkgdown entry.
+
+### changes
+
 - Improved
   [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
   with faster processing, failed loading counts, failed loading times,
   and expanded documentation.
-- Restored and documented
-  [`layout_staytime_tables()`](https://iqb-research.github.io/eatPrepTBA/reference/layout_staytime_tables.md),
-  including a pkgdown entry.
+
+### bug fixes
+
 - Fixed booklet metadata parsing in
   [`read_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/read_booklet.md)
   so metadata with mixed text nodes no longer breaks booklet parsing.
   Added a regression test for this case.
+
+### internal
+
 - Updated package governance metadata in `DESCRIPTION`.
 
 ## eatPrepTBA 0.9.8.9007 \[2026-05-04\]
+
+### changes
 
 - Updated
   [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
   for Studio app version `16.0.0`.
 - Adjusted Studio authentication handling to read the access token from
   the JSON login response.
+
+### documentation
+
 - Refreshed the generated
   [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
   documentation.
 
 ## eatPrepTBA 0.9.8.9006 \[2026-02-26\]
+
+### bug fixes
 
 - Fixed
   [`get_system_checks()`](https://iqb-research.github.io/eatPrepTBA/reference/get_system_checks.md)
@@ -441,38 +582,61 @@
 
 ## eatPrepTBA 0.9.8.9005 \[2026-02-24\]
 
-- Improved compatibility with STAR Player response data.
+### new features
+
 - Added
   [`prepare_coded()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coded.md)
   for preparing coded response data with list-column values.
+
+### changes
+
+- Improved compatibility with STAR Player response data.
 - Renamed prepared response status output from `variable_status` to
   `code_status`.
+
+### bug fixes
+
 - Made
   [`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md)
   and
   [`get_logs()`](https://iqb-research.github.io/eatPrepTBA/reference/get_logs.md)
   handle successful but empty API responses more gracefully, with
   clearer warnings.
+
+### documentation
+
 - Added
   [`prepare_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_responses.md)
   to the pkgdown configuration.
 
 ## eatPrepTBA 0.9.8.9004 \[2026-01-14\]
 
+### internal
+
 - Incremented the development version.
 - Corrected author metadata.
 
 ## eatPrepTBA 0.9.8.9003 \[2026-01-09\]
 
+### new features
+
 - Added
   [`test_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/test_coding_scheme.md)
   for checking common coding-scheme problems.
+
+### documentation
+
 - Exported and documented
   [`test_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/test_coding_scheme.md).
+
+### internal
+
 - Updated startup/package helper code used by the new coding-scheme
   checks.
 
 ## eatPrepTBA 0.9.8.9002 \[2026-01-07\]
+
+### changes
 
 - Adjusted
   [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
@@ -481,23 +645,42 @@
 
 ## eatPrepTBA 0.9.8.9001 \[2025-12-15\]
 
+### new features
+
 - Made
   [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
   available as a top-level exported function.
+
+### bug fixes
+
 - Fixed
   [`prepare_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coding_scheme.md).
+
+### documentation
+
 - Updated Studio login and codebook documentation.
 - Updated README/pkgdown links to the `iqb-research` repository
   location.
 - Added the package logo and refreshed package site configuration.
+
+### internal
+
 - Updated contributor metadata.
 
 ## eatPrepTBA 0.9.8.9000 \[2025-11-04\]
+
+### new features
 
 - Added support in
   [`change_unit_settings()`](https://iqb-research.github.io/eatPrepTBA/reference/change_unit_settings.md)
   for changing unit metadata such as unit keys, names, descriptions,
   player/editor/schemer versions, groups, and states.
+
+### changes
+
 - Updated Studio login handling used by the unit-setting workflow.
+
+### documentation
+
 - Updated display and documentation for the changed unit-setting
   behavior.
