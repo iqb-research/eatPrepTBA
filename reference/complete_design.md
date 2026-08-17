@@ -63,7 +63,7 @@ complete_design(
 
   Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded
   to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a
-  booklet? Defaults to `FALSE`.
+  testlet? Defaults to `FALSE`.
 
 ## Value
 
