@@ -1,6 +1,6 @@
 #' Generates booklet XMLs from booklet, testlet, and unit information
 #'
-#' @param booklets Must be a tibble with the columns `booklet_id`, `booklet_label`, and `booklet_units`.Optionally, the columns `booklet_description` (character) and `booklet_configuration` (list) can be added. The (list) column `booklet_units` is a nested tibble with columns `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain the columns `testlet_restrictions` and `testlets`. Finally, the (list) column `units` is again a nested tibble with columns `unit_key`, `unit_alias`, `unit_label`, and `unit_labelshort`. The optional `testlets` column can contain nested tibbles with the same structure as `booklet_units`.
+#' @param booklets Must be a tibble with the columns `booklet_id`, `booklet_label`, and `booklet_units`.Optionally, the columns `booklet_description` (character), `booklet_configuration` (list), and `booklet_custom_texts` (named list) can be added. The (list) column `booklet_units` is a nested tibble with columns `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain the columns `testlet_restrictions` and `testlets`. Finally, the (list) column `units` is again a nested tibble with columns `unit_key`, `unit_alias`, `unit_label`, and `unit_labelshort`. The optional `testlets` column can contain nested tibbles with the same structure as `booklet_units`.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
 #' @param booklet_config_version Booklet configuration version. `"18.0"` emits
@@ -37,6 +37,7 @@ generate_booklets <- function(
     tibble::tibble(
       booklet_description = list(NULL),
       booklet_configuration = list(list(NULL)),
+      booklet_custom_texts = list(NULL),
       booklet_units = list(NULL)
     )
 
@@ -64,6 +65,20 @@ generate_booklets <- function(
           ),
           format = "Preparing booklet metadata for {.booklet-id {cli::pb_extra$booklet_ids[cli::pb_current+1]}} ({cli::pb_current}/{cli::pb_total}): {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}",
           format_done = "Prepared {cli::pb_total} booklet metadata in {cli::pb_elapsed}.",
+          clear = FALSE
+        )
+      ),
+      booklet_custom_texts = purrr::map(
+        booklet_custom_texts,
+        prepare_custom_texts,
+        arg = "booklet_custom_texts",
+        .progress = list(
+          type ="custom",
+          extra = list(
+            booklet_ids = pad_ids(booklet_ids)
+          ),
+          format = "Preparing booklet custom texts for {.booklet-id {cli::pb_extra$booklet_ids[cli::pb_current+1]}} ({cli::pb_current}/{cli::pb_total}): {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}",
+          format_done = "Prepared {cli::pb_total} booklet custom text sets in {cli::pb_elapsed}.",
           clear = FALSE
         )
       ),
@@ -96,9 +111,10 @@ generate_booklets <- function(
       ),
       booklet_xml = purrr::pmap(
         # Hier noch die units
-        list(booklet_metadata, booklet_configuration, booklet_units),
-        function(booklet_metadata, booklet_configuration, booklet_units) {
+        list(booklet_metadata, booklet_custom_texts, booklet_configuration, booklet_units),
+        function(booklet_metadata, booklet_custom_texts, booklet_configuration, booklet_units) {
           prepare_booklet_xml(booklet_metadata = booklet_metadata,
+                              booklet_custom_texts = booklet_custom_texts,
                               booklet_configuration = booklet_configuration,
                               booklet_units = booklet_units,
                               app_version = app_version,
@@ -116,7 +132,7 @@ generate_booklets <- function(
       )
     ) %>%
     dplyr::select(
-      -dplyr::any_of(c("booklet_metadata", "booklet_configuration", "booklet_units", "booklet_description"))
+      -dplyr::any_of(c("booklet_metadata", "booklet_custom_texts", "booklet_configuration", "booklet_units", "booklet_description"))
     )
 }
 
@@ -168,13 +184,19 @@ prepare_booklet_xml <- function(booklet_metadata,
                                 booklet_configuration,
                                 booklet_units,
                                 app_version,
-                                booklet_config_version = "18.0") {
+                                booklet_config_version = "18.0",
+                                booklet_custom_texts = NULL) {
+  booklet_children <- list(
+    Metadata = booklet_metadata,
+    CustomTexts = booklet_custom_texts,
+    BookletConfig = booklet_configuration,
+    Units = booklet_units
+  ) %>%
+    purrr::discard(is.null)
+
   list(
     Booklet = list(
-      list(Metadata = booklet_metadata,
-           BookletConfig = booklet_configuration,
-           Units = booklet_units
-      ),
+      booklet_children,
       "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
       "xsi:noNamespaceSchemaLocation" = booklet_schema_location(
         booklet_config_version,
