@@ -11,35 +11,58 @@
 read_system_checks <- function(file) {
   assert_existing_files(file, "file")
 
-  system_checks_raw <- readr::read_delim(file, delim = ";")
+  # avoid converting "NA" / "" to real NA values
+  system_checks_raw <- readr::read_delim(file, delim = ";", na = character())
 
   system_checks_raw %>%
     dplyr::rename(responses = Responses) %>%
     dplyr::mutate(
-      responses = purrr::map(responses, function(x) {
-        content <-
-          x %>%
-          stringr::str_replace_all("`", "\"") %>%
-          #jsonlite::parse_json() %>%
-          purrr::map(purrr::pluck, "content")
+      responses = purrr::map2(responses, seq_along(responses), function(x, row_idx) {
+        # skip true missing values or empty strings
+        if (is.null(x) || length(x) == 0 || is.na(x) || x == "") {
+          return(NULL)}
+
+        # replace backticks and single quotes that appear in the export
+        s_fixed <- stringr::str_replace_all(x, c("`" = "\"", "'" = "\""))
+
+        # quick validate before parsing
+        if (!jsonlite::validate(s_fixed)) {
+          warning("Responses JSON invalid or not parsable at row ", row_idx)
+          return(NULL)}
+
+        parsed <- tryCatch(
+          jsonlite::parse_json(s_fixed),
+          error = function(e) {
+            warning("Failed to parse Responses JSON at row ", row_idx, ": ", e$message)
+            return(NULL)
+          }
+        )
+
+        if (is.null(parsed)) return(NULL)
+        content <- parsed %>% purrr::map(purrr::pluck, "content")
 
         contents <-
           content %>%
           purrr::map(function(cont) {
             if (!is.null(cont) && cont != "[]") {
-              cont %>%
-                jsonlite::parse_json(simplifyVector = TRUE) %>%
-                tibble::as_tibble()
+              # cont itself can be JSON; parse it into a tibble
+              tryCatch(
+                jsonlite::parse_json(cont, simplifyVector = TRUE) %>% tibble::as_tibble(),
+                error = function(e) {
+                  warning("Inner content JSON parse failed at row ", row_idx, ": ", e$message)
+                  NULL
+                }
+              )
             } else {
               NULL
             }
           }) %>%
           purrr::reduce(dplyr::bind_rows)
+
+        contents
       })
     ) %>%
-    tidyr::unnest(
-      c(responses)
-    ) %>%
+    tidyr::unnest(c(responses)) %>%
     dplyr::rename(any_of(c(
       variable_id = "id"
       # group_id = "groupname",
