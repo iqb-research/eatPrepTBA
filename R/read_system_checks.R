@@ -20,7 +20,7 @@ read_system_checks <- function(file) {
         content <-
           x %>%
           stringr::str_replace_all("`", "\"") %>%
-          jsonlite::parse_json() %>%
+          #jsonlite::parse_json() %>%
           purrr::map(purrr::pluck, "content")
 
         contents <-
