@@ -135,8 +135,7 @@ generate_testtakers <- function(testtakers,
   testtakers <- tibble::as_tibble(testtakers)
   assert_required_testtaker_values(testtakers, testtakers_cols, "testtakers")
   validate_unique_testtaker_logins(testtakers)
-  checkmate::assert_list(custom_texts, null.ok = TRUE)
-  validate_custom_texts(custom_texts)
+  CustomTexts <- prepare_custom_texts(custom_texts)
   checkmate::assert_data_frame(profiles, null.ok = TRUE)
   checkmate::assert_list(view_settings, null.ok = TRUE)
   if(!is.null(profiles)) {
@@ -157,12 +156,6 @@ generate_testtakers <- function(testtakers,
   testtakers <- prepare_testtakers_for_version(testtakers, testtakers_version)
   validate_testtaker_profiles(testtakers, profiles)
   validate_testtaker_login_children(testtakers, testtakers_version)
-
-  if (!is.null(custom_texts) & length(custom_texts) > 0) {
-    CustomTexts <- rlang::exec("customize_texts", !!!custom_texts)
-  } else {
-    CustomTexts <- list()
-  }
 
   # Add nodes
   Metadata <- list()
@@ -331,22 +324,6 @@ assert_required_testtaker_values <- function(x, cols, data_name) {
       "x" = "{missing_labels}"
     )
   )
-}
-
-validate_custom_texts <- function(custom_texts) {
-  if (is.null(custom_texts) || length(custom_texts) == 0L) {
-    return(invisible(NULL))
-  }
-
-  custom_text_names <- names(custom_texts)
-  if (is.null(custom_text_names) ||
-      any(is.na(custom_text_names) | custom_text_names == "")) {
-    cli::cli_abort(
-      "{.arg custom_texts} must be a named list, for example {.code list(AppTitle = \"Pilot\")}."
-    )
-  }
-
-  invisible(NULL)
 }
 
 prepare_testtaker_view_settings <- function(view_settings, testtakers_version) {

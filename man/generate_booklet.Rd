@@ -13,7 +13,8 @@ generate_booklet(
   testlets = NULL,
   app_version = "16.0.2",
   login = NULL,
-  booklet_config_version = c("18.0", "legacy-16")
+  booklet_config_version = c("18.0", "legacy-16"),
+  custom_texts = NULL
 )
 }
 \arguments{
@@ -36,6 +37,10 @@ generate_booklet(
 \item{booklet_config_version}{Booklet configuration version. \code{"18.0"} emits
 the current Testcenter booklet configuration keys. \code{"legacy-16"} emits the
 legacy key set used by older Testcenter 16 workflows.}
+
+\item{custom_texts}{Optional named list of Testcenter custom text keys and
+replacement strings. These are emitted as booklet-level \code{CustomText} nodes
+directly after \code{Metadata}.}
 }
 \value{
 A booklet XML.

@@ -11,6 +11,9 @@
 #' @param booklet_config_version Booklet configuration version. `"18.0"` emits
 #'   the current Testcenter booklet configuration keys. `"legacy-16"` emits the
 #'   legacy key set used by older Testcenter 16 workflows.
+#' @param custom_texts Optional named list of Testcenter custom text keys and
+#'   replacement strings. These are emitted as booklet-level `CustomText` nodes
+#'   directly after `Metadata`.
 #'
 #' @description
 #' `r lifecycle::badge("deprecated")`
@@ -25,7 +28,8 @@ generate_booklet <- function(booklet_id,
                              testlets = NULL,
                              app_version = "16.0.2",
                              login = NULL,
-                             booklet_config_version = c("18.0", "legacy-16")) {
+                             booklet_config_version = c("18.0", "legacy-16"),
+                             custom_texts = NULL) {
   cli_setting()
   # input validation
   checkmate::assert_character(booklet_id)
@@ -37,6 +41,8 @@ generate_booklet <- function(booklet_id,
   checkmate::assert_data_frame(units, null.ok = TRUE)
   checkmate::assert_data_frame(testlets, null.ok = TRUE)
   booklet_config_version <- match.arg(booklet_config_version)
+
+  CustomTexts <- prepare_custom_texts(custom_texts)
 
   BookletConfig <- prepare_booklet_configuration(
     booklet_configuration,
@@ -68,12 +74,18 @@ generate_booklet <- function(booklet_id,
     }
   }
 
+  booklet_children <- list(
+    Metadata = Metadata,
+    CustomTexts = CustomTexts,
+    BookletConfig = BookletConfig,
+    Units = Units
+  ) %>%
+    purrr::discard(is.null)
+
   # Get nodes together
   list(
     Booklet = list(
-      list(Metadata = Metadata,
-           BookletConfig = BookletConfig,
-           Units = Units),
+      booklet_children,
       "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
       "xsi:noNamespaceSchemaLocation" = booklet_schema_location(
         booklet_config_version,

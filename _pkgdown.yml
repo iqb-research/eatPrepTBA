@@ -82,6 +82,20 @@ reference:
   - generate_booklets
   - prepare_booklets_from_block_design
   - upload_file
+- subtitle: Analyse Testcenter log data
+  contents:
+  - summarise_log_inventory
+  - summarise_log_environment
+  - detect_log_anomalies
+  - summarise_log_qc
+  - summarise_log_connections
+  - summarise_log_focus
+  - summarise_log_player
+  - summarise_log_pages
+  - summarise_log_progress
+  - add_unit_sizes
+  - summarise_system_checks
+  - add_system_check_summary
 - subtitle: Code responses and work with coded responses and logs from IQB Testcenter
   contents:
   - code_responses
@@ -89,6 +103,7 @@ reference:
   - prepare_unpacked_codes
   - complete_design
   - estimate_unit_times
+  - estimate_audio_video_plays
   - evaluate_psychometrics
   - compute_staytime_tables
   - layout_staytime_tables
