@@ -37,6 +37,33 @@ test_that("generate_booklet accepts ordinary data frames", {
   expect_s3_class(xml, "xml_document")
 })
 
+test_that("generate_booklet writes booklet custom texts after metadata", {
+  units <- tibble::tibble(
+    id = "U1",
+    label = "Unit 1"
+  )
+
+  xml <- generate_booklet(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    units = units,
+    custom_texts = list(
+      booklet_codeToEnterPrompt = "Please enter the release code.",
+      login_testEndButtonLabel = "Finish"
+    )
+  )
+
+  root_children <- xml2::xml_name(xml2::xml_children(xml2::xml_find_first(xml, "/Booklet")))
+  custom_texts <- xml2::xml_find_all(xml, ".//CustomTexts/CustomText")
+
+  expect_equal(root_children[seq_len(4)], c("Metadata", "CustomTexts", "BookletConfig", "Units"))
+  expect_equal(
+    xml2::xml_attr(custom_texts, "key"),
+    c("booklet_codeToEnterPrompt", "login_testEndButtonLabel")
+  )
+  expect_equal(xml2::xml_text(custom_texts), c("Please enter the release code.", "Finish"))
+})
+
 test_that("generate_booklets creates XML for nested booklet specifications", {
   booklets <- tibble::tibble(
     booklet_id = "B1",
@@ -59,6 +86,50 @@ test_that("generate_booklets creates XML for nested booklet specifications", {
   expect_s3_class(out$booklet_xml[[1]], "xml_document")
   expect_match(as.character(out$booklet_xml[[1]]), "<Testlet")
   expect_match(as.character(out$booklet_xml[[1]]), "Alias 2")
+})
+
+test_that("generate_booklets writes per-booklet custom texts", {
+  booklet_units <- tibble::tibble(unit_key = "U1", unit_label = "Unit 1")
+  booklets <- tibble::tibble(
+    booklet_id = c("B1", "B2"),
+    booklet_label = c("Booklet 1", "Booklet 2"),
+    booklet_custom_texts = list(
+      list(booklet_codeToEnterPrompt = "Code, please."),
+      NULL
+    ),
+    booklet_units = list(booklet_units, booklet_units)
+  )
+
+  out <- generate_booklets(booklets)
+  xml_with_custom_texts <- out$booklet_xml[[1]]
+  xml_without_custom_texts <- out$booklet_xml[[2]]
+  root_children <- xml2::xml_name(
+    xml2::xml_children(xml2::xml_find_first(xml_with_custom_texts, "/Booklet"))
+  )
+
+  expect_equal(root_children[seq_len(4)], c("Metadata", "CustomTexts", "BookletConfig", "Units"))
+  expect_equal(
+    xml2::xml_text(xml2::xml_find_first(
+      xml_with_custom_texts,
+      ".//CustomTexts/CustomText[@key='booklet_codeToEnterPrompt']"
+    )),
+    "Code, please."
+  )
+  expect_length(xml2::xml_find_all(xml_without_custom_texts, ".//CustomTexts"), 0)
+})
+
+test_that("generate_booklets validates booklet custom text lists", {
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_custom_texts = list(list("Pilot")),
+    booklet_units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+  )
+
+  expect_error(
+    generate_booklets(booklets),
+    "booklet_custom_texts.*named list"
+  )
 })
 
 test_that("generate_booklets creates XML for recursively nested testlets", {

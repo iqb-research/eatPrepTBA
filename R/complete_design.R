@@ -6,7 +6,7 @@
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
-#' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a booklet? Defaults to `FALSE`.
+#' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a testlet? Defaults to `FALSE`.
 #'
 #' @description
 #' This function automatically completes missings for coded responses.
