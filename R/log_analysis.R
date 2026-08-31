@@ -196,6 +196,11 @@ log_parse_event_number <- function(log_entry, type) {
   suppressWarnings(as.numeric(log_parse_event_value(log_entry, type)))
 }
 
+log_parse_current_page_id_number <- function(log_entry) {
+  value <- log_parse_event_value(log_entry, "CURRENT_PAGE_ID")
+  suppressWarnings(as.integer(stringr::str_extract(value, "-?\\d+")))
+}
+
 log_group_by_cols <- function(data, cols) {
   if (length(cols) == 0) {
     return(data)
@@ -816,6 +821,8 @@ detect_log_anomalies <- function(logs,
       player_state = stringr::str_to_upper(log_parse_event_value(.data$log_entry, "PLAYER")),
       focus_state = stringr::str_to_upper(log_parse_event_value(.data$log_entry, "FOCUS")),
       connection_state = stringr::str_to_upper(log_parse_connection(.data$log_entry)),
+      current_page_id = log_parse_event_value(.data$log_entry, "CURRENT_PAGE_ID"),
+      current_page_id_number = log_parse_current_page_id_number(.data$log_entry),
       current_page_nr = log_parse_event_number(.data$log_entry, "CURRENT_PAGE_NR"),
       page_count = log_parse_event_number(.data$log_entry, "PAGE_COUNT")
     )
@@ -1155,6 +1162,31 @@ detect_log_anomalies <- function(logs,
     )
 
   page_group_cols <- unique(c(session_cols, unit_cols))
+  invalid_current_page_id <- logs_prep %>%
+    dplyr::filter(
+      .data$log_type_upper == "CURRENT_PAGE_ID",
+      !is.na(.data$current_page_id_number),
+      .data$current_page_id_number < 0
+    ) %>%
+    log_group_by_cols(page_group_cols) %>%
+    dplyr::summarise(
+      ts_start = log_min_or_na(.data$.ts_num),
+      ts_end = log_max_or_na(.data$.ts_num),
+      n_events = dplyr::n(),
+      evidence = log_collapse_values(.data$current_page_id),
+      .groups = "drop"
+    ) %>%
+    dplyr::transmute(
+      dplyr::across(dplyr::any_of(context_cols)),
+      anomaly_code = "invalid_current_page_id",
+      severity = "info",
+      ts_start = .data$ts_start,
+      ts_end = .data$ts_end,
+      n_events = .data$n_events,
+      evidence = .data$evidence,
+      message = "CURRENT_PAGE_ID was negative; this usually means the Testcenter could not map the player-reported current page to valid pages."
+    )
+
   page_counts <- logs_prep %>%
     dplyr::filter(!is.na(.data$page_count)) %>%
     log_group_by_cols(page_group_cols) %>%
@@ -1258,6 +1290,7 @@ detect_log_anomalies <- function(logs,
     runtime_error,
     timestamp_decreases,
     zero_timestamp,
+    invalid_current_page_id,
     page_count_inconsistent,
     page_nr_exceeds_page_count,
     unknown_events

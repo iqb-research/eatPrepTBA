@@ -327,7 +327,7 @@ test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, a
     booklet_id = "B1",
     unit_key = "U1",
     unit_alias = "U1",
-    ts = c(100, 200, 300, 400, 500, 600, 550, 0, 700, 800, 900, 1000, 1100),
+    ts = c(100, 200, 300, 400, 500, 600, 550, 0, 700, 800, 900, 1000, 1050, 1100),
     log_entry = c(
       loadcomplete,
       "CONNECTION : \"OK\"",
@@ -341,6 +341,7 @@ test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, a
       "PAGE_COUNT = 2",
       "PAGE_COUNT = 3",
       "CURRENT_PAGE_NR = 4",
+      "CURRENT_PAGE_ID = -1",
       "CONNECTION : \"LOST\""
     )
   )
@@ -361,6 +362,7 @@ test_that("detect_log_anomalies reports connection, focus, runtime, timestamp, a
   expect_true("zero_timestamp" %in% out$anomaly_code)
   expect_true("page_count_inconsistent" %in% out$anomaly_code)
   expect_true("page_nr_exceeds_page_count" %in% out$anomaly_code)
+  expect_true("invalid_current_page_id" %in% out$anomaly_code)
 })
 
 test_that("detect_log_anomalies flags long focus loss across repeated HAS_NOT events", {

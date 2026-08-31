@@ -156,6 +156,32 @@ test_that("estimate_unit_times ignores auto block loading and first page as focu
   expect_false(unit_1_focus_events$focus_event_unfollowed)
 })
 
+test_that("estimate_unit_times treats negative page ids as unmapped pages", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 250, 300, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "CURRENT_PAGE_ID = -1",
+      "CURRENT_PAGE_ID = 0",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+
+  page_logs <- result$unit_page_logs[[1]]
+  expect_equal(page_logs$page_id, 0L)
+  expect_equal(page_logs$page_start_time, 300)
+  expect_equal(page_logs$page_time, 200)
+  expect_false(1L %in% page_logs$page_id)
+})
+
 test_that("estimate_unit_times warns when block mapping cannot be joined", {
   logs <- tibble::tibble(
     group = "test_group",

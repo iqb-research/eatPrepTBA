@@ -26,5 +26,8 @@ per session/unit. \code{reached_last_page_nr} only checks whether the maximum
 observed page number reached the reported page count. \code{observed_pages_complete}
 is stricter and is only \code{TRUE} when all integer page numbers from 1 to
 \code{PAGE_COUNT} were observed and the page count was consistent; otherwise it is
-\code{FALSE} for visible gaps or \code{NA} when completeness cannot be judged.
+\code{FALSE} for visible gaps or \code{NA} when completeness cannot be judged. Negative
+\code{CURRENT_PAGE_ID} values are counted separately because they usually indicate
+a Testcenter state where the player-reported page could not be mapped to the
+current valid pages.
 }

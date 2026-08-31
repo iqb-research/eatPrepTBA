@@ -227,7 +227,7 @@ Die wichtigsten Anomaliegruppen sind:
 | Player-Zustände | `player_running_without_loading`, `loading_without_running`, `repeated_loading`, `last_event_is_loading`, `last_event_is_running` |
 | Verbindung | `connection_lost`, `many_connection_transitions`, `last_connection_lost` |
 | Fokus | `focus_lost_never_regained`, `repeated_focus_lost_before_regain`, `very_long_focus_loss` |
-| Zeitstempel und Seiten | `timestamp_decreases_in_input`, `zero_timestamp`, `page_count_inconsistent`, `page_nr_exceeds_page_count` |
+| Zeitstempel und Seiten | `timestamp_decreases_in_input`, `zero_timestamp`, `invalid_current_page_id`, `page_count_inconsistent`, `page_nr_exceeds_page_count` |
 | Technische Fehler und Sonstiges | `runtime_error`, `unknown_log_type` |
 
 > **Empfohlen:** Sessions mit `critical` sollten einzeln geprüft werden.
@@ -280,6 +280,7 @@ pages %>%
   select(
     group_id, login_name, booklet_id, unit_key,
     observed_page_nrs, page_count,
+    n_invalid_current_page_id_events, has_invalid_current_page_id,
     reached_last_page_nr, observed_pages_complete,
     observed_page_nr_gaps, missing_page_nrs,
     page_count_consistent, page_nr_exceeds_page_count
@@ -299,6 +300,13 @@ die berichtete Seitenzahl erreicht hat. `observed_pages_complete` wird nur dann
 `TRUE`, wenn alle ganzzahligen Seitennummern von 1 bis `PAGE_COUNT` tatsächlich
 in den Logs beobachtet wurden; bei nicht beurteilbarer Seitenzählung bleibt der
 Wert `NA`.
+
+`CURRENT_PAGE_ID = -1` ist keine echte Seite. Dieser Zustand bedeutet in der
+Regel, dass der Testcenter-Host die vom Player gemeldete aktuelle Seite gerade
+nicht in seinen gültigen Seiten wiederfindet. Das kann beim Start einer Unit
+kurz plausibel sein, etwa bevor `validPages` vollständig synchronisiert ist.
+Wiederholte oder späte Vorkommen sollten geprüft werden; `estimate_unit_times()`
+ignoriert solche unmapped page states bei der Berechnung von Seitenzeiten.
 
 ## Bearbeitungszeiten und Unit-Ladezeiten
 

@@ -169,12 +169,15 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   all_ts <-
     all_logs %>%
     dplyr::mutate(
+      current_page_id_number = log_parse_current_page_id_number(log_entry),
+      invalid_current_page_id = stringr::str_detect(log_entry, "CURRENT_PAGE_ID") &
+        !is.na(current_page_id_number) & current_page_id_number < 0,
       ts_name = dplyr::case_when(
         # For the previous unit
         stringr::str_detect(log_entry, "CURRENT_UNIT_ID") ~ "unit_current_ts",
         stringr::str_detect(log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
         stringr::str_detect(log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
-        stringr::str_detect(log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
+        stringr::str_detect(log_entry, "CURRENT_PAGE_ID") & !invalid_current_page_id ~ "page_start_ts",
         log_entry == "PLAYER = PAUSED" ~ "n_paused",
         log_entry == "FOCUS : \"HAS_NOT\"" ~ "focus_lost_ts",
         log_entry == "FOCUS : \"HAS\"" ~ "focus_regained_ts",
@@ -183,7 +186,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       page_id = dplyr::case_when(
         # For legacy reasons
         log_entry == "CURRENT_PAGE_ID" ~ 0L,
-        ts_name == "page_start_ts" ~ log_entry %>% stringr::str_extract("\\d+") %>% as.integer(),
+        ts_name == "page_start_ts" & !is.na(current_page_id_number) ~ current_page_id_number,
         .default = NA_integer_
       )
     ) %>%

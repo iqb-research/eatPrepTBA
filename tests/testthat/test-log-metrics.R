@@ -159,12 +159,13 @@ test_that("summarise_log_pages captures page counts and inconsistencies", {
     login_name = "L1",
     login_code = "C1",
     booklet_id = "B1",
-    unit_key = c("U1", "U1", "U1", "U1", "U2", "U2"),
-    unit_alias = c("U1", "U1", "U1", "U1", "U2", "U2"),
-    ts = c(100, 200, 300, 400, 500, 600),
+    unit_key = c("U1", "U1", "U1", "U1", "U1", "U2", "U2"),
+    unit_alias = c("U1", "U1", "U1", "U1", "U1", "U2", "U2"),
+    ts = c(100, 200, 250, 300, 400, 500, 600),
     log_entry = c(
       "PAGE_COUNT = 2",
       "CURRENT_PAGE_ID = page_1",
+      "CURRENT_PAGE_ID = -1",
       "CURRENT_PAGE_NR = 1",
       "CURRENT_PAGE_NR = 2",
       "PAGE_COUNT = 2",
@@ -176,7 +177,9 @@ test_that("summarise_log_pages captures page counts and inconsistencies", {
   u1 <- out[out$unit_key == "U1", ]
   u2 <- out[out$unit_key == "U2", ]
 
-  expect_equal(u1$n_current_page_id_events, 1)
+  expect_equal(u1$n_current_page_id_events, 2)
+  expect_equal(u1$n_invalid_current_page_id_events, 1)
+  expect_true(u1$has_invalid_current_page_id)
   expect_equal(u1$n_current_page_nr_events, 2)
   expect_equal(u1$page_count, 2)
   expect_equal(u1$max_current_page_nr, 2)
@@ -188,6 +191,8 @@ test_that("summarise_log_pages captures page counts and inconsistencies", {
   expect_false(u1$page_nr_exceeds_page_count)
 
   expect_true(u2$page_nr_exceeds_page_count)
+  expect_equal(u2$n_invalid_current_page_id_events, 0)
+  expect_false(u2$has_invalid_current_page_id)
   expect_true(u2$reached_last_page_nr)
   expect_false(u2$observed_pages_complete)
   expect_true(u2$observed_page_nr_gaps)
