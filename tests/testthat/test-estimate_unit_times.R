@@ -179,6 +179,7 @@ test_that("estimate_unit_times treats negative page ids as unmapped pages", {
   expect_true(result$unit_has_pages[[1]])
   expect_equal(result$n_invalid_current_page_id_events, 1L)
   expect_equal(result$delay_first_valid_page_id_ms, 100)
+  expect_false(result$valid_page_id_before_running[[1]])
   expect_equal(result$unmapped_page_time_ms, 50)
   expect_equal(page_logs$page_id, 0L)
   expect_equal(page_logs$page_start_time, 300)
@@ -210,6 +211,7 @@ test_that("estimate_unit_times keeps unit diagnostics when only negative page id
   expect_true(is.na(result$unit_page_logs[[1]]))
   expect_equal(result$n_invalid_current_page_id_events, 1L)
   expect_true(is.na(result$delay_first_valid_page_id_ms))
+  expect_false(result$valid_page_id_before_running[[1]])
   expect_equal(result$unmapped_page_time_ms, 250)
 })
 
@@ -237,7 +239,82 @@ test_that("estimate_unit_times does not assign time after negative page ids to t
   expect_equal(page_logs$page_time, 100)
   expect_equal(result$n_invalid_current_page_id_events, 1L)
   expect_equal(result$delay_first_valid_page_id_ms, 100)
+  expect_false(result$valid_page_id_before_running[[1]])
   expect_equal(result$unmapped_page_time_ms, 100)
+})
+
+test_that("estimate_unit_times keeps a valid page id visible when it is the final log", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "CURRENT_PAGE_ID = 0"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+  page_logs <- result$unit_page_logs[[1]]
+
+  expect_equal(result$unit_time, 300)
+  expect_true(result$unit_has_pages[[1]])
+  expect_equal(result$delay_first_valid_page_id_ms, 300)
+  expect_false(result$valid_page_id_before_running[[1]])
+  expect_equal(page_logs$page_id, 0L)
+  expect_equal(page_logs$page_start_time, 500)
+  expect_equal(page_logs$page_time, 0)
+})
+
+test_that("estimate_unit_times treats valid page ids before running as zero delay", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 180, 200, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "CURRENT_PAGE_ID = 0",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+
+  expect_true(result$unit_has_pages[[1]])
+  expect_equal(result$delay_first_valid_page_id_ms, 0)
+  expect_true(result$valid_page_id_before_running[[1]])
+})
+
+test_that("estimate_unit_times does not count unmapped page time before running", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 150, 200, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "CURRENT_PAGE_ID = -1",
+      "PLAYER = RUNNING",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+
+  expect_equal(result$n_invalid_current_page_id_events, 1L)
+  expect_true(is.na(result$delay_first_valid_page_id_ms))
+  expect_false(result$valid_page_id_before_running[[1]])
+  expect_equal(result$unmapped_page_time_ms, 0)
 })
 
 test_that("estimate_unit_times warns when block mapping cannot be joined", {
