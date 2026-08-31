@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9030</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9031</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,15 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9031" id="eatpreptba-0989031-2026-08-31">eatPrepTBA 0.9.8.9031 [2026-08-31]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989031-2026-08-31"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9031">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9031"></a></h3>
+<ul><li>Fixed <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> so <code>CURRENT_PAGE_ID = -1</code> events, which can occur when the Testcenter cannot map the player-reported page to its current valid pages, are not interpreted as page 1; page summaries, anomaly detection, and unit-time outputs now expose these unmapped page states diagnostically.</li>
+<li>Kept <code>unit_has_pages = FALSE</code> available when a log data set contains no valid page IDs at all, preserving downstream compatibility for <code><a href="../reference/compute_staytime_tables.html">compute_staytime_tables()</a></code>.</li>
+<li>Kept valid <code>CURRENT_PAGE_ID</code> events visible when they are also the final log entry in a damaged or aborted booklet log, and added <code>valid_page_id_before_running</code> to disambiguate page IDs observed before <code>PLAYER = RUNNING</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9030" id="eatpreptba-0989030-2026-08-17">eatPrepTBA 0.9.8.9030 [2026-08-17]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989030-2026-08-17"></a></h2>
 <div class="section level3">

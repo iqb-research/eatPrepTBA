@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9030</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9031</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -481,7 +481,8 @@ Ausschlussregel.</p>
 <td>Zeitstempel und Seiten</td>
 <td>
 <code>timestamp_decreases_in_input</code>,
-<code>zero_timestamp</code>, <code>page_count_inconsistent</code>,
+<code>zero_timestamp</code>, <code>invalid_current_page_id</code>,
+<code>page_count_inconsistent</code>,
 <code>page_nr_exceeds_page_count</code>
 </td>
 </tr>
@@ -562,16 +563,18 @@ zählen aber wichtige Zustände pro Session oder Session-Unit.</p>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">group_id</span>, <span class="va">login_name</span>, <span class="va">booklet_id</span>, <span class="va">unit_key</span>,</span>
 <span>    <span class="va">observed_page_nrs</span>, <span class="va">page_count</span>,</span>
+<span>    <span class="va">n_invalid_current_page_id_events</span>, <span class="va">has_invalid_current_page_id</span>,</span>
 <span>    <span class="va">reached_last_page_nr</span>, <span class="va">observed_pages_complete</span>,</span>
 <span>    <span class="va">observed_page_nr_gaps</span>, <span class="va">missing_page_nrs</span>,</span>
 <span>    <span class="va">page_count_consistent</span>, <span class="va">page_nr_exceeds_page_count</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 12</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 14</span></span></span>
 <span><span class="co">#&gt;   group_id login_name booklet_id unit_key observed_page_nrs page_count</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> G1       L1         B1         U1       1, 2                       2</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> G1       L2         B1         U2       2                          1</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 6 more variables: reached_last_page_nr &lt;lgl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 8 more variables: n_invalid_current_page_id_events &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   has_invalid_current_page_id &lt;lgl&gt;, reached_last_page_nr &lt;lgl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   observed_pages_complete &lt;lgl&gt;, observed_page_nr_gaps &lt;lgl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   missing_page_nrs &lt;chr&gt;, page_count_consistent &lt;lgl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   page_nr_exceeds_page_count &lt;lgl&gt;</span></span></span>
@@ -596,6 +599,29 @@ beobachtete Seitennummer die berichtete Seitenzahl erreicht hat.
 wenn alle ganzzahligen Seitennummern von 1 bis <code>PAGE_COUNT</code>
 tatsächlich in den Logs beobachtet wurden; bei nicht beurteilbarer
 Seitenzählung bleibt der Wert <code>NA</code>.</p>
+<p><code>CURRENT_PAGE_ID = -1</code> ist keine echte Seite. Dieser
+Zustand bedeutet in der Regel, dass der Testcenter-Host die vom Player
+gemeldete aktuelle Seite gerade nicht in seinen gültigen Seiten
+wiederfindet. Das kann beim Start einer Unit kurz plausibel sein, etwa
+bevor <code>validPages</code> vollständig synchronisiert ist.
+Wiederholte oder späte Vorkommen sollten geprüft werden;
+<code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> nutzt solche unmapped page states
+nicht als valide Seiten und weist die betroffenen Intervalle separat
+über <code>unmapped_page_time_ms</code> aus.</p>
+<p>Für beschädigte oder abbrechende Logs sind drei Details wichtig. Eine
+gültige <code>CURRENT_PAGE_ID</code>, die zugleich der letzte
+Log-Eintrag ist, bleibt als Seite sichtbar; ihre Seitenzeit kann dann
+aber <code>0</code> sein, weil kein späterer Endzeitpunkt mehr
+beobachtet wurde. Wenn eine gültige Page-ID schon vor
+<code>PLAYER = RUNNING</code> geloggt wurde, wird
+<code>delay_first_valid_page_id_ms</code> auf <code>0</code> gesetzt und
+<code>valid_page_id_before_running</code> markiert diesen Fall. Wenn
+eine Unit nur <code>CURRENT_PAGE_ID = -1</code> und keine gültige
+Page-ID enthält, bleiben die Unit-Zeiten erhalten, aber
+<code>unit_has_pages = FALSE</code>: Seitenzeiten sind dann nicht
+rekonstruierbar. <code>unmapped_page_time_ms</code> ist dabei nur ein
+Rohindikator für Intervalle nach negativen Page-ID-Ereignissen, kein
+vollständiger Ausgleich zur Unit-Zeit.</p>
 </div>
 <div class="section level2">
 <h2 id="bearbeitungszeiten-und-unit-ladezeiten">Bearbeitungszeiten und Unit-Ladezeiten<a class="anchor" aria-label="anchor" href="#bearbeitungszeiten-und-unit-ladezeiten"></a>
@@ -620,6 +646,12 @@ Unit-Verläufen</li>
 <li>
 <code>unit_page_logs</code>: Seitenzeiten, wenn
 <code>CURRENT_PAGE_ID</code> vorhanden ist</li>
+<li>
+<code>n_invalid_current_page_id_events</code>,
+<code>delay_first_valid_page_id_ms</code>,
+<code>valid_page_id_before_running</code> und
+<code>unmapped_page_time_ms</code>: Hinweise auf nicht zuordenbare
+Page-ID-Zustände</li>
 </ul>
 <p>Standardmäßig hängt <code><a href="../reference/estimate_unit_times.html">estimate_unit_times()</a></code> die
 Session-Environment-Spalten aus <code><a href="../reference/summarise_log_environment.html">summarise_log_environment()</a></code>
@@ -633,16 +665,23 @@ die Zeit- und Ereignisspalten beschränkt.</p>
 <span>    <span class="va">group_id</span>, <span class="va">login_name</span>, <span class="va">booklet_id</span>, <span class="va">unit_key</span>,</span>
 <span>    <span class="va">unit_n_play</span>, <span class="va">unit_time</span>, <span class="va">unit_loadtime</span>,</span>
 <span>    <span class="va">n_run_no_load</span>, <span class="va">n_failed_loadings</span>,</span>
+<span>    <span class="va">unit_has_pages</span>,</span>
+<span>    <span class="va">n_invalid_current_page_id_events</span>,</span>
+<span>    <span class="va">delay_first_valid_page_id_ms</span>,</span>
+<span>    <span class="va">valid_page_id_before_running</span>,</span>
+<span>    <span class="va">unmapped_page_time_ms</span>,</span>
 <span>    <span class="va">browser_name</span>, <span class="va">device_class</span>, <span class="va">load_time</span>,</span>
 <span>    <span class="va">n_loadcomplete_events</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 13</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 18</span></span></span>
 <span><span class="co">#&gt;   group_id login_name booklet_id unit_key unit_n_play unit_time unit_loadtime</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> G1       L1         B1         U1                 1      <span style="text-decoration: underline;">2</span>600           300</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 6 more variables: n_run_no_load &lt;int&gt;, n_failed_loadings &lt;int&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   browser_name &lt;chr&gt;, device_class &lt;chr&gt;, load_time &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   n_loadcomplete_events &lt;int&gt;</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 11 more variables: n_run_no_load &lt;int&gt;, n_failed_loadings &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   unit_has_pages &lt;lgl&gt;, n_invalid_current_page_id_events &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   delay_first_valid_page_id_ms &lt;dbl&gt;, valid_page_id_before_running &lt;lgl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   unmapped_page_time_ms &lt;dbl&gt;, browser_name &lt;chr&gt;, device_class &lt;chr&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   load_time &lt;dbl&gt;, n_loadcomplete_events &lt;int&gt;</span></span></span></code></pre></div>
 <p><code>unit_loadtime</code> ist nicht dasselbe wie
 <code>LOADCOMPLETE$loadTime</code>. <code>load_time</code> aus
 <code>LOADCOMPLETE</code> beschreibt die initiale

@@ -5,13 +5,19 @@ per session/unit. reached_last_page_nr only checks whether the maximum
 observed page number reached the reported page count. observed_pages_complete
 is stricter and is only TRUE when all integer page numbers from 1 to
 PAGE_COUNT were observed and the page count was consistent; otherwise it is
-FALSE for visible gaps or NA when completeness cannot be judged."><meta property="og:description" content="
+FALSE for visible gaps or NA when completeness cannot be judged. Raw
+negative-integer CURRENT_PAGE_ID values are counted separately because they
+usually indicate a Testcenter state where the player-reported page could not
+be mapped to the current valid pages."><meta property="og:description" content="
 Summarises raw CURRENT_PAGE_ID, CURRENT_PAGE_NR, and PAGE_COUNT events
 per session/unit. reached_last_page_nr only checks whether the maximum
 observed page number reached the reported page count. observed_pages_complete
 is stricter and is only TRUE when all integer page numbers from 1 to
 PAGE_COUNT were observed and the page count was consistent; otherwise it is
-FALSE for visible gaps or NA when completeness cannot be judged."><meta property="og:image" content="https://iqb-research.github.io/eatPrepTBA/logo.png"></head><body>
+FALSE for visible gaps or NA when completeness cannot be judged. Raw
+negative-integer CURRENT_PAGE_ID values are counted separately because they
+usually indicate a Testcenter state where the player-reported page could not
+be mapped to the current valid pages."><meta property="og:image" content="https://iqb-research.github.io/eatPrepTBA/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -19,7 +25,7 @@ FALSE for visible gaps or NA when completeness cannot be judged."><meta property
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9030</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9031</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +63,10 @@ per session/unit. <code>reached_last_page_nr</code> only checks whether the maxi
 observed page number reached the reported page count. <code>observed_pages_complete</code>
 is stricter and is only <code>TRUE</code> when all integer page numbers from 1 to
 <code>PAGE_COUNT</code> were observed and the page count was consistent; otherwise it is
-<code>FALSE</code> for visible gaps or <code>NA</code> when completeness cannot be judged.</p>
+<code>FALSE</code> for visible gaps or <code>NA</code> when completeness cannot be judged. Raw
+negative-integer <code>CURRENT_PAGE_ID</code> values are counted separately because they
+usually indicate a Testcenter state where the player-reported page could not
+be mapped to the current valid pages.</p>
     </div>
 
     <div class="section level2">

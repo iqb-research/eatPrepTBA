@@ -34,6 +34,16 @@ focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT follo
 before another lost event appears
 focus_lost_duration: For focus lost events, time until focus regained
 
+n_invalid_current_page_id_events: Number of raw negative-integer CURRENT_PAGE_ID
+events such as CURRENT_PAGE_ID = -1 within the unit.
+delay_first_valid_page_id_ms: Time from first PLAYER = RUNNING to the first
+valid page ID; 0 if a valid page ID was already observed before the first
+PLAYER = RUNNING, and NA if no valid page ID is observed.
+valid_page_id_before_running: Boolean flag for units where a valid page ID
+was observed before the first PLAYER = RUNNING.
+unmapped_page_time_ms: Raw indicator for intervals after unmapped negative
+page IDs until the next valid page ID, unit load, or booklet end. This is not
+the total unassigned unit time.
 unit_page_logs: Tibble containing one row with information for each page of the unit.
 NULL when a unit only has one page.
 page_id: Digit(s) extracted from the log entry for this page
@@ -95,6 +105,16 @@ focus_event_unfollowed: Boolean flag for lost focus events = TRUE when NOT follo
 before another lost event appears
 focus_lost_duration: For focus lost events, time until focus regained
 
+n_invalid_current_page_id_events: Number of raw negative-integer CURRENT_PAGE_ID
+events such as CURRENT_PAGE_ID = -1 within the unit.
+delay_first_valid_page_id_ms: Time from first PLAYER = RUNNING to the first
+valid page ID; 0 if a valid page ID was already observed before the first
+PLAYER = RUNNING, and NA if no valid page ID is observed.
+valid_page_id_before_running: Boolean flag for units where a valid page ID
+was observed before the first PLAYER = RUNNING.
+unmapped_page_time_ms: Raw indicator for intervals after unmapped negative
+page IDs until the next valid page ID, unit load, or booklet end. This is not
+the total unassigned unit time.
 unit_page_logs: Tibble containing one row with information for each page of the unit.
 NULL when a unit only has one page.
 page_id: Digit(s) extracted from the log entry for this page
@@ -129,7 +149,7 @@ Data grouped by group, login, booklet, and a unit identifier which depends on us
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9030</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9031</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -193,6 +213,16 @@ as well as unit and page switches (which are considered as marking regained focu
 before another lost event appears</p></li>
 <li><p>focus_lost_duration: For focus lost events, time until focus regained</p></li>
 </ul></li>
+<li><p>n_invalid_current_page_id_events: Number of raw negative-integer <code>CURRENT_PAGE_ID</code>
+events such as <code>CURRENT_PAGE_ID = -1</code> within the unit.</p></li>
+<li><p>delay_first_valid_page_id_ms: Time from first <code>PLAYER = RUNNING</code> to the first
+valid page ID; <code>0</code> if a valid page ID was already observed before the first
+<code>PLAYER = RUNNING</code>, and <code>NA</code> if no valid page ID is observed.</p></li>
+<li><p>valid_page_id_before_running: Boolean flag for units where a valid page ID
+was observed before the first <code>PLAYER = RUNNING</code>.</p></li>
+<li><p>unmapped_page_time_ms: Raw indicator for intervals after unmapped negative
+page IDs until the next valid page ID, unit load, or booklet end. This is not
+the total unassigned unit time.</p></li>
 <li><p>unit_page_logs: Tibble containing one row with information for each page of the unit.
 NULL when a unit only has one page.</p><ul><li><p>page_id: Digit(s) extracted from the log entry for this page</p></li>
 <li><p>page_start_time: Timestamp at which page is logged in log entry</p></li>

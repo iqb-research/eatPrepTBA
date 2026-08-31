@@ -69,6 +69,22 @@ columns:
   - focus_lost_duration: For focus lost events, time until focus
     regained
 
+- n_invalid_current_page_id_events: Number of raw negative-integer
+  `CURRENT_PAGE_ID` events such as `CURRENT_PAGE_ID = -1` within the
+  unit.
+
+- delay_first_valid_page_id_ms: Time from first `PLAYER = RUNNING` to
+  the first valid page ID; `0` if a valid page ID was already observed
+  before the first `PLAYER = RUNNING`, and `NA` if no valid page ID is
+  observed.
+
+- valid_page_id_before_running: Boolean flag for units where a valid
+  page ID was observed before the first `PLAYER = RUNNING`.
+
+- unmapped_page_time_ms: Raw indicator for intervals after unmapped
+  negative page IDs until the next valid page ID, unit load, or booklet
+  end. This is not the total unassigned unit time.
+
 - unit_page_logs: Tibble containing one row with information for each
   page of the unit. NULL when a unit only has one page.
 
