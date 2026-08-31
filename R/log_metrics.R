@@ -351,10 +351,10 @@ summarise_log_player <- function(logs, session_cols = NULL, unit_cols = NULL) {
 #' observed page number reached the reported page count. `observed_pages_complete`
 #' is stricter and is only `TRUE` when all integer page numbers from 1 to
 #' `PAGE_COUNT` were observed and the page count was consistent; otherwise it is
-#' `FALSE` for visible gaps or `NA` when completeness cannot be judged. Negative
-#' `CURRENT_PAGE_ID` values are counted separately because they usually indicate
-#' a Testcenter state where the player-reported page could not be mapped to the
-#' current valid pages.
+#' `FALSE` for visible gaps or `NA` when completeness cannot be judged. Raw
+#' negative-integer `CURRENT_PAGE_ID` values are counted separately because they
+#' usually indicate a Testcenter state where the player-reported page could not
+#' be mapped to the current valid pages.
 #'
 #' @return A tibble with one row per session/unit.
 #'
@@ -382,6 +382,7 @@ summarise_log_pages <- function(logs, session_cols = NULL, unit_cols = NULL) {
     dplyr::mutate(
       current_page_id = log_parse_event_value(.data$log_entry, "CURRENT_PAGE_ID"),
       current_page_id_number = log_parse_current_page_id_number(.data$log_entry),
+      current_page_id_is_negative_integer = log_current_page_id_is_negative_integer(.data$log_entry),
       current_page_nr = log_parse_event_number(.data$log_entry, "CURRENT_PAGE_NR"),
       page_count = log_parse_event_number(.data$log_entry, "PAGE_COUNT")
     ) %>%
@@ -395,8 +396,7 @@ summarise_log_pages <- function(logs, session_cols = NULL, unit_cols = NULL) {
       n_page_count_events = sum(.data$log_type_upper == "PAGE_COUNT", na.rm = TRUE),
       n_invalid_current_page_id_events = sum(
         .data$log_type_upper == "CURRENT_PAGE_ID" &
-          !is.na(.data$current_page_id_number) &
-          .data$current_page_id_number < 0,
+          .data$current_page_id_is_negative_integer,
         na.rm = TRUE
       ),
       observed_page_ids = log_collapse_values(.data$current_page_id, max_values = 20L),

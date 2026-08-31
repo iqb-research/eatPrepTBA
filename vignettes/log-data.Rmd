@@ -306,7 +306,8 @@ Regel, dass der Testcenter-Host die vom Player gemeldete aktuelle Seite gerade
 nicht in seinen gültigen Seiten wiederfindet. Das kann beim Start einer Unit
 kurz plausibel sein, etwa bevor `validPages` vollständig synchronisiert ist.
 Wiederholte oder späte Vorkommen sollten geprüft werden; `estimate_unit_times()`
-ignoriert solche unmapped page states bei der Berechnung von Seitenzeiten.
+nutzt solche unmapped page states nicht als valide Seiten und weist die betroffenen
+Intervalle separat über `unmapped_page_time_ms` aus.
 
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
@@ -318,6 +319,8 @@ Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
 - `unit_playbacks`: einzelne Unit-Playbacks als verschachtelte Tabelle
 - `focus_events`: Fokusverluste innerhalb von Unit-Verläufen
 - `unit_page_logs`: Seitenzeiten, wenn `CURRENT_PAGE_ID` vorhanden ist
+- `n_invalid_current_page_id_events`, `delay_first_valid_page_id_ms` und
+  `unmapped_page_time_ms`: Hinweise auf nicht zuordenbare Page-ID-Zustände
 
 Standardmäßig hängt `estimate_unit_times()` die Session-Environment-Spalten
 aus `summarise_log_environment()` an. Mit `include_environment = FALSE` bleibt

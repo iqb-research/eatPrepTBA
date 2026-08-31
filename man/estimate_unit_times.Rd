@@ -81,6 +81,12 @@ as well as unit and page switches (which are considered as marking regained focu
 before another lost event appears
 \item focus_lost_duration: For focus lost events, time until focus regained
 }
+\item n_invalid_current_page_id_events: Number of raw negative-integer \code{CURRENT_PAGE_ID}
+events such as \code{CURRENT_PAGE_ID = -1} within the unit.
+\item delay_first_valid_page_id_ms: Time from first \code{PLAYER = RUNNING} to the first
+valid page ID at or after that unit start; \code{NA} if no valid page ID is observed.
+\item unmapped_page_time_ms: Time intervals after unmapped negative page IDs that
+cannot be assigned safely to a concrete page.
 \item unit_page_logs: Tibble containing one row with information for each page of the unit.
 NULL when a unit only has one page.
 \itemize{

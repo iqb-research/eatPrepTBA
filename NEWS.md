@@ -2,7 +2,8 @@
 
 ## bug fixes
 
-* Fixed `estimate_unit_times()` so `CURRENT_PAGE_ID = -1` events, which can occur when the Testcenter cannot map the player-reported page to its current valid pages, are not interpreted as page 1; page summaries and anomaly detection now expose these unmapped page states diagnostically.
+* Fixed `estimate_unit_times()` so `CURRENT_PAGE_ID = -1` events, which can occur when the Testcenter cannot map the player-reported page to its current valid pages, are not interpreted as page 1; page summaries, anomaly detection, and unit-time outputs now expose these unmapped page states diagnostically.
+* Kept `unit_has_pages = FALSE` available when a log data set contains no valid page IDs at all, preserving downstream compatibility for `compute_staytime_tables()`.
 
 # eatPrepTBA 0.9.8.9030 [2026-08-17]
 

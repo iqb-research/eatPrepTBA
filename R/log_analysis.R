@@ -197,8 +197,21 @@ log_parse_event_number <- function(log_entry, type) {
 }
 
 log_parse_current_page_id_number <- function(log_entry) {
-  value <- log_parse_event_value(log_entry, "CURRENT_PAGE_ID")
-  suppressWarnings(as.integer(stringr::str_extract(value, "-?\\d+")))
+  value <- trimws(log_parse_event_value(log_entry, "CURRENT_PAGE_ID"))
+  out <- rep(NA_integer_, length(value))
+  has_value <- !is.na(value) & value != ""
+  is_integer <- has_value & stringr::str_detect(value, "^-?\\d+$")
+
+  out[is_integer] <- suppressWarnings(as.integer(value[is_integer]))
+  out[has_value & !is_integer] <- suppressWarnings(as.integer(
+    stringr::str_extract(value[has_value & !is_integer], "\\d+")
+  ))
+  out
+}
+
+log_current_page_id_is_negative_integer <- function(log_entry) {
+  value <- trimws(log_parse_event_value(log_entry, "CURRENT_PAGE_ID"))
+  !is.na(value) & stringr::str_detect(value, "^-\\d+$")
 }
 
 log_group_by_cols <- function(data, cols) {
@@ -823,6 +836,7 @@ detect_log_anomalies <- function(logs,
       connection_state = stringr::str_to_upper(log_parse_connection(.data$log_entry)),
       current_page_id = log_parse_event_value(.data$log_entry, "CURRENT_PAGE_ID"),
       current_page_id_number = log_parse_current_page_id_number(.data$log_entry),
+      current_page_id_is_negative_integer = log_current_page_id_is_negative_integer(.data$log_entry),
       current_page_nr = log_parse_event_number(.data$log_entry, "CURRENT_PAGE_NR"),
       page_count = log_parse_event_number(.data$log_entry, "PAGE_COUNT")
     )
@@ -1165,8 +1179,7 @@ detect_log_anomalies <- function(logs,
   invalid_current_page_id <- logs_prep %>%
     dplyr::filter(
       .data$log_type_upper == "CURRENT_PAGE_ID",
-      !is.na(.data$current_page_id_number),
-      .data$current_page_id_number < 0
+      .data$current_page_id_is_negative_integer
     ) %>%
     log_group_by_cols(page_group_cols) %>%
     dplyr::summarise(

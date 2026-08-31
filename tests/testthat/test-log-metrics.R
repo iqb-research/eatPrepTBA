@@ -199,6 +199,29 @@ test_that("summarise_log_pages captures page counts and inconsistencies", {
   expect_equal(u2$missing_page_nrs, "1, 2")
 })
 
+test_that("summarise_log_pages only flags raw negative-integer current page ids as invalid", {
+  logs <- tibble::tibble(
+    group_id = "G1",
+    login_name = "L1",
+    login_code = "C1",
+    booklet_id = "B1",
+    unit_key = "U1",
+    unit_alias = "U1",
+    ts = c(100, 200, 300),
+    log_entry = c(
+      "CURRENT_PAGE_ID = page-1",
+      "CURRENT_PAGE_ID = uuid-part-1",
+      "CURRENT_PAGE_ID = -1"
+    )
+  )
+
+  out <- summarise_log_pages(logs)
+
+  expect_equal(out$n_current_page_id_events, 3)
+  expect_equal(out$n_invalid_current_page_id_events, 1)
+  expect_true(out$has_invalid_current_page_id)
+})
+
 test_that("summarise_log_pages distinguishes reaching the last page from complete observation", {
   logs <- tibble::tibble(
     group_id = "G1",

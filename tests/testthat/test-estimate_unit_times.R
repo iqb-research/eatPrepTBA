@@ -176,10 +176,68 @@ test_that("estimate_unit_times treats negative page ids as unmapped pages", {
   result <- estimate_unit_times(logs, include_environment = FALSE)
 
   page_logs <- result$unit_page_logs[[1]]
+  expect_true(result$unit_has_pages[[1]])
+  expect_equal(result$n_invalid_current_page_id_events, 1L)
+  expect_equal(result$delay_first_valid_page_id_ms, 100)
+  expect_equal(result$unmapped_page_time_ms, 50)
   expect_equal(page_logs$page_id, 0L)
   expect_equal(page_logs$page_start_time, 300)
   expect_equal(page_logs$page_time, 200)
   expect_false(1L %in% page_logs$page_id)
+})
+
+test_that("estimate_unit_times keeps unit diagnostics when only negative page ids are logged", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 250, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "CURRENT_PAGE_ID = -1",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+
+  expect_equal(result$unit_time, 300)
+  expect_true("unit_has_pages" %in% names(result))
+  expect_false(result$unit_has_pages[[1]])
+  expect_true(is.na(result$unit_page_logs[[1]]))
+  expect_equal(result$n_invalid_current_page_id_events, 1L)
+  expect_true(is.na(result$delay_first_valid_page_id_ms))
+  expect_equal(result$unmapped_page_time_ms, 250)
+})
+
+test_that("estimate_unit_times does not assign time after negative page ids to the last valid page", {
+  logs <- tibble::tibble(
+    group = "test_group",
+    login = "user1",
+    booklet_id = "BOOKLET_1",
+    unit_key = "UNIT_1",
+    unit_alias = "UNIT_1",
+    ts = c(100, 200, 300, 400, 500),
+    log_entry = c(
+      "PLAYER = LOADING",
+      "PLAYER = RUNNING",
+      "CURRENT_PAGE_ID = 0",
+      "CURRENT_PAGE_ID = -1",
+      "PLAYER = LOADING"
+    )
+  )
+
+  result <- estimate_unit_times(logs, include_environment = FALSE)
+  page_logs <- result$unit_page_logs[[1]]
+
+  expect_equal(page_logs$page_id, 0L)
+  expect_equal(page_logs$page_time, 100)
+  expect_equal(result$n_invalid_current_page_id_events, 1L)
+  expect_equal(result$delay_first_valid_page_id_ms, 100)
+  expect_equal(result$unmapped_page_time_ms, 100)
 })
 
 test_that("estimate_unit_times warns when block mapping cannot be joined", {
