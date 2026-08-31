@@ -309,6 +309,18 @@ Wiederholte oder späte Vorkommen sollten geprüft werden; `estimate_unit_times(
 nutzt solche unmapped page states nicht als valide Seiten und weist die betroffenen
 Intervalle separat über `unmapped_page_time_ms` aus.
 
+Für beschädigte oder abbrechende Logs sind drei Details wichtig. Eine gültige
+`CURRENT_PAGE_ID`, die zugleich der letzte Log-Eintrag ist, bleibt als Seite
+sichtbar; ihre Seitenzeit kann dann aber `0` sein, weil kein späterer Endzeitpunkt
+mehr beobachtet wurde. Wenn eine gültige Page-ID schon vor `PLAYER = RUNNING`
+geloggt wurde, wird `delay_first_valid_page_id_ms` auf `0` gesetzt und
+`valid_page_id_before_running` markiert diesen Fall. Wenn eine Unit nur
+`CURRENT_PAGE_ID = -1` und keine gültige Page-ID enthält, bleiben die Unit-Zeiten
+erhalten, aber `unit_has_pages = FALSE`: Seitenzeiten sind dann nicht
+rekonstruierbar. `unmapped_page_time_ms` ist dabei nur ein Rohindikator für
+Intervalle nach negativen Page-ID-Ereignissen, kein vollständiger Ausgleich zur
+Unit-Zeit.
+
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
 Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
@@ -337,6 +349,11 @@ unit_times %>%
     group_id, login_name, booklet_id, unit_key,
     unit_n_play, unit_time, unit_loadtime,
     n_run_no_load, n_failed_loadings,
+    unit_has_pages,
+    n_invalid_current_page_id_events,
+    delay_first_valid_page_id_ms,
+    valid_page_id_before_running,
+    unmapped_page_time_ms,
     browser_name, device_class, load_time,
     n_loadcomplete_events
   )
