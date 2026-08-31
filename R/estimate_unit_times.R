@@ -51,6 +51,16 @@
 #'   - run_no_load_i: Player was logged as RUNNING, but not previously as LOADING.
 #'     In this case, load times were not calculated.
 #' - n_failed_loadings: Number of failed loading attempts for the unit
+#' - n_invalid_current_page_id_events: Number of raw negative-integer `CURRENT_PAGE_ID`
+#'   events such as `CURRENT_PAGE_ID = -1` within the unit.
+#' - delay_first_valid_page_id_ms: Time from first `PLAYER = RUNNING` to the first
+#'   valid page ID; `0` if a valid page ID was already observed before the first
+#'   `PLAYER = RUNNING`, and `NA` if no valid page ID is observed.
+#' - valid_page_id_before_running: Boolean flag for units where a valid page ID
+#'   was observed before the first `PLAYER = RUNNING`.
+#' - unmapped_page_time_ms: Raw indicator for intervals after unmapped negative
+#'   page IDs until the next valid page ID, unit load, or booklet end. This is not
+#'   the total unassigned unit time.
 #' - focus_events: Tibble containing all focus lost and regained events within each unit, based on log entries (FOCUS HAS or HAS NOT),
 #'   as well as unit and page switches (which are considered as marking regained focus)
 #'   - focus_event_ts: Timestamp of the focus event
@@ -169,11 +179,14 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   all_ts <-
     all_logs %>%
     dplyr::mutate(
+      current_page_id_number = log_parse_current_page_id_number(log_entry),
+      invalid_current_page_id = log_current_page_id_is_negative_integer(log_entry),
       ts_name = dplyr::case_when(
         # For the previous unit
         stringr::str_detect(log_entry, "CURRENT_UNIT_ID") ~ "unit_current_ts",
         stringr::str_detect(log_entry, "PLAYER = LOADING") ~ "unit_load_ts",
         stringr::str_detect(log_entry, "PLAYER = RUNNING") ~ "unit_start_ts",
+        invalid_current_page_id ~ "unmapped_page_ts",
         stringr::str_detect(log_entry, "CURRENT_PAGE_ID") ~ "page_start_ts",
         log_entry == "PLAYER = PAUSED" ~ "n_paused",
         log_entry == "FOCUS : \"HAS_NOT\"" ~ "focus_lost_ts",
@@ -183,25 +196,102 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       page_id = dplyr::case_when(
         # For legacy reasons
         log_entry == "CURRENT_PAGE_ID" ~ 0L,
-        ts_name == "page_start_ts" ~ log_entry %>% stringr::str_extract("\\d+") %>% as.integer(),
+        ts_name == "page_start_ts" & !is.na(current_page_id_number) ~ current_page_id_number,
         .default = NA_integer_
       )
     ) %>%
     dplyr::mutate(
       ts_name = dplyr::case_when(
-        is_max_ts ~ "booklet_end_ts",
+        .data$is_max_ts & .data$ts_name %in% c("page_start_ts", "unmapped_page_ts") ~ .data$ts_name,
+        .data$is_max_ts ~ "booklet_end_ts",
         .default = ts_name
-      )
+      ),
+      is_booklet_end = .data$is_max_ts
     )
 
   all_ts <- all_ts %>%
     dplyr::ungroup() %>%
     dplyr::filter(!is.na(ts_name))
 
+  first_unit_starts <- all_ts %>%
+    dplyr::filter(.data$ts_name == "unit_start_ts") %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+    dplyr::summarise(
+      first_unit_start_time = min(.data$ts, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  first_valid_page_ids <- all_ts %>%
+    dplyr::filter(.data$ts_name == "page_start_ts") %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+    dplyr::slice_min(.data$ts, n = 1L, with_ties = FALSE) %>%
+    dplyr::ungroup() %>%
+    dplyr::transmute(
+      dplyr::across(dplyr::all_of(groups_unit)),
+      first_valid_page_id_ts = .data$ts
+    )
+
+  unmapped_page_times <- all_ts %>%
+    dplyr::inner_join(first_unit_starts, by = groups_unit) %>%
+    dplyr::filter(
+      is.na(.data$first_unit_start_time) |
+        .data$ts >= .data$first_unit_start_time |
+        .data$is_booklet_end
+    ) %>%
+    dplyr::filter(
+      .data$ts_name %in% c("page_start_ts", "unit_load_ts", "booklet_end_ts") |
+        .data$is_booklet_end |
+        .data$invalid_current_page_id
+    ) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
+    dplyr::arrange(.data$ts, .by_group = TRUE) %>%
+    dplyr::mutate(
+      ts_next = dplyr::lead(.data$ts),
+      unmapped_page_interval = dplyr::case_when(
+        .data$invalid_current_page_id & !is.na(.data$ts_next) &
+          .data$ts_next >= .data$ts ~ .data$ts_next - .data$ts,
+        .default = NA_real_
+      )
+    ) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+    dplyr::summarise(
+      unmapped_page_time_ms = sum(.data$unmapped_page_interval, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  page_id_diagnostics <- all_ts %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(groups_unit))) %>%
+    dplyr::summarise(
+      n_invalid_current_page_id_events = sum(.data$invalid_current_page_id, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    dplyr::left_join(first_unit_starts, by = groups_unit) %>%
+    dplyr::left_join(first_valid_page_ids, by = groups_unit) %>%
+    dplyr::left_join(unmapped_page_times, by = groups_unit) %>%
+    dplyr::mutate(
+      n_invalid_current_page_id_events = as.integer(dplyr::coalesce(
+        .data$n_invalid_current_page_id_events,
+        0L
+      )),
+      delay_first_valid_page_id_ms = dplyr::case_when(
+        !is.na(.data$first_unit_start_time) & !is.na(.data$first_valid_page_id_ts) ~
+          pmax(.data$first_valid_page_id_ts - .data$first_unit_start_time, 0),
+        .default = NA_real_
+      ),
+      valid_page_id_before_running = !is.na(.data$first_unit_start_time) &
+        !is.na(.data$first_valid_page_id_ts) &
+        .data$first_valid_page_id_ts < .data$first_unit_start_time,
+      unmapped_page_time_ms = dplyr::coalesce(.data$unmapped_page_time_ms, 0)
+    ) %>%
+    dplyr::select(
+      -dplyr::any_of(c("first_unit_start_time", "first_valid_page_id_ts"))
+    )
+
   unit_logs_prep <-
     all_ts %>%
     dplyr::filter(
-      ts_name == "unit_start_ts" | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
+      ts_name == "unit_start_ts" | ts_name == "unit_load_ts" |
+        ts_name == "booklet_end_ts" | is_booklet_end
     )  %>%
     dplyr::mutate(playercode = dplyr::case_when(log_entry == "PLAYER = LOADING" ~ 0,
                                                 log_entry == "PLAYER = RUNNING" ~ 1,
@@ -308,7 +398,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
     all_ts %>%
     dplyr::filter(ts_name == "focus_lost_ts" | ts_name == "focus_regained_ts" |
                     ts_name == "unit_load_ts" | ts_name == "page_start_ts" |
-                    ts_name == "booklet_end_ts") %>%
+                    ts_name == "booklet_end_ts" | is_booklet_end) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
     dplyr::arrange("ts", by_group=TRUE)
 
@@ -348,7 +438,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
       ),
       focus_event_ts = ts
     ) %>%
-    dplyr::filter(!is.na(event_type) | ts_name == "booklet_end_ts") %>%
+    dplyr::filter(!is.na(event_type) | ts_name == "booklet_end_ts" | is_booklet_end) %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(groups_booklet))) %>%
     dplyr::arrange("focus_event_ts", by_group=TRUE) %>%
     dplyr::mutate(
@@ -392,7 +482,7 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   }
 
   # Page times
-  if (any(!is.na(all_ts$page_id))) {
+  if (any(all_ts$ts_name == "page_start_ts", na.rm = TRUE)) {
     print("Berechne Seiten-Bearbeitungszeiten")
     unit_page_logs_prep <-
       all_ts %>%
@@ -401,17 +491,24 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
         unit_max_ts = ts == max(ts)
       ) %>%
       dplyr::filter(
-        ts_name %>% stringr::str_detect("^page_") | ts_name == "unit_load_ts" | ts_name == "booklet_end_ts"
+        .data$ts_name == "page_start_ts" |
+          .data$invalid_current_page_id |
+          .data$ts_name == "unit_load_ts" |
+          .data$ts_name == "booklet_end_ts" |
+          .data$is_booklet_end
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_booklet)))) %>%
       dplyr::arrange("ts", by_group=TRUE) %>%
       dplyr::mutate(
-        ts_next = dplyr::lead(ts),
+        ts_next = dplyr::case_when(
+          .data$is_booklet_end ~ .data$ts,
+          .default = dplyr::lead(.data$ts)
+        ),
         page_time = ts_next - ts
       ) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(c(groups_unit)))) %>%
       dplyr::filter(
-        ts_name != "unit_current_ts" & ts_name != "unit_load_ts" # These are only
+        ts_name != "unit_current_ts" & ts_name != "unit_load_ts" & !invalid_current_page_id # These are only
         # used as endpoint of last page
       ) %>%
       # The first page is not logged before completion...
@@ -463,7 +560,22 @@ estimate_unit_times <- function(logs, use_unit_alias=FALSE,
   } else {
     print("Keine Seiten-IDs; Seiten-Bearbeitungszeiten werden nicht berechnet")
     unit_logs$unit_page_logs <- NA
+    unit_logs$unit_has_pages <- FALSE
   }
+
+  unit_logs <- unit_logs %>%
+    dplyr::left_join(
+      page_id_diagnostics,
+      by = groups_unit
+    ) %>%
+    dplyr::mutate(
+      n_invalid_current_page_id_events = dplyr::coalesce(
+        .data$n_invalid_current_page_id_events,
+        0L
+      ),
+      unmapped_page_time_ms = dplyr::coalesce(.data$unmapped_page_time_ms, 0)
+    )
+
   unit_logs <- unit_logs %>%
     dplyr::left_join(
       all_ts %>% dplyr::select(dplyr::all_of(c(groups_unit, "unit_alias", "unit_key", "unit_ident"))),

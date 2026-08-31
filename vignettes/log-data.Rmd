@@ -227,7 +227,7 @@ Die wichtigsten Anomaliegruppen sind:
 | Player-Zustände | `player_running_without_loading`, `loading_without_running`, `repeated_loading`, `last_event_is_loading`, `last_event_is_running` |
 | Verbindung | `connection_lost`, `many_connection_transitions`, `last_connection_lost` |
 | Fokus | `focus_lost_never_regained`, `repeated_focus_lost_before_regain`, `very_long_focus_loss` |
-| Zeitstempel und Seiten | `timestamp_decreases_in_input`, `zero_timestamp`, `page_count_inconsistent`, `page_nr_exceeds_page_count` |
+| Zeitstempel und Seiten | `timestamp_decreases_in_input`, `zero_timestamp`, `invalid_current_page_id`, `page_count_inconsistent`, `page_nr_exceeds_page_count` |
 | Technische Fehler und Sonstiges | `runtime_error`, `unknown_log_type` |
 
 > **Empfohlen:** Sessions mit `critical` sollten einzeln geprüft werden.
@@ -280,6 +280,7 @@ pages %>%
   select(
     group_id, login_name, booklet_id, unit_key,
     observed_page_nrs, page_count,
+    n_invalid_current_page_id_events, has_invalid_current_page_id,
     reached_last_page_nr, observed_pages_complete,
     observed_page_nr_gaps, missing_page_nrs,
     page_count_consistent, page_nr_exceeds_page_count
@@ -300,6 +301,26 @@ die berichtete Seitenzahl erreicht hat. `observed_pages_complete` wird nur dann
 in den Logs beobachtet wurden; bei nicht beurteilbarer Seitenzählung bleibt der
 Wert `NA`.
 
+`CURRENT_PAGE_ID = -1` ist keine echte Seite. Dieser Zustand bedeutet in der
+Regel, dass der Testcenter-Host die vom Player gemeldete aktuelle Seite gerade
+nicht in seinen gültigen Seiten wiederfindet. Das kann beim Start einer Unit
+kurz plausibel sein, etwa bevor `validPages` vollständig synchronisiert ist.
+Wiederholte oder späte Vorkommen sollten geprüft werden; `estimate_unit_times()`
+nutzt solche unmapped page states nicht als valide Seiten und weist die betroffenen
+Intervalle separat über `unmapped_page_time_ms` aus.
+
+Für beschädigte oder abbrechende Logs sind drei Details wichtig. Eine gültige
+`CURRENT_PAGE_ID`, die zugleich der letzte Log-Eintrag ist, bleibt als Seite
+sichtbar; ihre Seitenzeit kann dann aber `0` sein, weil kein späterer Endzeitpunkt
+mehr beobachtet wurde. Wenn eine gültige Page-ID schon vor `PLAYER = RUNNING`
+geloggt wurde, wird `delay_first_valid_page_id_ms` auf `0` gesetzt und
+`valid_page_id_before_running` markiert diesen Fall. Wenn eine Unit nur
+`CURRENT_PAGE_ID = -1` und keine gültige Page-ID enthält, bleiben die Unit-Zeiten
+erhalten, aber `unit_has_pages = FALSE`: Seitenzeiten sind dann nicht
+rekonstruierbar. `unmapped_page_time_ms` ist dabei nur ein Rohindikator für
+Intervalle nach negativen Page-ID-Ereignissen, kein vollständiger Ausgleich zur
+Unit-Zeit.
+
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
 Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
@@ -310,6 +331,9 @@ Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
 - `unit_playbacks`: einzelne Unit-Playbacks als verschachtelte Tabelle
 - `focus_events`: Fokusverluste innerhalb von Unit-Verläufen
 - `unit_page_logs`: Seitenzeiten, wenn `CURRENT_PAGE_ID` vorhanden ist
+- `n_invalid_current_page_id_events`, `delay_first_valid_page_id_ms`,
+  `valid_page_id_before_running` und `unmapped_page_time_ms`: Hinweise auf
+  nicht zuordenbare Page-ID-Zustände
 
 Standardmäßig hängt `estimate_unit_times()` die Session-Environment-Spalten
 aus `summarise_log_environment()` an. Mit `include_environment = FALSE` bleibt
@@ -325,6 +349,11 @@ unit_times %>%
     group_id, login_name, booklet_id, unit_key,
     unit_n_play, unit_time, unit_loadtime,
     n_run_no_load, n_failed_loadings,
+    unit_has_pages,
+    n_invalid_current_page_id_events,
+    delay_first_valid_page_id_ms,
+    valid_page_id_before_running,
+    unmapped_page_time_ms,
     browser_name, device_class, load_time,
     n_loadcomplete_events
   )
