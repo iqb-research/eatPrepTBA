@@ -23,7 +23,7 @@ read_system_checks <- function(file) {
           return(NULL)}
 
         # replace backticks and single quotes that appear in the export
-        s_fixed <- stringr::str_replace_all(x, c("`" = "\"", "'" = "\""))
+        s_fixed <- stringr::str_replace_all(x, c("`" = "\""))
 
         # quick validate before parsing
         if (!jsonlite::validate(s_fixed)) {
@@ -57,7 +57,7 @@ read_system_checks <- function(file) {
               NULL
             }
           }) %>%
-          purrr::reduce(dplyr::bind_rows)
+          purrr::reduce(dplyr::bind_rows, .init = tibble::tibble())
 
         contents
       })
