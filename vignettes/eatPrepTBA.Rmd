@@ -29,6 +29,8 @@ editor_options:
 install.packages("devtools")
 devtools::install_github("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
+
+#install.packages("vctrs")
 ```
 
 
@@ -37,7 +39,7 @@ library(eatPrepTBA)
 To log in to the IQB Studio, you can call the function `login_studio()`.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "16.0.0")
+login <- login_studio(keyring = TRUE, app_version = "18.0.0")
 ```
 
 You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio). This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
@@ -45,7 +47,7 @@ You will be asked to provide your username and password either in the console or
 The current `app_version` needs to be updated manually and can be found [here](https://www.iqb-studio.de).
 
 ```{r, out.width="100%", echo = FALSE}
-knitr::include_graphics("images/Studio_Login.png")
+knitr::include_graphics("vignettes/images/Studio_Login.png")
 ```
 
 If you use the argument `keyring = TRUE`, your login data will be saved locally to your computer, so that you don't have to log in every time you call `login_studio()`. If you want to change your login information (e.g. after accidentally entering the wrong password), you can add the argument `change_key = TRUE` to the `login_studio()`-function. This will call the dialogue for entering your login information again.
@@ -66,7 +68,7 @@ workspace <- access_workspace(login = login, ws_id = 1300)
 The ID of a workspace can be found by looking at its URL in the Studio (last digits) or by calling the `login` object, which prints a list of the workspace groups and workspaces that you have access to, including their respective IDs (`ws_id`).
 
 ```{r, out.width="100%", echo = FALSE}
-knitr::include_graphics("images/Studio_Access_Workspace.png")
+knitr::include_graphics("vignettes/images/Studio_Access_Workspace.png")
 ```
 
 You should save your output into an object (e.g., "workspace") to be able to work with it later.
@@ -184,3 +186,8 @@ units_unnested <- units |>
 ```{r}
 units_unnested
 ```
+
+
+
+
+
