@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9032 [2026-09-02]
+
+## bug fixes
+
+* Fixed `read_system_checks()` so missing or empty `Responses` payloads no longer drop otherwise usable system-check rows, preserving available wide system-check values such as network metrics for `summarise_system_checks()`.
+* Restored standard CSV missing-value handling for non-response columns in `read_system_checks()`.
+
+## tests
+
+* Added regression coverage for system-check exports with mixed valid and missing `Responses` payloads.
+
 # eatPrepTBA 0.9.8.9031 [2026-08-31]
 
 ## bug fixes
