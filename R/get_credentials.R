@@ -19,7 +19,7 @@ get_credentials <- function(base_url, keyring, change_key, dialog, ...) {
   checkmate::assert_logical(change_key, len = 1)
   checkmate::assert_logical(dialog, len = 1)
 
-  is_r_studio <- Sys.getenv("RSTUDIO") == "1"
+  rstudio_dialog <- dialog && rstudioapi::isAvailable()
   test_mode <- getOption("eatPrepTBA.test_mode")
 
   name_prompt <- stringr::str_glue("Enter your username for {base_url}: ")
@@ -35,8 +35,12 @@ get_credentials <- function(base_url, keyring, change_key, dialog, ...) {
         keyring::key_delete(service = base_url, username = name)
       }
 
-      if (is_r_studio) {
-        name <- rstudioapi::askForPassword(name_prompt)
+      if (rstudio_dialog) {
+        name <- rstudioapi::showPrompt(
+          title = "Login",
+          message = name_prompt,
+          default = ""
+        )
       } else {
         name <- readline(name_prompt)
       }
@@ -47,8 +51,12 @@ get_credentials <- function(base_url, keyring, change_key, dialog, ...) {
     password <- keyring::key_get(service = base_url, username = name)
   } else {
     if (is.null(test_mode) || ! test_mode) {
-      if (is_r_studio & dialog) {
-        name <- rstudioapi::askForPassword(name_prompt)
+      if (rstudio_dialog) {
+        name <- rstudioapi::showPrompt(
+          title = "Login",
+          message = name_prompt,
+          default = ""
+        )
         password <- rstudioapi::askForPassword(password_prompt)
       } else {
         name <- readline(prompt = name_prompt)

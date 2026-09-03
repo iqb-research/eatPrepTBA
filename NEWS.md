@@ -2,6 +2,7 @@
 
 ## bug fixes
 
+* Restored the masked RStudio password dialog for credential prompts by using `rstudioapi::isAvailable()` instead of relying on the `RSTUDIO` environment variable.
 * Updated `login_testcenter()` to fall back to the Testcenter 18.2+ challenge-based admin login when brute-force protection blocks the legacy direct login endpoint.
 
 ## tests

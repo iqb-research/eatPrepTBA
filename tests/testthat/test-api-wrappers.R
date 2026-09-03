@@ -211,6 +211,37 @@ test_that("get_credentials can run in test mode without prompting", {
   expect_equal(custom, list(name = "alice", password = "secret"))
 })
 
+test_that("get_credentials uses RStudio dialog when available", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+
+  prompts <- list()
+  testthat::local_mocked_bindings(
+    isAvailable = function(...) TRUE,
+    showPrompt = function(title, message, default = NULL, timeout = 60) {
+      prompts$name <<- message
+      "alice"
+    },
+    askForPassword = function(prompt = "Please enter your password") {
+      prompts$password <<- prompt
+      "secret"
+    },
+    .package = "rstudioapi"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_match(prompts$name, "username")
+  expect_match(prompts$password, "password")
+})
+
 test_that("list_files normalizes file listings and optional dependencies", {
   testthat::local_mocked_bindings(
     req_perform = function(req, ...) req,
