@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9033 [2026-09-03]
+
+## bug fixes
+
+* Restored masked password dialogs for credential prompts, including keyring setup, by using an interactive GUI credential dialog before falling back to RStudio dialogs or console input.
+* Updated `login_testcenter()` to fall back to the Testcenter 18.2+ challenge-based admin login when brute-force protection blocks the legacy direct login endpoint.
+
+## tests
+
+* Added regression coverage for the Testcenter challenge-login fallback, ALTCHA challenge solver, and masked credential prompts.
+
 # eatPrepTBA 0.9.8.9032 [2026-09-02]
 
 ## bug fixes

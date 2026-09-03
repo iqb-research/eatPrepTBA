@@ -20,7 +20,7 @@ login_testcenter(
 
 \item{change_key}{Logical. If your password on the domain has changed - should the \link[keyring:keyring-package]{keyring::keyring} password be changed? Defaults to \code{FALSE}.}
 
-\item{dialog}{Logical. Should the password be entered using the RStudio dialog (\code{TRUE}) or using the console (\code{FALSE}). Defaults to \code{TRUE}.}
+\item{dialog}{Logical. Should credentials be entered using a GUI dialog with masked password input (\code{TRUE}) or using the console (\code{FALSE}). Defaults to \code{TRUE}.}
 
 \item{insecure}{Logical. Should the https security certificate be ignored (only recommended for Intranet requests that might not have a valid security certificate).}
 
@@ -33,9 +33,11 @@ An object of the \linkS4class{LoginTestcenter} class.
 Provides a routine to login to an instance of the IQB Testcenter.
 }
 \details{
-Calling the \code{login_testcenter()} function generates the following curl request
+Calling the \code{login_testcenter()} function first tries the following curl request
 on the \code{base_url} (default is https://iqb-testcenter2.de/api) with the \code{name} and
-the \code{password} provided by the user:
+the \code{password} provided by the user. On Testcenter installations with active
+brute-force protection, the function automatically falls back to the challenge
+based login flow introduced in Testcenter 18.2.
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{curl --location --request PUT '\{base_url\}/session/admin'
 --header 'Content-Type: application/json'

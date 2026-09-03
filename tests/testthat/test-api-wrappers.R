@@ -33,7 +33,9 @@ test_that("login_studio and login_testcenter build invisible login objects from 
     req_headers = function(req, ...) c(req, list(headers = list(...))),
     req_method = function(req, method) c(req, list(method = method)),
     req_body_json = function(req, data, ...) c(req, list(body = data)),
+    req_error = function(req, ...) req,
     req_perform = function(req, ...) req,
+    resp_status = function(resp) 200L,
     .package = "httr2"
   )
 
@@ -87,6 +89,104 @@ test_that("login_studio and login_testcenter build invisible login objects from 
   expect_equal(testcenter@app_version, "16.0.2")
 })
 
+test_that("solve_altcha_v1_challenge finds a matching number", {
+  answer <- 7L
+  challenge <- list(
+    algorithm = "SHA-256",
+    challenge = digest::digest(paste0("salt", answer), algo = "sha256", serialize = FALSE),
+    maxNumber = 20L,
+    salt = "salt",
+    signature = "signature"
+  )
+
+  solution <- eatPrepTBA:::solve_altcha_v1_challenge(challenge, timeout = 5)
+
+  expect_equal(solution$number, answer)
+  expect_equal(solution$algorithm, "SHA-256")
+  expect_equal(solution$signature, "signature")
+})
+
+test_that("login_testcenter uses challenge flow when brute-force protection blocks direct login", {
+  request_path <- function(req) {
+    paste(unlist(req$path, use.names = FALSE), collapse = "/")
+  }
+
+  answer <- 4L
+  challenge <- list(
+    algorithm = "SHA-256",
+    challenge = digest::digest(paste0("abc", answer), algo = "sha256", serialize = FALSE),
+    maxNumber = 10L,
+    salt = "abc",
+    signature = "sig"
+  )
+  performed <- list()
+
+  testthat::local_mocked_bindings(
+    get_credentials = function(...) list(name = "user", password = "pw"),
+    generate_base_req = function(type, base_url, auth_token, app_version = NULL, insecure = FALSE) {
+      function(method, endpoint, query = NULL) {
+        list(type = type, method = method, endpoint = endpoint)
+      }
+    },
+    .package = "eatPrepTBA"
+  )
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(base_url = base_url),
+    req_url_path_append = function(req, ...) c(req, list(path = list(...))),
+    req_headers = function(req, ...) c(req, list(headers = list(...))),
+    req_method = function(req, method) c(req, list(method = method)),
+    req_body_json = function(req, data, ...) c(req, list(body = data)),
+    req_error = function(req, ...) req,
+    req_perform = function(req, ...) {
+      performed[[length(performed) + 1L]] <<- req
+      req
+    },
+    resp_status = function(resp) {
+      if (identical(request_path(resp), "api/session/admin")) {
+        return(400L)
+      }
+      200L
+    },
+    resp_body_string = function(resp, ...) {
+      "Brute Force protection active. Challenge for this password must be solved to create a session"
+    },
+    resp_check_status = function(resp, ...) stop("unexpected status check"),
+    resp_body_json = function(resp, ...) {
+      path <- request_path(resp)
+      if (identical(path, "api/session/challenge")) {
+        return(challenge)
+      }
+      if (identical(path, "api/session")) {
+        return(list(
+          token = "challenge-token",
+          displayName = "Tester",
+          claims = list(workspaceAdmin = list(list(id = 7, label = "TC Workspace")))
+        ))
+      }
+      if (identical(resp$endpoint, c("version"))) {
+        return(list(version = "18.3.0"))
+      }
+      stop("unexpected response")
+    },
+    .package = "httr2"
+  )
+
+  testcenter <- login_testcenter(dialog = FALSE)
+  challenge_request <- performed[[which(vapply(performed, function(req) {
+    identical(request_path(req), "api/session/challenge")
+  }, logical(1)))]]
+  solution_request <- performed[[which(vapply(performed, function(req) {
+    identical(request_path(req), "api/session")
+  }, logical(1)))]]
+
+  expect_s4_class(testcenter, "LoginTestcenter")
+  expect_equal(testcenter@app_version, "18.3.0")
+  expect_equal(challenge_request$body$loginType, "admin")
+  expect_equal(challenge_request$body$name, "user")
+  expect_equal(solution_request$body$number, answer)
+  expect_equal(solution_request$body$challenge, challenge$challenge)
+})
+
 test_that("login functions validate scalar arguments before prompting", {
   expect_error(login_studio(verbose = "yes"), "logical")
   expect_error(login_testcenter(insecure = "yes"), "logical")
@@ -109,6 +209,149 @@ test_that("get_credentials can run in test mode without prompting", {
 
   expect_equal(default$name, "eatPrepTBA")
   expect_equal(custom, list(name = "alice", password = "secret"))
+})
+
+test_that("get_credentials uses GUI credential prompt before console input", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+
+  testthat::local_mocked_bindings(
+    tcltk_prompt_credentials = function(name_prompt, password_prompt) {
+      list(name = "alice", password = "secret")
+    },
+    rstudio_prompt_credentials = function(name_prompt, password_prompt) {
+      stop("RStudio prompt should not be called")
+    },
+    .package = "eatPrepTBA"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+})
+
+test_that("get_credentials uses RStudio dialog when available", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+  old_rstudio <- Sys.getenv("RSTUDIO", unset = NA)
+  on.exit({
+    if (is.na(old_rstudio)) {
+      Sys.unsetenv("RSTUDIO")
+    } else {
+      Sys.setenv(RSTUDIO = old_rstudio)
+    }
+  }, add = TRUE)
+  Sys.unsetenv("RSTUDIO")
+
+  prompts <- list()
+  testthat::local_mocked_bindings(
+    isAvailable = function(...) TRUE,
+    showPrompt = function(title, message, default = NULL, timeout = 60) {
+      prompts$name <<- message
+      "alice"
+    },
+    askForPassword = function(prompt = "Please enter your password") {
+      prompts$password <<- prompt
+      "secret"
+    },
+    .package = "rstudioapi"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_match(prompts$name, "username")
+  expect_match(prompts$password, "password")
+})
+
+test_that("get_credentials also uses RStudio dialog when only RSTUDIO env var is set", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+  old_rstudio <- Sys.getenv("RSTUDIO", unset = NA)
+  on.exit({
+    if (is.na(old_rstudio)) {
+      Sys.unsetenv("RSTUDIO")
+    } else {
+      Sys.setenv(RSTUDIO = old_rstudio)
+    }
+  }, add = TRUE)
+  Sys.setenv(RSTUDIO = "1")
+
+  prompts <- list()
+  testthat::local_mocked_bindings(
+    isAvailable = function(...) FALSE,
+    showPrompt = function(title, message, default = NULL, timeout = 60) {
+      prompts$name <<- message
+      "alice"
+    },
+    askForPassword = function(prompt = "Please enter your password") {
+      prompts$password <<- prompt
+      "secret"
+    },
+    .package = "rstudioapi"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_match(prompts$name, "username")
+  expect_match(prompts$password, "password")
+})
+
+test_that("get_credentials stores dialog password directly in keyring", {
+  stored <- list()
+
+  testthat::local_mocked_bindings(
+    prompt_credentials = function(name_prompt, password_prompt, dialog) {
+      list(name = "alice", password = "secret")
+    },
+    .package = "eatPrepTBA"
+  )
+  testthat::local_mocked_bindings(
+    key_list = function(service) {
+      data.frame(username = character())
+    },
+    key_set_with_value = function(service, username = NULL, password = NULL, keyring = NULL) {
+      stored$service <<- service
+      stored$username <<- username
+      stored$password <<- password
+      invisible(NULL)
+    },
+    key_get = function(service, username = NULL, keyring = NULL) {
+      stored$password
+    },
+    .package = "keyring"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = TRUE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_equal(stored$service, "https://example/")
+  expect_equal(stored$username, "alice")
+  expect_equal(stored$password, "secret")
 })
 
 test_that("list_files normalizes file listings and optional dependencies", {

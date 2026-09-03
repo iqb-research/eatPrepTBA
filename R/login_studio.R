@@ -7,7 +7,7 @@
 #' @param app_version Character. App version of the IQB Studio instance. Defaults to "16.0.0".
 #' @param keyring Logical. Should the [keyring] package be used to save the passkey? This saves your credentials to your local machine. Defaults to `FALSE`.
 #' @param change_key Logical. If your password on the domain has changed - should the [keyring] password be changed? Defaults to `FALSE`.
-#' @param dialog Logical. Should the password be entered using the RStudio dialog (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
+#' @param dialog Logical. Should credentials be entered using a GUI dialog with masked password input (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
 #' @param verbose Logical. If `TRUE`, additional information is printed. Defaults to `FALSE`.
 #'
 #' @return An object of the [LoginStudio-class] class.
