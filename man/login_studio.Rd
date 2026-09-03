@@ -22,7 +22,7 @@ login_studio(
 
 \item{change_key}{Logical. If your password on the domain has changed - should the \link[keyring:keyring-package]{keyring::keyring} password be changed? Defaults to \code{FALSE}.}
 
-\item{dialog}{Logical. Should the password be entered using the RStudio dialog (\code{TRUE}) or using the console (\code{FALSE}). Defaults to \code{TRUE}.}
+\item{dialog}{Logical. Should credentials be entered using a GUI dialog with masked password input (\code{TRUE}) or using the console (\code{FALSE}). Defaults to \code{TRUE}.}
 
 \item{verbose}{Logical. If \code{TRUE}, additional information is printed. Defaults to \code{FALSE}.}
 }

@@ -6,7 +6,7 @@
 #' @param base_url Character. Base URL of the hosted instance of the IQB Testcenter. Default is the https://iqb-testcenter2.de/.
 #' @param keyring Logical. Should the [keyring] package be used to save the passkey? This saves your credentials to your local machine. Defaults to `FALSE`.
 #' @param change_key Logical. If your password on the domain has changed - should the [keyring] password be changed? Defaults to `FALSE`.
-#' @param dialog Logical. Should the password be entered using the RStudio dialog (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
+#' @param dialog Logical. Should credentials be entered using a GUI dialog with masked password input (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
 #' @param insecure Logical. Should the https security certificate be ignored (only recommended for Intranet requests that might not have a valid security certificate).
 #' @param verbose Logical. If `TRUE`, additional information is printed. Defaults to `FALSE`.
 #'

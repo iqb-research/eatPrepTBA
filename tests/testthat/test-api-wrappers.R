@@ -211,6 +211,31 @@ test_that("get_credentials can run in test mode without prompting", {
   expect_equal(custom, list(name = "alice", password = "secret"))
 })
 
+test_that("get_credentials uses GUI credential prompt before console input", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+
+  testthat::local_mocked_bindings(
+    tcltk_prompt_credentials = function(name_prompt, password_prompt) {
+      list(name = "alice", password = "secret")
+    },
+    rstudio_prompt_credentials = function(name_prompt, password_prompt) {
+      stop("RStudio prompt should not be called")
+    },
+    .package = "eatPrepTBA"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+})
+
 test_that("get_credentials uses RStudio dialog when available", {
   old <- getOption("eatPrepTBA.test_mode")
   options("eatPrepTBA.test_mode" = FALSE)
@@ -289,6 +314,44 @@ test_that("get_credentials also uses RStudio dialog when only RSTUDIO env var is
   expect_equal(credentials, list(name = "alice", password = "secret"))
   expect_match(prompts$name, "username")
   expect_match(prompts$password, "password")
+})
+
+test_that("get_credentials stores dialog password directly in keyring", {
+  stored <- list()
+
+  testthat::local_mocked_bindings(
+    prompt_credentials = function(name_prompt, password_prompt, dialog) {
+      list(name = "alice", password = "secret")
+    },
+    .package = "eatPrepTBA"
+  )
+  testthat::local_mocked_bindings(
+    key_list = function(service) {
+      data.frame(username = character())
+    },
+    key_set_with_value = function(service, username = NULL, password = NULL, keyring = NULL) {
+      stored$service <<- service
+      stored$username <<- username
+      stored$password <<- password
+      invisible(NULL)
+    },
+    key_get = function(service, username = NULL, keyring = NULL) {
+      stored$password
+    },
+    .package = "keyring"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = TRUE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_equal(stored$service, "https://example/")
+  expect_equal(stored$username, "alice")
+  expect_equal(stored$password, "secret")
 })
 
 test_that("list_files normalizes file listings and optional dependencies", {
