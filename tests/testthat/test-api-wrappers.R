@@ -215,10 +215,59 @@ test_that("get_credentials uses RStudio dialog when available", {
   old <- getOption("eatPrepTBA.test_mode")
   options("eatPrepTBA.test_mode" = FALSE)
   on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+  old_rstudio <- Sys.getenv("RSTUDIO", unset = NA)
+  on.exit({
+    if (is.na(old_rstudio)) {
+      Sys.unsetenv("RSTUDIO")
+    } else {
+      Sys.setenv(RSTUDIO = old_rstudio)
+    }
+  }, add = TRUE)
+  Sys.unsetenv("RSTUDIO")
 
   prompts <- list()
   testthat::local_mocked_bindings(
     isAvailable = function(...) TRUE,
+    showPrompt = function(title, message, default = NULL, timeout = 60) {
+      prompts$name <<- message
+      "alice"
+    },
+    askForPassword = function(prompt = "Please enter your password") {
+      prompts$password <<- prompt
+      "secret"
+    },
+    .package = "rstudioapi"
+  )
+
+  credentials <- eatPrepTBA:::get_credentials(
+    "https://example/",
+    keyring = FALSE,
+    change_key = FALSE,
+    dialog = TRUE
+  )
+
+  expect_equal(credentials, list(name = "alice", password = "secret"))
+  expect_match(prompts$name, "username")
+  expect_match(prompts$password, "password")
+})
+
+test_that("get_credentials also uses RStudio dialog when only RSTUDIO env var is set", {
+  old <- getOption("eatPrepTBA.test_mode")
+  options("eatPrepTBA.test_mode" = FALSE)
+  on.exit(options("eatPrepTBA.test_mode" = old), add = TRUE)
+  old_rstudio <- Sys.getenv("RSTUDIO", unset = NA)
+  on.exit({
+    if (is.na(old_rstudio)) {
+      Sys.unsetenv("RSTUDIO")
+    } else {
+      Sys.setenv(RSTUDIO = old_rstudio)
+    }
+  }, add = TRUE)
+  Sys.setenv(RSTUDIO = "1")
+
+  prompts <- list()
+  testthat::local_mocked_bindings(
+    isAvailable = function(...) FALSE,
     showPrompt = function(title, message, default = NULL, timeout = 60) {
       prompts$name <<- message
       "alice"
