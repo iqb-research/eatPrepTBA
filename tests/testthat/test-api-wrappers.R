@@ -33,7 +33,9 @@ test_that("login_studio and login_testcenter build invisible login objects from 
     req_headers = function(req, ...) c(req, list(headers = list(...))),
     req_method = function(req, method) c(req, list(method = method)),
     req_body_json = function(req, data, ...) c(req, list(body = data)),
+    req_error = function(req, ...) req,
     req_perform = function(req, ...) req,
+    resp_status = function(resp) 200L,
     .package = "httr2"
   )
 
@@ -85,6 +87,104 @@ test_that("login_studio and login_testcenter build invisible login objects from 
   expect_s4_class(testcenter, "LoginTestcenter")
   expect_equal(testcenter@ws_list[[1]]$ws_id, 7)
   expect_equal(testcenter@app_version, "16.0.2")
+})
+
+test_that("solve_altcha_v1_challenge finds a matching number", {
+  answer <- 7L
+  challenge <- list(
+    algorithm = "SHA-256",
+    challenge = digest::digest(paste0("salt", answer), algo = "sha256", serialize = FALSE),
+    maxNumber = 20L,
+    salt = "salt",
+    signature = "signature"
+  )
+
+  solution <- eatPrepTBA:::solve_altcha_v1_challenge(challenge, timeout = 5)
+
+  expect_equal(solution$number, answer)
+  expect_equal(solution$algorithm, "SHA-256")
+  expect_equal(solution$signature, "signature")
+})
+
+test_that("login_testcenter uses challenge flow when brute-force protection blocks direct login", {
+  request_path <- function(req) {
+    paste(unlist(req$path, use.names = FALSE), collapse = "/")
+  }
+
+  answer <- 4L
+  challenge <- list(
+    algorithm = "SHA-256",
+    challenge = digest::digest(paste0("abc", answer), algo = "sha256", serialize = FALSE),
+    maxNumber = 10L,
+    salt = "abc",
+    signature = "sig"
+  )
+  performed <- list()
+
+  testthat::local_mocked_bindings(
+    get_credentials = function(...) list(name = "user", password = "pw"),
+    generate_base_req = function(type, base_url, auth_token, app_version = NULL, insecure = FALSE) {
+      function(method, endpoint, query = NULL) {
+        list(type = type, method = method, endpoint = endpoint)
+      }
+    },
+    .package = "eatPrepTBA"
+  )
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(base_url = base_url),
+    req_url_path_append = function(req, ...) c(req, list(path = list(...))),
+    req_headers = function(req, ...) c(req, list(headers = list(...))),
+    req_method = function(req, method) c(req, list(method = method)),
+    req_body_json = function(req, data, ...) c(req, list(body = data)),
+    req_error = function(req, ...) req,
+    req_perform = function(req, ...) {
+      performed[[length(performed) + 1L]] <<- req
+      req
+    },
+    resp_status = function(resp) {
+      if (identical(request_path(resp), "api/session/admin")) {
+        return(400L)
+      }
+      200L
+    },
+    resp_body_string = function(resp, ...) {
+      "Brute Force protection active. Challenge for this password must be solved to create a session"
+    },
+    resp_check_status = function(resp, ...) stop("unexpected status check"),
+    resp_body_json = function(resp, ...) {
+      path <- request_path(resp)
+      if (identical(path, "api/session/challenge")) {
+        return(challenge)
+      }
+      if (identical(path, "api/session")) {
+        return(list(
+          token = "challenge-token",
+          displayName = "Tester",
+          claims = list(workspaceAdmin = list(list(id = 7, label = "TC Workspace")))
+        ))
+      }
+      if (identical(resp$endpoint, c("version"))) {
+        return(list(version = "18.3.0"))
+      }
+      stop("unexpected response")
+    },
+    .package = "httr2"
+  )
+
+  testcenter <- login_testcenter(dialog = FALSE)
+  challenge_request <- performed[[which(vapply(performed, function(req) {
+    identical(request_path(req), "api/session/challenge")
+  }, logical(1)))]]
+  solution_request <- performed[[which(vapply(performed, function(req) {
+    identical(request_path(req), "api/session")
+  }, logical(1)))]]
+
+  expect_s4_class(testcenter, "LoginTestcenter")
+  expect_equal(testcenter@app_version, "18.3.0")
+  expect_equal(challenge_request$body$loginType, "admin")
+  expect_equal(challenge_request$body$name, "user")
+  expect_equal(solution_request$body$number, answer)
+  expect_equal(solution_request$body$challenge, challenge$challenge)
 })
 
 test_that("login functions validate scalar arguments before prompting", {
