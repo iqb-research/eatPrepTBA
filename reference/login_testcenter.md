@@ -37,8 +37,9 @@ login_testcenter(
 
 - dialog:
 
-  Logical. Should the password be entered using the RStudio dialog
-  (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
+  Logical. Should credentials be entered using a GUI dialog with masked
+  password input (`TRUE`) or using the console (`FALSE`). Defaults to
+  `TRUE`.
 
 - insecure:
 
@@ -59,9 +60,12 @@ class.
 
 ## Details
 
-Calling the `login_testcenter()` function generates the following curl
+Calling the `login_testcenter()` function first tries the following curl
 request on the `base_url` (default is https://iqb-testcenter2.de/api)
-with the `name` and the `password` provided by the user:
+with the `name` and the `password` provided by the user. On Testcenter
+installations with active brute-force protection, the function
+automatically falls back to the challenge based login flow introduced in
+Testcenter 18.2.
 
     curl --location --request PUT '{base_url}/session/admin'
     --header 'Content-Type: application/json'

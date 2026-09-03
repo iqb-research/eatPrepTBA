@@ -42,8 +42,9 @@ login_studio(
 
 - dialog:
 
-  Logical. Should the password be entered using the RStudio dialog
-  (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
+  Logical. Should credentials be entered using a GUI dialog with masked
+  password input (`TRUE`) or using the console (`FALSE`). Defaults to
+  `TRUE`.
 
 - verbose:
 

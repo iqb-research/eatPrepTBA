@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9032</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9033</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,18 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9033" id="eatpreptba-0989033-2026-09-03">eatPrepTBA 0.9.8.9033 [2026-09-03]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989033-2026-09-03"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9033">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9033"></a></h3>
+<ul><li>Restored masked password dialogs for credential prompts, including keyring setup, by using an interactive GUI credential dialog before falling back to RStudio dialogs or console input.</li>
+<li>Updated <code><a href="../reference/login_testcenter.html">login_testcenter()</a></code> to fall back to the Testcenter 18.2+ challenge-based admin login when brute-force protection blocks the legacy direct login endpoint.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9033">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9033"></a></h3>
+<ul><li>Added regression coverage for the Testcenter challenge-login fallback, ALTCHA challenge solver, and masked credential prompts.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9032" id="eatpreptba-0989032-2026-09-02">eatPrepTBA 0.9.8.9032 [2026-09-02]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989032-2026-09-02"></a></h2>
 <div class="section level3">
