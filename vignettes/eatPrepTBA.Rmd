@@ -26,7 +26,7 @@ editor_options:
 `eatPrepTBA` can be installed from [GitHub](https://github.com/iqb-research/eatPrepTBA).
 
 ```{r setup, eval=FALSE}
-install.packages("devtools")
+# install.packages("devtools")
 devtools::install_github("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
 ```
@@ -37,7 +37,7 @@ library(eatPrepTBA)
 To log in to the IQB Studio, you can call the function `login_studio()`.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "16.0.0")
+login <- login_studio(keyring = TRUE, app_version = "19.0.0")
 ```
 
 You will be asked to provide your username and password either in the console or in a dialogue (when using RStudio). This is equivalent to logging into the Studio by entering your username and password on https://www.iqb-studio.de.
@@ -184,3 +184,8 @@ units_unnested <- units |>
 ```{r}
 units_unnested
 ```
+
+
+
+
+
