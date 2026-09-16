@@ -9,8 +9,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-<img src="figures/logo.png" align="right" height="59"/>
-
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -20,31 +18,46 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-install.packages("devtools")
-devtools::install_github("iqb-research/eatPrepTBA")
+#devtools::install_github("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
 ```
 
+## Overview
+
+This vignette explains how to access, prepare, customize, and export codebooks from an IQB Studio workspace using `eatPrepTBA`. It also explains the difference between a codebook and a coding manual and shows how to select specific units and add missing-value codes.
+
 ## Login Procedure
+
+To log in to the IQB Studio, use the `login_studio()` function. You will be asked to provide your username and password either in the console or, when using RStudio, in a dialog window. This is equivalent to logging in to the IQB Studio by entering your credentials at https://www.iqb-studio.de.
+
+The current `app_version` needs to be specified manually and can be found [here](https://www.iqb-studio.de/).
+
+For further information on the login procedure, including how to log in to the example workspace and retrieve a workspace, see the [Get Started](eatPrepTBA.html) page.
+
 
 ```{r eval=FALSE}
 
-login <- login_studio(keyring = TRUE, app_version = "19.0.0")
+login <- login_studio(keyring = TRUE, app_version = "20.0.1")
 
 workspace <- access_workspace(login = login, ws_id = 1300)
 ```
 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/Studio_Login.png")
+```
 
-## Accessing a codebook of a workspace
+## Accessing a workspace codebook
 
 A **codebook** provides a structured overview of the coding scheme of a workspace, including its units, variables, and corresponding codes. It can be accessed either directly in Studio or via `eatPrepTBA`.
 
-### Accessing a codebook manually in IQB-Studio
+### Accessing a codebook in IQB Studio
 
 To access the codebook manually in Studio, open the respective workspace and navigate to:
 Berichte → Codebook
 
->  Screenshot "Access Studio1 und Studio 2" einfügen 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/1.png")
+```
 
 The content of the codebook can then be customized by selecting the relevant **units**, **variables**, **formatting options**, and **output format**.
 
@@ -57,18 +70,17 @@ Studio also allows the codebook information to be exported as a DOCX coding manu
 
 The two documents serve different purposes:
 
-**Codebook:** provides a structured overview of the units, variables, and corresponding codes contained in a workspace. It shows which tasks and variables are available and which codes can be assigned to the respective responses. This information can, for example, be provided to the IEA to prepare the coding and evaluation of the tasks. The codebook is initially provided in **JSON format** but can be transformed into a human-readable table and exported to Excel.
+**Codebook:** provides a structured overview of the units, variables, and corresponding codes in a workspace. It can, for example, be provided to the IEA for coding and evaluation purposes. The codebook is provided in JSON format but can be transformed into a human-readable table with `eatPrepTBA` and exported to Excel.
 
-> Screenshot Codebook json und tabelle einfügen
-
-**Coding manual:** provides a human-readable representation of the coding information in **DOCX format**. It contains the unit key and unit name, the corresponding variables, and instructions on how responses should be coded (e.g., code 1 for a correct response and code 0 for an incorrect response).
-
-> Screenshot Kodiermanual einfügen 
+**Coding manual:** provides a human-readable representation of the coding information in DOCX format. It contains the unit key and unit name, the corresponding variables, and instructions on how responses should be coded (e.g., code 1 for a correct response and code 0 for an incorrect response).
 
 Thus, the codebook and the coding manual contain related coding information but are intended for different purposes and stages of the coding process.
 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/4.png")
+```
 
-### Accessing a codebook with eatPrepTBA
+### Preparing a codebook with eatPrepTBA
 
 The function `prepare_codebook()` can be used to retrieve and prepare the codebook of a Studio workspace directly in R.
 
@@ -78,9 +90,17 @@ Information on all available arguments can be displayed with:
 ?prepare_codebook
 ```
 
-> Screenshot Argumente prepare Codebook einfügen 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/3.png")
+```
 
-For a Workspace object, a codebook can for example be prepared as follows:
+By default, `prepare_codebook()` prepares the complete codebook of a workspace:
+
+```{r prepare-codebook-default, eval=FALSE}
+cb <- prepare_codebook(workspace)
+```
+
+The content of the codebook can be customized using additional arguments. For example, the following call explicitly specifies the default selection options:
 
 ```{r prepare-codebook, eval=FALSE}
 
@@ -104,6 +124,10 @@ cb <- prepare_codebook(
 
 Many of the arguments correspond to the selection options available under **Variablen-Auswahl** in the Studio codebook interface. They therefore allow the content of the codebook to be configured directly from R.
 
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/2.png")
+```
+
 For example:
 
 - `unit_keys` specifies which units should be included.
@@ -119,14 +143,29 @@ The resulting object `cb` contains the prepared codebook, which is automatically
 
 ### Selecting specific units
 
-After preparing the codebook, `dplyr::filter()` can be used to select individual units:
+The `unit_keys` argument of `prepare_codebook()` can be used to restrict the codebook to specific units. By default, `unit_keys = NULL`, meaning that all units are included automatically.
+
+```{r select-units, eval=FALSE}
+cb_D2_D3 <- prepare_codebook(
+  workspace,
+  unit_keys = c("D2_BT18", "D3_JP03")
+)
+```
+
+```{r, out.width="30%", echo = FALSE}
+knitr::include_graphics("images/6.png")
+knitr::include_graphics("images/7.png")
+```
+
+Alternatively, an already prepared codebook can be filtered afterwards using `dplyr::filter()`.
+
+An individual unit can be selected using `==`:
 
 ```{r filter-single-unit, eval=FALSE}
-
 cb %>%
   dplyr::filter(unit_key == "D2_BT18")
-
 ```
+
 
 Several units can be selected using `%in%`:
 
@@ -136,19 +175,12 @@ cb %>%
 
 ```
 
-Alternatively, the `unit_keys` argument of `prepare_codebook()` can be used to restrict the codebook to specific units. By default, `unit_keys = NULL`, meaning that all units are included automatically.
-
-```{r select-units, eval=FALSE}
-cb_D2_D3 <- prepare_codebook(
-  workspace,
-  unit_keys = c("D2_BT18", "D3_JP03")
-)
-```
-
 
 ### Adding missing-value codes
 
-If specific missing-value codes should be included, they can be defined in a tibble and supplied to `prepare_codebook()` via the `missings` argument.
+Missing-value codes can be added when specific response categories, such as omitted or invalid responses, should be documented alongside the regular coding categories.
+
+Missing-value codes can be defined in a tibble and supplied to `prepare_codebook()` via the `missings` argument.
 
 For example:
 
@@ -179,7 +211,9 @@ cb_withmissings <- prepare_codebook(
 head(cb_withmissings)
 ```
 
-> Screenshot Codebook mit missings einfügen
+```{r, out.width="100%", echo = FALSE}
+knitr::include_graphics("images/8.png")
+```
 
 ### Exporting the prepared codebook to Excel
 
@@ -187,7 +221,7 @@ The tabular codebook created by `prepare_codebook()` can also be exported as an 
 
 ```{r export-excel, eval=FALSE}
 
-writexl::write_xlsx(cb, "codebook_Illustration_eatPrepTBA_prototypische_Aufgaben.xlsx")
+writexl::write_xlsx(cb, "codebook.xlsx")
                     
 ```
 
@@ -232,52 +266,14 @@ download_codebook(
 ```
 
 To download the coding manual in DOCX format, use `format = "docx"` instead:
-```{r}
-format = "docx"
+```{r format-docx, eval=FALSE}
+download_codebook(
+  workspace,
+  path,
+  format = "docx"
+)
 ```
 
 
-
-
-# Alter Code von Philipp -> soll das drin bleiben? Irgendwas hatte da auch noch nicht funktioniert bei den manuellen Codes (automatische Codes waren weiterhin drin)
-
-If you want to retrieve all codes:
-
-```{r eval=FALSE}
-cb_all <- prepare_codebook(workspace = workspace)
-```
-
-```{r eval=FALSE, echo=FALSE}
-cb_all %>% readr::write_rds("inst/extdata/cb_all.rds")
-```
-
-```{r echo=FALSE}
-cb_all <- readr::read_rds(system.file("extdata", "cb_all.rds", package = "eatPrepTBA"))
-```
-
-```{r}
-cb_all
-```
-
-## Only Manual Codes
-
-If you want to retrieve only codes:
-
-```{r eval=FALSE}
-cb_manual <- prepare_codebook(workspace = workspace, 
-                              manual = TRUE)
-```
-
-```{r eval=FALSE, echo=FALSE}
-cb_manual %>% readr::write_rds("inst/extdata/cb_manual.rds")
-```
-
-```{r echo=FALSE}
-cb_manual <- readr::read_rds(system.file("extdata", "cb_manual.rds", package = "eatPrepTBA"))
-```
-
-```{r}
-cb_manual
-```
-
-
+## Summary
+In summary, eatPrepTBA provides two ways to work with coding information from IQB Studio. Use `prepare_codebook()` if the codebook should be inspected, filtered, modified, or exported from R. Use  `download_codebook()` if the original codebook or coding manual should be downloaded directly as JSON or DOCX.
