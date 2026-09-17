@@ -237,6 +237,5 @@ eindeutige Itemnamen und genau ein Score je Person und Item. Fehlende Werte
 bleiben `NA`, sie werden nicht mit 0 aufgefüllt.
 `analysis_data` aufbewahren: Darin bleiben die Missing-Arten unterscheidbar.
 
-Für die weitere Skalierung beschreibt das
-[eatModel-Skalierungsbeispiel](https://github.com/weirichs/eatModel#exemplary-analysis)
-die Übergabe von Datensatz, Personen-ID und Itemspalten sowie die Modellschätzung.
+Die weiteren Schritte zur Skalierung beschreibt die
+[eatModel-Dokumentation](https://weirichs.github.io/eatModel/).
