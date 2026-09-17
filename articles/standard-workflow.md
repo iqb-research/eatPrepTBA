@@ -1,0 +1,217 @@
+# Vom Testcenter zur Skalierung: ein einfacher Workflow
+
+Dieser Workflow führt von Testcenter-Antworten zu kodierten Daten,
+psychometrischen Kennwerten und einem Personen-×-Items-Datensatz. Das
+Beispiel umfasst einen Testzeitpunkt und einen Kompetenzbereich (Lesen).
+
+| Quelle | Benötigte Daten |
+|:---|:---|
+| **Studio** | Units mit Kodierschemata, Item-Metadaten und Seiteninformationen |
+| **Testcenter** | Antworten sowie Testdesign aus Testpersonen und Testheften |
+
+Dateipfade, Serveradresse, Version, Workspace-IDs und Testmodus sind
+Platzhalter. Die folgenden Blöcke sind für die Ausführung mit eigenen
+Daten vorgesehen.
+
+``` r
+
+library(eatPrepTBA)
+library(dplyr)
+library(tidyr)
+```
+
+## 1. Studio: Units und Kodierschemata laden
+
+Die Units müssen zur eingesetzten Testversion passen. `metadata = TRUE`
+liefert die Item-Verknüpfungen, `unit_definition = TRUE` die
+Seiteninformationen.
+
+Ein **Kodierschema** legt für jede Variable fest, welche Antwort welchen
+Code und wie viele Punkte erhält, etwa „richtige Auswahl → Code 1 → 1
+Punkt“. Es kann auch Regeln zur Ableitung weiterer Variablen enthalten.
+
+[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
+meldet am Studio an,
+[`access_workspace()`](https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.md)
+wählt den Arbeitsbereich.
+[`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
+lädt die Units;
+[`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+bereitet ihre vorhandenen Kodierschemata für die Auswertung auf.
+
+``` r
+
+studio_login <- login_studio(app_version = "STUDIO_VERSION")
+studio <- access_workspace(studio_login, ws_id = 123)
+
+units <- get_units(studio, metadata = TRUE, unit_definition = TRUE)
+units <- add_coding_scheme(units)
+```
+
+## 2. Testcenter: Antworten und Design bereitstellen
+
+### Antworten: direkt abrufen oder CSV einlesen
+
+**Alternative A – direkt aus dem Testcenter:**
+
+Anmeldung mit
+[`login_testcenter()`](https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.md),
+Antwortabruf mit
+[`get_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/get_responses.md).
+
+``` r
+
+testcenter_login <- login_testcenter(base_url = "https://TESTCENTER-ADRESSE/")
+testcenter <- access_workspace(testcenter_login, ws_id = 1)
+responses <- get_responses(testcenter)
+```
+
+**Alternative B – bereits heruntergeladenen CSV-Export einlesen:**
+
+[`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
+liest die lokale Datei ein.
+
+``` r
+
+responses <- read_responses("daten/Responses.csv")
+```
+
+Beide Alternativen liefern `responses`; es wird nur eine davon benötigt.
+
+### Das vollständige Testdesign laden
+
+[`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
+liefert die vorgesehenen Person–Testheft–Variablen-Zuordnungen. Auch
+beim CSV-Import wird hierfür die Testcenter-Verbindung aus Alternative A
+benötigt (`testcenter_login` und `testcenter`, ohne erneuten
+Antwortabruf).
+
+``` r
+
+design <- get_design(testcenter, units = units, mode = "run-hot-return")
+```
+
+`mode` filtert die Testpersonen nach dem in der Testpersonen-Datei
+hinterlegten Anmeldemodus. Hier werden nur Einträge mit `run-hot-return`
+berücksichtigt; bei einem anderen Durchführungsmodus ist dessen Wert
+einzusetzen. `units` muss alle relevanten Aufgaben enthalten; Antworten
+und Design müssen dieselbe Erhebung abdecken.
+
+## 3. Kodieren und Scores zuweisen
+
+[`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+nutzt das R-Paket
+[eatAutoCode](https://github.com/iqb-research/eatAutoCode), das den
+[IQB-Autocoder
+(`@iqb/responses`)](https://github.com/iqb-berlin/responses) einbindet.
+Dieser wendet die Regeln des Kodierschemas auf die Antworten an. Mit
+`prepare = TRUE` enthält das Ergebnis sowohl den Code (`code_id`) als
+auch die zugehörige Punktzahl (`code_score`).
+
+Die folgende Missing-Regel ist ein Beispiel: Auslassungen und ungültige
+Antworten erhalten 0 Punkte; nicht erreichte Aufgaben und Kodierfehler
+`NA`. Dieselbe Tabelle wird beim Kodieren und beim Vervollständigen
+verwendet.
+
+``` r
+
+missings <- tibble::tribble(
+  ~code_id, ~code_status,   ~code_score, ~code_type,
+  -96,     "NOT_REACHED",  NA_real_,   "MISSING_NOT_REACHED",
+  -97,     "CODING_ERROR", NA_real_,   "MISSING_CODING_IMPOSSIBLE",
+  -98,     "INVALID",      0,          "MISSING_INVALID_RESPONSE",
+  -99,     "DISPLAYED",    0,          "MISSING_BY_OMISSION"
+)
+
+coded <- code_responses(responses, units, prepare = TRUE, missings = missings)
+count(coded, code_status, code_type)
+```
+
+Für manuell zu kodierende Antworten können fertige Codes über
+`codes_manual` übergeben werden (siehe [Hilfe zu
+`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)).
+
+## 4. Not reached anhand des Designs vervollständigen
+
+**Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+ergänzt fehlende Einträge aus dem vollständigen Design. Anhand der
+Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
+Aufgaben am Ende von Auslassungen vor später bearbeiteten Units
+unterschieden. Bereits als Auslassung kodierte Antworten bleiben
+standardmäßig Auslassungen.
+
+``` r
+
+design_coded <- complete_design(
+  coded = coded,
+  units = units,
+  design = design,
+  missings = missings
+)
+
+count(design_coded, id_used, code_type)
+analysis_data <- filter(design_coded, id_used)
+```
+
+`id_used` kennzeichnet Personen mit mindestens einem gespeicherten
+Kodierstatus. Mit `recode_omissions_to_not_reached = TRUE` können
+zusätzlich abschließende Auslassungen als nicht erreicht eingeordnet
+werden. Aufgaben, die laut Design gar nicht vorgesehen waren, sind
+**Missing by Design**, nicht Not reached; ihre Zellen bleiben beim
+späteren Umformen `NA`.
+
+## 5. Psychometrische Kennwerte berechnen
+
+Im Beispiel gehören alle Units zum Bereich Lesen; bei mehreren Bereichen
+enthält `domains` die jeweilige Zuordnung (ein Bereich je Unit).
+[`evaluate_psychometrics()`](https://iqb-research.github.io/eatPrepTBA/reference/evaluate_psychometrics.md)
+berechnet die Kennwerte.
+
+``` r
+
+domains <- distinct(units, unit_key)
+domains$domain <- "Lesen"
+
+psychometrics <- evaluate_psychometrics(analysis_data, units, domains = domains)
+psychometrics <- add_item_id(psychometrics, units)
+
+psychometrics |>
+  select(item_id, unit_key, variable_id, code_id, code_score,
+         code_n, code_p_valid, code_pbc) |>
+  distinct()
+```
+
+`code_n` zählt einen Code, `code_p_valid` ist sein Anteil unter
+Antworten mit gültigem Score. `code_pbc` ist die Korrelation seines
+Auftretens mit dem mittleren Itemscore des Bereichs (nicht
+part-whole-korrigiert).
+
+## 6. Personen × Items für eatModel
+
+[`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md)
+ergänzt die Item-ID aus den Studio-Metadaten über `unit_key` und
+`variable_id`. Variablen ohne Item-Verknüpfung erhalten `NA`; im
+Beispiel werden nur verknüpfte Itemvariablen übernommen.
+
+``` r
+
+item_data <- add_item_id(analysis_data, units)
+item_data <- filter(item_data, !is.na(item_id))
+
+scaling_data <- item_data |>
+  select(group_id, login_name, login_code, item_id, code_score) |>
+  pivot_wider(names_from = item_id, values_from = code_score)
+scaling_data$person_id <- seq_len(nrow(scaling_data))
+```
+
+[`pivot_wider()`](https://tidyr.tidyverse.org/reference/pivot_wider.html)
+erzeugt eine Zeile je Person und eine Scorespalte je Item; die
+Testcenter-Kennungen bleiben neben `person_id` erhalten. Voraussetzung
+sind eindeutige Itemnamen und genau ein Score je Person und Item.
+Fehlende Werte bleiben `NA`, sie werden nicht mit 0 aufgefüllt.
+
+Für die weitere Skalierung beschreibt das
+[eatModel-Skalierungsbeispiel](https://github.com/weirichs/eatModel#exemplary-analysis)
+die Übergabe von Datensatz, Personen-ID und Itemspalten sowie die
+Modellschätzung.

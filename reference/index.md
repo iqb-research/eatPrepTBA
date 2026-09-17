@@ -102,6 +102,8 @@ Functions to prepare unit data from IQB Studio or Testcenter
 
 - [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
   : Add metadata to units
+- [`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md)
+  : Add item identifiers to variable-level data
 - [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   : Adds prepared coding scheme to units
 - [`extract_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/extract_metadata.md)

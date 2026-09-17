@@ -126,6 +126,8 @@ Functions to prepare unit data from IQB Studio or Testcenter
 
 - [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
   : Add metadata to units
+- [`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md)
+  : Add item identifiers to variable-level data
 - [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   : Adds prepared coding scheme to units
 - [`extract_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/extract_metadata.md)
@@ -231,5 +233,7 @@ Functions to check units, prepare material for administration and coding
 - [Log-Daten](https://iqb-research.github.io/eatPrepTBA/articles/log-data.md):
 - [Prepare
   Codebooks](https://iqb-research.github.io/eatPrepTBA/articles/prepare-codebooks.md):
+- [Vom Testcenter zur Skalierung: ein einfacher
+  Workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.md):
 - [How eatPrepTBA communicates with IQB
   APIs](https://iqb-research.github.io/eatPrepTBA/articles/working-with-iqb-apis.md):

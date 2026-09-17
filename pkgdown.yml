@@ -5,8 +5,9 @@ articles:
   eatPrepTBA: eatPrepTBA.html
   log-data: log-data.html
   prepare-codebooks: prepare-codebooks.html
+  standard-workflow: standard-workflow.html
   working-with-iqb-apis: working-with-iqb-apis.html
-last_built: 2026-09-03T08:10Z
+last_built: 2026-09-17T11:11Z
 urls:
   reference: https://iqb-research.github.io/eatPrepTBA/reference
   article: https://iqb-research.github.io/eatPrepTBA/articles
