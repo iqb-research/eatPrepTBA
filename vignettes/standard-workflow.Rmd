@@ -39,6 +39,12 @@ Ein **Kodierschema** legt für jede Variable fest, welche Antwort welchen Code
 und wie viele Punkte erhält, etwa „richtige Auswahl → Code 1 → 1 Punkt“.
 Es kann auch Regeln zur Ableitung weiterer Variablen enthalten.
 
+[`login_studio()`](../reference/login_studio.html) meldet am Studio an,
+[`access_workspace()`](../reference/access_workspace.html) wählt den Arbeitsbereich.
+[`get_units()`](../reference/get_units.html) lädt die Units;
+[`add_coding_scheme()`](../reference/add_coding_scheme.html) bereitet ihre
+vorhandenen Kodierschemata für die Auswertung auf.
+
 ```{r studio, eval=FALSE}
 studio_login <- login_studio(app_version = "STUDIO_VERSION")
 studio <- access_workspace(studio_login, ws_id = 123)
@@ -56,6 +62,9 @@ units <- add_coding_scheme(units)
 fehlende Antworten als Not reached oder Auslassung einordnen.
 `read_responses()` allein reicht dafür nicht aus.
 
+Anmeldung mit [`login_testcenter()`](../reference/login_testcenter.html),
+Auswahl des Arbeitsbereichs mit [`access_workspace()`](../reference/access_workspace.html).
+
 ```{r testcenter, eval=FALSE}
 testcenter_login <- login_testcenter(base_url = "https://TESTCENTER-ADRESSE/")
 testcenter <- access_workspace(testcenter_login, ws_id = 1)
@@ -63,13 +72,13 @@ testcenter <- access_workspace(testcenter_login, ws_id = 1)
 
 ### Antworten: eine der beiden Alternativen wählen
 
-**A – direkt aus dem Testcenter:**
+**A – direkt aus dem Testcenter** mit [`get_responses()`](../reference/get_responses.html):
 
 ```{r responses-api, eval=FALSE}
 responses <- get_responses(testcenter)
 ```
 
-**B – bereits heruntergeladenen CSV-Export einlesen:**
+**B – bereits heruntergeladenen CSV-Export einlesen** mit [`read_responses()`](../reference/read_responses.html):
 
 ```{r responses-file, eval=FALSE}
 responses <- read_responses("daten/Responses.csv")
