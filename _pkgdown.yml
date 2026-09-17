@@ -1,6 +1,19 @@
 url: https://iqb-research.github.io/eatPrepTBA/
 template:
   bootstrap: 5
+navbar:
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: Vom Testcenter zum Skalierungsdatensatz
+        href: articles/standard-workflow.html
+      - text: Log-Daten
+        href: articles/log-data.html
+      - text: Prepare Codebooks
+        href: articles/prepare-codebooks.html
+      - text: How eatPrepTBA communicates with IQB APIs
+        href: articles/working-with-iqb-apis.html
 reference:
 - title: Connecting to the API
   desc: |
