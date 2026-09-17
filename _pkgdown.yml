@@ -58,6 +58,7 @@ reference:
 - subtitle: Functions for units
   contents:
   - add_metadata
+  - add_item_id
   - add_coding_scheme
   - extract_metadata
 - title: Managing studies

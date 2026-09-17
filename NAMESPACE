@@ -3,6 +3,7 @@
 export("%>%")
 export(access_workspace)
 export(add_coding_scheme)
+export(add_item_id)
 export(add_metadata)
 export(add_system_check_summary)
 export(add_unit_sizes)
