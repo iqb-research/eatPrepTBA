@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Vom Testcenter zur Skalierung: ein einfacher Workflow • eatPrepTBA</title>
+<title>Vom Testcenter zum Skalierungsdatensatz • eatPrepTBA</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Vom Testcenter zur Skalierung: ein einfacher Workflow">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Vom Testcenter zum Skalierungsdatensatz">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -39,9 +39,9 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/log-data.html">Log-Daten</a></li>
+<li><a class="dropdown-item" href="../articles/standard-workflow.html">Vom Testcenter zum Skalierungsdatensatz</a></li>
+    <li><a class="dropdown-item" href="../articles/log-data.html">Log-Daten</a></li>
     <li><a class="dropdown-item" href="../articles/prepare-codebooks.html">Prepare Codebooks</a></li>
-    <li><a class="dropdown-item" href="../articles/standard-workflow.html">Vom Testcenter zur Skalierung: ein einfacher Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/working-with-iqb-apis.html">How eatPrepTBA communicates with IQB APIs</a></li>
   </ul>
 </li>
@@ -63,7 +63,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Vom Testcenter zur Skalierung: ein einfacher Workflow</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Vom Testcenter zum Skalierungsdatensatz</h1>
             
       
 
@@ -74,8 +74,9 @@
     
 <p>Dieser Workflow führt von Testcenter-Antworten zu kodierten Daten,
 psychometrischen Kennwerten und einem Personen-×-Items-Datensatz. Das
-Beispiel umfasst einen Testzeitpunkt und einen Kompetenzbereich
-(Lesen).</p>
+Beispiel umfasst einen Testzeitpunkt und einen Kompetenzbereich (Lesen)
+mit Autocode-Kodierschemata. Für Daten ohne solche Schemata, etwa aus
+StarS, siehe den Hinweis in Abschnitt 2.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -131,73 +132,156 @@ bereitet ihre vorhandenen Kodierschemata für die Auswertung auf.</p>
 <h2 id="testcenter-antworten-und-design-bereitstellen">2. Testcenter: Antworten und Design bereitstellen<a class="anchor" aria-label="anchor" href="#testcenter-antworten-und-design-bereitstellen"></a>
 </h2>
 <div class="section level3">
-<h3 id="antworten-direkt-abrufen-oder-csv-einlesen">Antworten: direkt abrufen oder CSV einlesen<a class="anchor" aria-label="anchor" href="#antworten-direkt-abrufen-oder-csv-einlesen"></a>
+<h3 id="testcenter-verbindung-herstellen">Testcenter-Verbindung herstellen<a class="anchor" aria-label="anchor" href="#testcenter-verbindung-herstellen"></a>
 </h3>
-<p><strong>Alternative A – direkt aus dem Testcenter:</strong></p>
+<p><strong>Auch beim CSV-Import wird hier Testcenter-Zugriff
+benötigt:</strong> <code><a href="../reference/get_design.html">get_design()</a></code> lädt das vollständige
+Testdesign. Erst damit lassen sich später fehlende Antworten als Not
+reached oder Auslassung einordnen. <code><a href="../reference/read_responses.html">read_responses()</a></code> allein
+reicht dafür nicht aus.</p>
 <p>Anmeldung mit <a href="../reference/login_testcenter.html"><code>login_testcenter()</code></a>,
-Antwortabruf mit <a href="../reference/get_responses.html"><code>get_responses()</code></a>.</p>
+Auswahl des Arbeitsbereichs mit <a href="../reference/access_workspace.html"><code>access_workspace()</code></a>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">testcenter_login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_testcenter.html">login_testcenter</a></span><span class="op">(</span>base_url <span class="op">=</span> <span class="st">"https://TESTCENTER-ADRESSE/"</span><span class="op">)</span></span>
-<span><span class="va">testcenter</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span><span class="va">testcenter_login</span>, ws_id <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">responses</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_responses.html">get_responses</a></span><span class="op">(</span><span class="va">testcenter</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Alternative B – bereits heruntergeladenen CSV-Export
-einlesen:</strong></p>
-<p><a href="../reference/read_responses.html"><code>read_responses()</code></a>
-liest die lokale Datei ein.</p>
+<span><span class="va">testcenter</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span><span class="va">testcenter_login</span>, ws_id <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="antworten-eine-der-beiden-alternativen-wählen">Antworten: eine der beiden Alternativen wählen<a class="anchor" aria-label="anchor" href="#antworten-eine-der-beiden-alternativen-w%C3%A4hlen"></a>
+</h3>
+<p><strong>A – direkt aus dem Testcenter</strong> mit <a href="../reference/get_responses.html"><code>get_responses()</code></a>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">responses</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_responses.html">get_responses</a></span><span class="op">(</span><span class="va">testcenter</span><span class="op">)</span></span></code></pre></div>
+<p><strong>B – bereits heruntergeladenen CSV-Export einlesen</strong>
+mit <a href="../reference/read_responses.html"><code>read_responses()</code></a>:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">responses</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_responses.html">read_responses</a></span><span class="op">(</span><span class="st">"daten/Responses.csv"</span><span class="op">)</span></span></code></pre></div>
-<p>Beide Alternativen liefern <code>responses</code>; es wird nur eine
-davon benötigt.</p>
+<p><strong>Ohne Autocode-Kodierschema (z. B. StarS):</strong> <a href="../reference/prepare_responses.html"><code>prepare_responses(responses)</code></a>
+entpackt die Rohantworten zur eigenen Weiterverarbeitung; es vergibt
+keine Codes oder Scores. Bereits im Export gespeicherte Kodierungen
+lassen sich mit <a href="../reference/prepare_coded.html"><code>prepare_coded(responses)</code></a>
+entpacken. Die folgenden Schritte zeigen den Weg <strong>mit</strong>
+Kodierschemata; die entpackten Daten sind dafür kein direkter
+Ersatz.</p>
 </div>
 <div class="section level3">
 <h3 id="das-vollständige-testdesign-laden">Das vollständige Testdesign laden<a class="anchor" aria-label="anchor" href="#das-vollst%C3%A4ndige-testdesign-laden"></a>
 </h3>
 <p><a href="../reference/get_design.html"><code>get_design()</code></a>
-liefert die vorgesehenen Person–Testheft–Variablen-Zuordnungen. Auch
-beim CSV-Import wird hierfür die Testcenter-Verbindung aus Alternative A
-benötigt (<code>testcenter_login</code> und <code>testcenter</code>,
-ohne erneuten Antwortabruf).</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+liefert die vorgesehenen Person–Testheft–Variablen-Zuordnungen.</p>
+<p>Im gewählten <strong>Testcenter-Workspace</strong> müssen dafür die
+Materialien der Erhebung liegen:</p>
+<ul>
+<li>
+<strong>Testpersonen-XML</strong> (z. B.
+<code>testtakers.xml</code>): Gruppen, Logins, Codes, Anmeldemodus und
+Zuordnung zu den Testheften.</li>
+<li>
+<strong>Die zugehörigen Testheft-XML-Dateien</strong> (Booklets):
+referenzierte Units und ihre Reihenfolge innerhalb der Testlets.</li>
+</ul>
+<p>Die Dateien müssen dem Stand der Durchführung entsprechen. Die
+Variablen und Kodierschemata kommen hier aus dem zuvor aus Studio
+geladenen Objekt <code>units</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_design.html">get_design</a></span><span class="op">(</span><span class="va">testcenter</span>, units <span class="op">=</span> <span class="va">units</span>, mode <span class="op">=</span> <span class="st">"run-hot-return"</span><span class="op">)</span></span></code></pre></div>
-<p><code>mode</code> filtert die Testpersonen nach dem in der
-Testpersonen-Datei hinterlegten Anmeldemodus. Hier werden nur Einträge
-mit <code>run-hot-return</code> berücksichtigt; bei einem anderen
-Durchführungsmodus ist dessen Wert einzusetzen. <code>units</code> muss
-alle relevanten Aufgaben enthalten; Antworten und Design müssen dieselbe
-Erhebung abdecken.</p>
+<p><code>mode</code> muss zum Anmeldemodus der Erhebung passen.
+<code>units</code> muss alle relevanten Aufgaben enthalten; Antworten
+und Design müssen dieselbe Erhebung abdecken.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="kodieren-und-scores-zuweisen">3. Kodieren und Scores zuweisen<a class="anchor" aria-label="anchor" href="#kodieren-und-scores-zuweisen"></a>
+<h2 id="automatisch-kodieren-und-ergebnis-prüfen">3. Automatisch kodieren und Ergebnis prüfen<a class="anchor" aria-label="anchor" href="#automatisch-kodieren-und-ergebnis-pr%C3%BCfen"></a>
 </h2>
 <p><a href="../reference/code_responses.html"><code>code_responses()</code></a>
 nutzt das R-Paket <a href="https://github.com/iqb-research/eatAutoCode" class="external-link">eatAutoCode</a>, das
 den <a href="https://github.com/iqb-berlin/responses" class="external-link">IQB-Autocoder
-(<code>@iqb/responses</code>)</a> einbindet. Dieser wendet die Regeln
-des Kodierschemas auf die Antworten an. Mit <code>prepare = TRUE</code>
-enthält das Ergebnis sowohl den Code (<code>code_id</code>) als auch die
-zugehörige Punktzahl (<code>code_score</code>).</p>
-<p>Die folgende Missing-Regel ist ein Beispiel: Auslassungen und
-ungültige Antworten erhalten 0 Punkte; nicht erreichte Aufgaben und
-Kodierfehler <code>NA</code>. Dieselbe Tabelle wird beim Kodieren und
-beim Vervollständigen verwendet.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">missings</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tribble.html" class="external-link">tribble</a></span><span class="op">(</span></span>
-<span>  <span class="op">~</span><span class="va">code_id</span>, <span class="op">~</span><span class="va">code_status</span>,   <span class="op">~</span><span class="va">code_score</span>, <span class="op">~</span><span class="va">code_type</span>,</span>
-<span>  <span class="op">-</span><span class="fl">96</span>,     <span class="st">"NOT_REACHED"</span>,  <span class="cn">NA_real_</span>,   <span class="st">"MISSING_NOT_REACHED"</span>,</span>
-<span>  <span class="op">-</span><span class="fl">97</span>,     <span class="st">"CODING_ERROR"</span>, <span class="cn">NA_real_</span>,   <span class="st">"MISSING_CODING_IMPOSSIBLE"</span>,</span>
-<span>  <span class="op">-</span><span class="fl">98</span>,     <span class="st">"INVALID"</span>,      <span class="fl">0</span>,          <span class="st">"MISSING_INVALID_RESPONSE"</span>,</span>
-<span>  <span class="op">-</span><span class="fl">99</span>,     <span class="st">"DISPLAYED"</span>,    <span class="fl">0</span>,          <span class="st">"MISSING_BY_OMISSION"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/code_responses.html">code_responses</a></span><span class="op">(</span><span class="va">responses</span>, <span class="va">units</span>, prepare <span class="op">=</span> <span class="cn">TRUE</span>, missings <span class="op">=</span> <span class="va">missings</span><span class="op">)</span></span>
+(<code>@iqb/responses</code>)</a> einbindet. Dieser vergibt anhand des
+Kodierschemas Codes (<code>code_id</code>) und Punkte
+(<code>code_score</code>). <code>prepare = TRUE</code> ergänzt Metadaten
+für die weiteren Schritte. <strong>Die abschließende Missing-Zuweisung
+folgt erst in Abschnitt 5.</strong></p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/code_responses.html">code_responses</a></span><span class="op">(</span><span class="va">responses</span>, <span class="va">units</span>, prepare <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">coded</span>, <span class="va">code_status</span>, <span class="va">code_type</span><span class="op">)</span></span></code></pre></div>
-<p>Für manuell zu kodierende Antworten können fertige Codes über
-<code>codes_manual</code> übergeben werden (siehe <a href="../reference/code_responses.html">Hilfe zu
-<code>code_responses()</code></a>).</p>
+<p>Entscheidend sind die Variablen, die später als Items ausgewertet
+werden:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"><code>code_status</code></th>
+<th align="left">Bewertung und nächster Schritt</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>CODING_COMPLETE</code></td>
+<td align="left">
+<strong>In Ordnung:</strong> Die Itemvariable ist
+fertig kodiert.</td>
+</tr>
+<tr class="even">
+<td align="left">
+<code>CODING_INCOMPLETE</code>,
+<code>DERIVE_PENDING</code>
+</td>
+<td align="left">
+<strong>Noch offen:</strong> Kodierung bzw. benötigte
+Ausgangscodes prüfen; ggf. manuelle Codes ergänzen (Abschnitt 4).</td>
+</tr>
+<tr class="odd">
+<td align="left">
+<code>UNSET</code>, <code>CODING_ERROR</code>,
+<code>DERIVE_ERROR</code>
+</td>
+<td align="left">
+<strong>Prüfen:</strong> Kodierschema und Antworten
+kontrollieren; nach Korrekturen Units neu laden und erneut
+kodieren.</td>
+</tr>
+<tr class="even">
+<td align="left">
+<code>DISPLAYED</code>, <code>PARTLY_DISPLAYED</code>,
+<code>NOT_REACHED</code>, <code>INVALID</code>
+</td>
+<td align="left">
+<strong>In der Regel in Ordnung:</strong> erwartbare
+Missing-Status, die in Abschnitt 5 behandelt werden. Unerwartete
+Häufungen prüfen.</td>
+</tr>
+</tbody>
+</table>
+<p>Untervariablen, die selbst keine Items werden, können andere Status
+behalten, ohne dass ein Problem vorliegt. Zu klären sind offene
+Kodierungen und Fehler, die die Itemvariablen oder deren Berechnung
+betreffen.</p>
 </div>
 <div class="section level2">
-<h2 id="not-reached-anhand-des-designs-vervollständigen">4. Not reached anhand des Designs vervollständigen<a class="anchor" aria-label="anchor" href="#not-reached-anhand-des-designs-vervollst%C3%A4ndigen"></a>
+<h2 id="optional-manuelle-codes-einfügen">4. Optional: manuelle Codes einfügen<a class="anchor" aria-label="anchor" href="#optional-manuelle-codes-einf%C3%BCgen"></a>
+</h2>
+<p><strong>Nur nötig, wenn Antworten manuell kodiert werden. Sonst
+weiter mit Abschnitt 5.</strong> Die fertige Tabelle
+<code>codes_manual</code> benötigt <code>group_id</code>,
+<code>login_name</code>, <code>login_code</code>,
+<code>booklet_id</code>, <code>unit_key</code>, <code>variable_id</code>
+und <code>code_id</code>: genau einen Code je zu kodierender Antwort,
+passend zum Kodierschema. <code>code_id</code> enthält den Code, nicht
+die Punktzahl.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Kennungen als Text, code_id als Ganzzahl einlesen</span></span>
+<span><span class="va">codes_manual</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="st">"daten/codes_manual.csv"</span>,</span>
+<span>                              col_types <span class="op">=</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/cols.html" class="external-link">cols</a></span><span class="op">(</span>.default <span class="op">=</span> <span class="st">"c"</span>, code_id <span class="op">=</span> <span class="st">"i"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/code_responses.html">code_responses</a></span><span class="op">(</span><span class="va">responses</span>, <span class="va">units</span>, prepare <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                        codes_manual <span class="op">=</span> <span class="va">codes_manual</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">coded</span>, <span class="va">code_status</span>, <span class="va">code_type</span><span class="op">)</span></span></code></pre></div>
+<p>Erneut die ursprünglichen <code>responses</code> übergeben: So werden
+die manuellen Codes eingefügt und davon abhängige Variablen neu
+berechnet. Anschließend die Status wie in Abschnitt 3 prüfen.</p>
+</div>
+<div class="section level2">
+<h2 id="design-vervollständigen-und-missings-zuweisen">5. Design vervollständigen und Missings zuweisen<a class="anchor" aria-label="anchor" href="#design-vervollst%C3%A4ndigen-und-missings-zuweisen"></a>
 </h2>
 <p><strong>Der Antwortexport allein enthält nicht alle vorgesehenen
 Antworten.</strong> <a href="../reference/complete_design.html"><code>complete_design()</code></a>
@@ -206,13 +290,12 @@ Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
 Aufgaben am Ende von Auslassungen vor später bearbeiteten Units
 unterschieden. Bereits als Auslassung kodierte Antworten bleiben
 standardmäßig Auslassungen.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">design_coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/complete_design.html">complete_design</a></span><span class="op">(</span></span>
-<span>  coded <span class="op">=</span> <span class="va">coded</span>,</span>
-<span>  units <span class="op">=</span> <span class="va">units</span>,</span>
-<span>  design <span class="op">=</span> <span class="va">design</span>,</span>
-<span>  missings <span class="op">=</span> <span class="va">missings</span></span>
-<span><span class="op">)</span></span>
+<p>Hier gelten die Standardregeln: <strong>Auslassungen und ungültige
+Antworten erhalten 0 Punkte; Not reached und Kodierfehler
+<code>NA</code>.</strong> Eine eigene Zuordnung kann über
+<code>missings</code> übergeben werden (siehe Funktionshilfe).</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">design_coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/complete_design.html">complete_design</a></span><span class="op">(</span>coded <span class="op">=</span> <span class="va">coded</span>, units <span class="op">=</span> <span class="va">units</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span>, <span class="va">code_type</span><span class="op">)</span></span>
 <span><span class="va">analysis_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span><span class="op">)</span></span></code></pre></div>
@@ -225,13 +308,13 @@ Aufgaben, die laut Design gar nicht vorgesehen waren, sind
 bleiben beim späteren Umformen <code>NA</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="psychometrische-kennwerte-berechnen">5. Psychometrische Kennwerte berechnen<a class="anchor" aria-label="anchor" href="#psychometrische-kennwerte-berechnen"></a>
+<h2 id="psychometrische-kennwerte-berechnen">6. Psychometrische Kennwerte berechnen<a class="anchor" aria-label="anchor" href="#psychometrische-kennwerte-berechnen"></a>
 </h2>
 <p>Im Beispiel gehören alle Units zum Bereich Lesen; bei mehreren
 Bereichen enthält <code>domains</code> die jeweilige Zuordnung (ein
 Bereich je Unit). <a href="../reference/evaluate_psychometrics.html"><code>evaluate_psychometrics()</code></a>
 berechnet die Kennwerte.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">domains</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">units</span>, <span class="va">unit_key</span><span class="op">)</span></span>
 <span><span class="va">domains</span><span class="op">$</span><span class="va">domain</span> <span class="op">&lt;-</span> <span class="st">"Lesen"</span></span>
 <span></span>
@@ -243,19 +326,20 @@ berechnet die Kennwerte.</p>
 <span>         <span class="va">code_n</span>, <span class="va">code_p_valid</span>, <span class="va">code_pbc</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><code>code_n</code> zählt einen Code, <code>code_p_valid</code> ist
-sein Anteil unter Antworten mit gültigem Score. <code>code_pbc</code>
-ist die Korrelation seines Auftretens mit dem mittleren Itemscore des
+sein Anteil unter Antworten mit Score ungleich <code>NA</code>
+(einschließlich als 0 gewerteter Missings). <code>code_pbc</code> ist
+die Korrelation seines Auftretens mit dem mittleren Itemscore des
 Bereichs (nicht part-whole-korrigiert).</p>
 </div>
 <div class="section level2">
-<h2 id="personen-items-für-eatmodel">6. Personen × Items für eatModel<a class="anchor" aria-label="anchor" href="#personen-items-f%C3%BCr-eatmodel"></a>
+<h2 id="personen-items-für-eatmodel">7. Personen × Items für eatModel<a class="anchor" aria-label="anchor" href="#personen-items-f%C3%BCr-eatmodel"></a>
 </h2>
 <p><a href="../reference/add_item_id.html"><code>add_item_id()</code></a>
 ergänzt die Item-ID aus den Studio-Metadaten über <code>unit_key</code>
 und <code>variable_id</code>. Variablen ohne Item-Verknüpfung erhalten
 <code>NA</code>; im Beispiel werden nur verknüpfte Itemvariablen
 übernommen.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_item_id.html">add_item_id</a></span><span class="op">(</span><span class="va">analysis_data</span>, <span class="va">units</span><span class="op">)</span></span>
 <span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">item_data</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">item_id</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -268,10 +352,9 @@ erzeugt eine Zeile je Person und eine Scorespalte je Item; die
 Testcenter-Kennungen bleiben neben <code>person_id</code> erhalten.
 Voraussetzung sind eindeutige Itemnamen und genau ein Score je Person
 und Item. Fehlende Werte bleiben <code>NA</code>, sie werden nicht mit 0
-aufgefüllt.</p>
-<p>Für die weitere Skalierung beschreibt das <a href="https://github.com/weirichs/eatModel#exemplary-analysis" class="external-link">eatModel-Skalierungsbeispiel</a>
-die Übergabe von Datensatz, Personen-ID und Itemspalten sowie die
-Modellschätzung.</p>
+aufgefüllt. <code>analysis_data</code> aufbewahren: Darin bleiben die
+Missing-Arten unterscheidbar.</p>
+<p>Die weiteren Schritte zur Skalierung beschreibt die <a href="https://weirichs.github.io/eatModel/" class="external-link">eatModel-Dokumentation</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
