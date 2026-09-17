@@ -1,3 +1,19 @@
+# eatPrepTBA 0.9.8.9034 [2026-09-17]
+
+## new features
+
+* Added `add_item_id()` to attach Studio item identifiers to variable-level data without changing row count or order, with explicit errors for ambiguous mappings.
+* Supported item links from both `items_list` and prepared `item_metadata`, with unmatched rows returned as `NA` and explicit opt-in to replace an existing `item_id` column.
+
+## documentation
+
+* Added a German beginner workflow vignette separating Studio resources from Testcenter response retrieval or CSV import, explaining coding schemes and the autocoder, and demonstrating design-based not-reached completion, psychometrics, and a persons-by-items data set for eatModel.
+* Linked function help pages and further coding and scaling documentation, using direct function calls and short base-pipe examples.
+
+## tests
+
+* Added regression coverage for item lookup, repeated and conflicting mappings, missing links, empty inputs, prepared metadata, and explicit overwriting.
+
 # eatPrepTBA 0.9.8.9033 [2026-09-03]
 
 ## bug fixes
