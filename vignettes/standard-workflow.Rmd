@@ -176,6 +176,15 @@ Hier gelten die Standardregeln: **Auslassungen und ungültige Antworten erhalten
 0 Punkte; Not reached und Kodierfehler `NA`.** Eine eigene Zuordnung kann über
 `missings` übergeben werden (siehe Funktionshilfe).
 
+Negative Missing-Codes sind Kennzeichnungen, keine Minuspunkte. Die Zuordnung
+wird in zwei Richtungen genutzt:
+
+- **Manuelle Codes einfügen:** Steht in `codes_manual$code_id` z. B. `-99`,
+  ergänzt `code_responses()` den Status `DISPLAYED` und den Score 0.
+- **Design vervollständigen:** Stellt `complete_design()` eine Auslassung fest,
+  weist es den Code `-99` und den Score 0 zu. Negative Missing-Codes entstehen
+  also auch ohne manuelle Kodierung.
+
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design)
 
