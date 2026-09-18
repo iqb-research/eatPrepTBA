@@ -12,6 +12,13 @@ or
 [`prepare_codebook()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_codebook.md)
 so that users do not need to write `httr2` code directly.
 
+For a first connection, see the [Studio
+introduction](https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.md).
+The examples below use placeholder credentials and example workspace and
+unit IDs. Replace them with your own values. Screenshots show an earlier
+Studio version; the saved metadata example has been adapted to the
+current format.
+
 ## HTTP requests
 
 eatPrepTBA communicates with IQB Studio and IQB Testcenter through HTTP
@@ -81,14 +88,19 @@ inspect the request headers. In the `Authorization` header, the token
 appears in the form `Bearer <access-token>`.
 
 When reproducing the request in R with `httr2`, this value is passed
-with `req_headers()`. In eatPrepTBA, users normally do not need to copy
-this token manually, because
+with `req_headers()`. In eatPrepTBA,
 [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
-handles the login and stores the token for later requests.
+returns a `LoginStudio` object whose request function uses the token for
+later requests; users do not need to copy it manually.
+
+Set `app_version` once to the version shown by your Studio instance. It
+is not detected automatically. For manual requests, the version is also
+visible in the browser’s `App-Version` request header.
 
 ``` r
 
-login <- eatPrepTBA::login_studio(app_version = "17.0.1")
+app_version <- "STUDIO_VERSION"
+login <- eatPrepTBA::login_studio(app_version = app_version)
 ```
 
 ## A simple GET request with httr2
@@ -101,14 +113,10 @@ case, workspace 1300).
 
 httr2_result <- httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::req_url_path_append("workspaces", 1300, "units") %>%
-  httr2::req_url_query(
-    targetWorkspaceId = 1300,
-    withLastSeenCommentTimeStamp = "true"
-  ) %>%
-  httr2::req_headers(
-    "Authorization" = paste("Bearer", access_token),
-    "App-Version" = "17.0.1"
-  ) %>%
+  httr2::req_url_query(targetWorkspaceId = 1300,
+                       withLastSeenCommentTimeStamp = "true") %>%
+  httr2::req_headers("Authorization" = paste("Bearer", access_token),
+                     "App-Version" = app_version) %>%
   httr2::req_perform() %>%
   httr2::resp_body_json()
 ```
@@ -244,15 +252,10 @@ workspace_id <- 1300
 unit_id <- 145615
 
 properties <- httr2::request("https://www.iqb-studio.de/api/") %>%
-  httr2::req_url_path_append(
-    "workspaces", workspace_id,
-    "units", unit_id,
-    "properties"
-  ) %>%
-  httr2::req_headers(
-    "Authorization" = paste("Bearer", access_token),
-    "App-Version" = "17.0.1"
-  ) %>%
+  httr2::req_url_path_append("workspaces", workspace_id,
+                            "units", unit_id, "properties") %>%
+  httr2::req_headers("Authorization" = paste("Bearer", access_token),
+                     "App-Version" = app_version) %>%
   httr2::req_perform() %>%
   httr2::resp_body_json()
 ```
@@ -276,7 +279,8 @@ properties
 |   `-- items                 # metadata for individual items
 |       `-- item 1
 |           |-- id
-|           |-- variableId
+|           |-- sourceVariableId
+|           |-- sourceVariableUuid
 |           |-- description
 |           `-- profiles
 |               `-- profile
@@ -290,28 +294,47 @@ properties
 `-- ...
 ```
 
-For example, we can extract some unit-level metadata for the unit
-`145615` in workspace `1300`.
+`sourceVariableId` links an item to its variable; `sourceVariableUuid`
+stores the variable UUID when available. eatPrepTBA exposes these as
+`variable_id` and `variable_ref`. Older saved responses may still use
+`variableId` and `variableReadOnlyId`; the package also accepts those
+fields.
+
+Metadata values can be vocabulary selections, language-coded text, or
+simple values with `raw` and `asText`. The following examples select
+entries by ID within the example profile, rather than relying on their
+position.
 
 ``` r
 
 # Kompetenzbereich
-properties$metadata$profiles[[1]]$entries[[1]]$label[[1]]$value
+entries <- properties$metadata$profiles[[1]]$entries
+competence <- purrr::keep(entries, ~ .x$id == "w8")[[1]]
+competence$label[[1]]$value
 #> [1] "Kompetenzbereich"
-properties$metadata$profiles[[1]]$entries[[1]]$valueAsText[[1]]$value
+competence$value[[1]]$id
+#> [1] "https://w3id.org/iqb/v12/s1/z7e"
+competence$value[[1]]$label[[1]]$value
 #> [1] "2 Schreiben"
 ```
 
 ``` r
 
 # Quellenangaben
-properties$metadata$profiles[[1]]$entries[[5]]$label[[1]]$value
+copyright <- purrr::keep(entries, ~ .x$id == "iqb_copyright")[[1]]
+copyright$label[[1]]$value
 #> [1] "Quellenangaben"
-properties$metadata$profiles[[1]]$entries[[5]]$valueAsText[[1]]$value
+copyright$value[[1]]$value
 #> [1] "BT: D0_86_01"
 ```
 
 ![](images/manually_extract_metadata_example.png)
+
+Older metadata may have a separate `valueAsText` field. For routine
+analysis,
+[`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
+prepares both formats as `unit_profiles`, `items_list`, and
+`items_profiles`, so these manual lookups are not needed.
 
 ## Retrieving a coding scheme
 
@@ -337,15 +360,10 @@ workspace_id <- 1300
 unit_id <- 145615
 
 scheme_response <- httr2::request("https://www.iqb-studio.de/api/") %>%
-  httr2::req_url_path_append(
-    "workspaces", workspace_id,
-    "units", unit_id,
-    "scheme"
-  ) %>%
-  httr2::req_headers(
-    "Authorization" = paste("Bearer", access_token),
-    "App-Version" = "17.0.1"
-  ) %>%
+  httr2::req_url_path_append("workspaces", workspace_id,
+                            "units", unit_id, "scheme") %>%
+  httr2::req_headers("Authorization" = paste("Bearer", access_token),
+                     "App-Version" = app_version) %>%
   httr2::req_perform() %>%
   httr2::resp_body_json()
 ```
@@ -400,11 +418,7 @@ than `"id": ["01a"]`.
 
 ``` r
 
-scheme_json <- jsonlite::toJSON(
-  scheme_list,
-  auto_unbox = TRUE,
-  pretty = TRUE
-)
+scheme_json <- jsonlite::toJSON(scheme_list, auto_unbox = TRUE, pretty = TRUE)
 ```
 
     #> {
@@ -435,12 +449,7 @@ The JSON representation can then be written to a file:
 
 ``` r
 
-jsonlite::write_json(
-  scheme_list,
-  "scheme.json",
-  auto_unbox = TRUE,
-  pretty = TRUE
-)
+jsonlite::write_json(scheme_list, "scheme.json", auto_unbox = TRUE, pretty = TRUE)
 ```
 
 In summary, not every response is immediately available as a
@@ -488,22 +497,13 @@ unit_id <- 145615
 
 httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::req_method("POST") %>%
-  httr2::req_url_path_append(
-    "workspaces", workspace_id,
-    "units", unit_id,
-    "comments"
-  ) %>%
-  httr2::req_headers(
-    "Authorization" = paste("Bearer", access_token),
-    "App-Version" = "17.0.1"
-  ) %>%
-  httr2::req_body_json(data = list(
-    body = "<p>Dies ist ein Test-Kommentar.</p>",
-    parentId = NULL,
-    unitId = unit_id,
-    userId = user_id,
-    userName = "Mustermann, Max"
-  )) %>%
+  httr2::req_url_path_append("workspaces", workspace_id,
+                            "units", unit_id, "comments") %>%
+  httr2::req_headers("Authorization" = paste("Bearer", access_token),
+                     "App-Version" = app_version) %>%
+  httr2::req_body_json(data = list(body = "<p>Dies ist ein Test-Kommentar.</p>",
+                                  parentId = NULL, unitId = unit_id,
+                                  userId = user_id, userName = "Mustermann, Max")) %>%
   httr2::req_perform()
 ```
 
@@ -531,19 +531,11 @@ unit_id <- 145615
 
 httr2::request("https://www.iqb-studio.de/api/") %>%
   httr2::req_method("PATCH") %>%
-  httr2::req_url_path_append(
-    "workspaces", workspace_id,
-    "units", unit_id,
-    "properties"
-  ) %>%
-  httr2::req_headers(
-    "Authorization" = paste("Bearer", access_token),
-    "App-Version" = "17.0.1"
-  ) %>%
-  httr2::req_body_json(data = list(
-    id = unit_id,
-    key = "UNIT_001"
-  )) %>%
+  httr2::req_url_path_append("workspaces", workspace_id,
+                            "units", unit_id, "properties") %>%
+  httr2::req_headers("Authorization" = paste("Bearer", access_token),
+                     "App-Version" = app_version) %>%
+  httr2::req_body_json(data = list(id = unit_id, key = "UNIT_001")) %>%
   httr2::req_perform()
 ```
 

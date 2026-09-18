@@ -64,7 +64,7 @@
 
 
 <dt id="arg-app-version">app_version<a class="anchor" aria-label="anchor" href="#arg-app-version"></a></dt>
-<dd><p>Character. App version of the IQB Studio instance. Defaults to "16.0.0".</p></dd>
+<dd><p>Character. App version of the IQB Studio instance. Defaults to "16.0.0"; the server version is not detected automatically. Set this explicitly to the version used by your Studio instance.</p></dd>
 
 
 <dt id="arg-keyring">keyring<a class="anchor" aria-label="anchor" href="#arg-keyring"></a></dt>
@@ -89,14 +89,16 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Calling the <code>login_studio()</code> function generates the following curl request
-on the <code>base_url</code> (default is "https://www.iqb-studio.de/) with the <code>name</code>
-and the <code>password</code> provided by the user:</p>
-<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>curl <span class="sc">--</span>location <span class="sc">--</span>request POST <span class="st">'{base_url}/api/login?username={name}&amp;password={password}'</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="sc">--</span>header <span class="st">'app-version: 16.0.0'</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="er">}</span><span class="st">'</span></span></code></pre><p></p></div>
-<p>Note that the name and the password are only available to the function call
-and cannot be accessed later as they are not part of the <a href="Login-class.html">Login</a> object generated.</p>
+    <p>The login request sends the username and password as a JSON body to
+<code>{base_url}/api/login</code>. An equivalent curl request is:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>curl <span class="sc">--</span>request POST <span class="st">'{base_url}/api/login'</span> \</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="sc">--</span>header <span class="st">'app-version: {app_version}'</span> \</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="sc">--</span>header <span class="st">'Content-Type: application/json'</span> \</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="sc">--</span>data <span class="st">'{"username":"{name}","password":"{password}"}'</span></span></code></pre><p></p></div>
+<p>The returned <a href="LoginStudio-class.html">LoginStudio</a> object contains workspace information and
+a request function that uses the access token for subsequent API calls.
+It does not retain the password. With <code>keyring = TRUE</code>, credentials are saved
+separately in the local credential store and reused on later logins.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

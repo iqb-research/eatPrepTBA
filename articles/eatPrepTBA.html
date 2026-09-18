@@ -78,50 +78,56 @@ IQB research workflows. It provides wrapper functions to interact with
 the IQB Studio and the IQB Testcenter APIs. Moreover, it provides some
 routines for preparing and combining data from these different resources
 to manage TBA studies.</p>
+<p>This introduction covers Studio access and unit metadata. For
+response coding, missing values, and a scaling data set, continue with
+the <a href="standard-workflow.html">standard workflow</a> (in
+German).</p>
 <div class="section level2">
 <h2 id="preparations">Preparations<a class="anchor" aria-label="anchor" href="#preparations"></a>
 </h2>
 <p><code>eatPrepTBA</code> can be installed from <a href="https://github.com/iqb-research/eatPrepTBA" class="external-link">GitHub</a>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"iqb-research/eatPrepTBA"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span> <span class="co"># once</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"iqb-research/eatPrepTBA"</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://iqb-research.github.io/eatPrepTBA/">eatPrepTBA</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="iqb-studio-login">IQB-Studio Login<a class="anchor" aria-label="anchor" href="#iqb-studio-login"></a>
 </h2>
-<p>To log in to the IQB Studio, you can call the function
-<code><a href="../reference/login_studio.html">login_studio()</a></code>.</p>
+<p>To log in to the IQB Studio, use <a href="../reference/login_studio.html"><code>login_studio()</code></a>.
+Replace <code>STUDIO_VERSION</code> with the version shown by your
+Studio instance (marked as <code>app_version</code> in the screenshot
+below, for example at <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>). Workspace IDs below are
+examples; replace them with IDs available to your account. The Studio
+version is not detected automatically; set it explicitly rather than
+relying on the package’s older default.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="st">"16.0.0"</span><span class="op">)</span></span></code></pre></div>
-<p>You will be asked to provide your username and password either in the
-console or in a dialogue (when using RStudio). This is equivalent to
-logging into the Studio by entering your username and password on <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>.</p>
-<p>The current <code>app_version</code> needs to be updated manually and
-can be found <a href="https://www.iqb-studio.de" class="external-link">here</a>.</p>
+<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"STUDIO_VERSION"</span></span>
+<span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span></span></code></pre></div>
+<p>By default, credentials are entered in a dialog with masked password
+input, also outside RStudio when a GUI is available. If no dialog is
+available, or with <code>dialog = FALSE</code>, the function uses
+console input. The screenshots show an earlier Studio version; the
+interface may look different.</p>
 <p><img src="images/Studio_Login.png" class="r-plt" alt="" width="100%"></p>
-<p>If you use the argument <code>keyring = TRUE</code>, your login data
-will be saved locally to your computer, so that you don’t have to log in
-every time you call <code><a href="../reference/login_studio.html">login_studio()</a></code>. If you want to change
-your login information (e.g. after accidentally entering the wrong
-password), you can add the argument <code>change_key = TRUE</code> to
-the <code><a href="../reference/login_studio.html">login_studio()</a></code>-function. This will call the dialogue
-for entering your login information again.</p>
-<p>The function itself invisibly provides an access token, i.e.,
-something like a key to all of your studies. This can be used on other
-function calls to retrieve data from the IQB-Studio. To use this key in
-other functions, it should be assigned to an <code>R</code> object,
-e.g., <code>login</code>. Calling the <code>login</code> object returns
-a list of workspaces that can be accessed with your credentials.</p>
+<p>With <code>keyring = TRUE</code>, credentials are stored in your
+local credential store and reused on later calls. Each call still logs
+in to Studio, but you do not need to type the credentials again. Use
+<code>change_key = TRUE</code> together with <code>keyring = TRUE</code>
+to replace saved credentials.</p>
+<p>The function returns a <code>LoginStudio</code> object invisibly. It
+contains the workspace information and a request function that uses the
+access token for later API calls. Save it as <code>login</code> and pass
+it to <code><a href="../reference/access_workspace.html">access_workspace()</a></code>. Printing <code>login</code> shows
+the workspace groups and workspaces available to your account.</p>
 </div>
 <div class="section level2">
 <h2 id="accessing-a-workspace">Accessing a workspace<a class="anchor" aria-label="anchor" href="#accessing-a-workspace"></a>
 </h2>
 <p>All workspaces are part of a workspace group and have a unique
 ID.</p>
-<p>You can access a workspace with the function
-<code><a href="../reference/access_workspace.html">access_workspace()</a></code>. With the argument
-<code>ws_id = x</code>, you choose which workspace to access.</p>
+<p>You can access a workspace with <a href="../reference/access_workspace.html"><code>access_workspace()</code></a>.
+The argument <code>ws_id</code> selects the workspace.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">workspace</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span>login <span class="op">=</span> <span class="va">login</span>, ws_id <span class="op">=</span> <span class="fl">1300</span><span class="op">)</span></span></code></pre></div>
 <p>The ID of a workspace can be found by looking at its URL in the
@@ -138,13 +144,16 @@ able to work with it later.</p>
 <div class="section level2">
 <h2 id="accessing-the-units-in-a-workspace">Accessing the units in a workspace<a class="anchor" aria-label="anchor" href="#accessing-the-units-in-a-workspace"></a>
 </h2>
-<p>Using the <code>workspace</code> object, you can now extract the
-units using the <code><a href="../reference/get_units.html">get_units()</a></code> function. This function allows
-you to look at many units at once, instead of having to go through them
-one by one like in the Studio. Depending on how many workspaces you
-access, this might take a moment to load.</p>
+<p>Using the <code>workspace</code> object, retrieve units with <a href="../reference/get_units.html"><code>get_units()</code></a>. This
+loads the units from the selected workspaces into one table; larger
+workspaces may take a moment to load. Metadata is included by default.
+Use <code>unit_definition = TRUE</code> if you also need page
+information.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_units.html">get_units</a></span><span class="op">(</span>workspace <span class="op">=</span> <span class="va">workspace</span><span class="op">)</span></span></code></pre></div>
+<p>The output below uses three anonymized example units with 37
+variables from a saved Studio export. It is an illustration, not a live
+download.</p>
 <p><code><a href="../reference/get_units.html">get_units()</a></code> returns a tibble with one row per unit and
 several metadata columns, including nested list-columns.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -209,10 +218,10 @@ its state.</p>
 <code>description</code>: the description or notes stored for the
 unit.</li>
 <li>
-<code>state_id</code>: If no state is set, this variable is 0. The
-package can also attach the corresponding <code>state_label</code>
-(e.g. <code>state_id = 1</code> means “zu klären”) and
-<code>state_color</code> when those settings exist.</li>
+<code>state_id</code>: the state identifier supplied by Studio. Its
+meaning depends on the workspace-group settings;
+<code>state_label</code> and <code>state_color</code> are added when
+those settings are available.</li>
 </ul>
 <p><img src="images/Studio_Unit_Overview.png" class="r-plt" alt="" width="100%"></p>
 <p><img src="images/Studio_State_ID.png" class="r-plt" alt="" width="100%"></p>
@@ -268,11 +277,11 @@ in JSON format.</li>
 information rather than single values.</p>
 <ul>
 <li>
-<code>unit_variables</code>: which individual variables a unit
-contains. An item is sometimes derived from multiple variables, for
-example by summing several true/false statements. Each row represents
-one variable (that is, one “Basisvariable”), but during coding a sum is
-calculated, and that sum becomes the item.</li>
+<code>unit_variables</code>: the input variables supplied by the
+unit. A coding scheme can derive an item score from several input
+variables, for example by summing several true/false responses. The
+item-variable links are stored in <code>items_list</code>; <a href="../reference/add_item_id.html"><code>add_item_id()</code></a>
+attaches these item IDs to variable-level data.</li>
 </ul>
 <p>For a closer look at the variables inside the unit, the lists can be
 unnested:</p>

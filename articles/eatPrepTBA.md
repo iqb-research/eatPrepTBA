@@ -7,6 +7,12 @@ and the IQB Testcenter APIs. Moreover, it provides some routines for
 preparing and combining data from these different resources to manage
 TBA studies.
 
+This introduction covers Studio access and unit metadata. For response
+coding, missing values, and a scaling data set, continue with the
+[standard
+workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.md)
+(in German).
+
 ## Preparations
 
 `eatPrepTBA` can be installed from
@@ -14,55 +20,55 @@ TBA studies.
 
 ``` r
 
-install.packages("devtools")
-devtools::install_github("iqb-research/eatPrepTBA")
+install.packages("pak") # once
+pak::pak("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
 ```
 
 ## IQB-Studio Login
 
-To log in to the IQB Studio, you can call the function
+To log in to the IQB Studio, use
 [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md).
+Replace `STUDIO_VERSION` with the version shown by your Studio instance
+(marked as `app_version` in the screenshot below, for example at
+<https://www.iqb-studio.de>). Workspace IDs below are examples; replace
+them with IDs available to your account. The Studio version is not
+detected automatically; set it explicitly rather than relying on the
+package’s older default.
 
 ``` r
 
-login <- login_studio(keyring = TRUE, app_version = "16.0.0")
+app_version <- "STUDIO_VERSION"
+login <- login_studio(keyring = TRUE, app_version = app_version)
 ```
 
-You will be asked to provide your username and password either in the
-console or in a dialogue (when using RStudio). This is equivalent to
-logging into the Studio by entering your username and password on
-<https://www.iqb-studio.de>.
-
-The current `app_version` needs to be updated manually and can be found
-[here](https://www.iqb-studio.de).
+By default, credentials are entered in a dialog with masked password
+input, also outside RStudio when a GUI is available. If no dialog is
+available, or with `dialog = FALSE`, the function uses console input.
+The screenshots show an earlier Studio version; the interface may look
+different.
 
 ![](images/Studio_Login.png)
 
-If you use the argument `keyring = TRUE`, your login data will be saved
-locally to your computer, so that you don’t have to log in every time
-you call
-[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md).
-If you want to change your login information (e.g. after accidentally
-entering the wrong password), you can add the argument
-`change_key = TRUE` to the
-[`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)-function.
-This will call the dialogue for entering your login information again.
+With `keyring = TRUE`, credentials are stored in your local credential
+store and reused on later calls. Each call still logs in to Studio, but
+you do not need to type the credentials again. Use `change_key = TRUE`
+together with `keyring = TRUE` to replace saved credentials.
 
-The function itself invisibly provides an access token, i.e., something
-like a key to all of your studies. This can be used on other function
-calls to retrieve data from the IQB-Studio. To use this key in other
-functions, it should be assigned to an `R` object, e.g., `login`.
-Calling the `login` object returns a list of workspaces that can be
-accessed with your credentials.
+The function returns a `LoginStudio` object invisibly. It contains the
+workspace information and a request function that uses the access token
+for later API calls. Save it as `login` and pass it to
+[`access_workspace()`](https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.md).
+Printing `login` shows the workspace groups and workspaces available to
+your account.
 
 ## Accessing a workspace
 
 All workspaces are part of a workspace group and have a unique ID.
 
-You can access a workspace with the function
+You can access a workspace with
 [`access_workspace()`](https://iqb-research.github.io/eatPrepTBA/reference/access_workspace.md).
-With the argument `ws_id = x`, you choose which workspace to access.
+The argument `ws_id` selects the workspace.
 
 ``` r
 
@@ -88,17 +94,19 @@ workspace <- access_workspace(login = login, ws_id = c(1300, 919))
 
 ## Accessing the units in a workspace
 
-Using the `workspace` object, you can now extract the units using the
-[`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
-function. This function allows you to look at many units at once,
-instead of having to go through them one by one like in the Studio.
-Depending on how many workspaces you access, this might take a moment to
-load.
+Using the `workspace` object, retrieve units with
+[`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
+This loads the units from the selected workspaces into one table; larger
+workspaces may take a moment to load. Metadata is included by default.
+Use `unit_definition = TRUE` if you also need page information.
 
 ``` r
 
 units <- get_units(workspace = workspace)
 ```
+
+The output below uses three anonymized example units with 37 variables
+from a saved Studio export. It is an illustration, not a live download.
 
 [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md)
 returns a tibble with one row per unit and several metadata columns,
@@ -163,9 +171,9 @@ its state.
 - `unit_key`: the short name of the unit.
 - `group_name`: the group assigned to the unit.
 - `description`: the description or notes stored for the unit.
-- `state_id`: If no state is set, this variable is 0. The package can
-  also attach the corresponding `state_label` (e.g. `state_id = 1` means
-  “zu klären”) and `state_color` when those settings exist.
+- `state_id`: the state identifier supplied by Studio. Its meaning
+  depends on the workspace-group settings; `state_label` and
+  `state_color` are added when those settings are available.
 
 ![](images/Studio_Unit_Overview.png)
 
@@ -209,11 +217,12 @@ The variables `unit_variables`, `unit_profiles`, `items_list`, and
 `items_profiles` are list-columns containing nested information rather
 than single values.
 
-- `unit_variables`: which individual variables a unit contains. An item
-  is sometimes derived from multiple variables, for example by summing
-  several true/false statements. Each row represents one variable (that
-  is, one “Basisvariable”), but during coding a sum is calculated, and
-  that sum becomes the item.
+- `unit_variables`: the input variables supplied by the unit. A coding
+  scheme can derive an item score from several input variables, for
+  example by summing several true/false responses. The item-variable
+  links are stored in `items_list`;
+  [`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md)
+  attaches these item IDs to variable-level data.
 
 For a closer look at the variables inside the unit, the lists can be
 unnested:

@@ -256,6 +256,47 @@ Häufungen prüfen.</td>
 behalten, ohne dass ein Problem vorliegt. Zu klären sind offene
 Kodierungen und Fehler, die die Itemvariablen oder deren Berechnung
 betreffen.</p>
+<div class="section level3">
+<h3 id="zur-information-die-voreingestellte-missing-zuordnung">Zur Information: die voreingestellte Missing-Zuordnung<a class="anchor" aria-label="anchor" href="#zur-information-die-voreingestellte-missing-zuordnung"></a>
+</h3>
+<p><strong>Das Objekt muss nicht selbst angelegt oder übergeben
+werden.</strong> Die folgende Tabelle zeigt nur zur Information die
+Standardwerte von <code><a href="../reference/complete_design.html">complete_design()</a></code>: Auslassungen und
+ungültige Antworten erhalten 0 Punkte, Not reached und Kodierfehler
+<code>NA</code>. Die Beispielaufrufe verwenden diese Voreinstellung
+automatisch.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">missings</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tribble.html" class="external-link">tribble</a></span><span class="op">(</span></span>
+<span>  <span class="op">~</span><span class="va">code_id</span>, <span class="op">~</span><span class="va">code_status</span>,   <span class="op">~</span><span class="va">code_score</span>, <span class="op">~</span><span class="va">code_type</span>,</span>
+<span>  <span class="op">-</span><span class="fl">96</span>,     <span class="st">"NOT_REACHED"</span>,  <span class="cn">NA_real_</span>,   <span class="st">"MISSING_NOT_REACHED"</span>,</span>
+<span>  <span class="op">-</span><span class="fl">97</span>,     <span class="st">"CODING_ERROR"</span>, <span class="cn">NA_real_</span>,   <span class="st">"MISSING_CODING_IMPOSSIBLE"</span>,</span>
+<span>  <span class="op">-</span><span class="fl">98</span>,     <span class="st">"INVALID"</span>,      <span class="fl">0</span>,          <span class="st">"MISSING_INVALID_RESPONSE"</span>,</span>
+<span>  <span class="op">-</span><span class="fl">99</span>,     <span class="st">"DISPLAYED"</span>,    <span class="fl">0</span>,          <span class="st">"MISSING_BY_OMISSION"</span><span class="op">)</span></span></code></pre></div>
+<p>Nur für eigene Regeln wird <code>missings</code> vor Abschnitt 4
+angelegt und mit <code>missings = missings</code> an die Aufrufe in
+Abschnitt 4 und 5 übergeben.</p>
+<p>Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen
+Richtungen:</p>
+<ul>
+<li>
+<strong><code>code_responses(..., codes_manual = ...)</code>:</strong>
+Ein manuell gelieferter Missing-Code in <code>code_id</code> wird in
+Status und Score übersetzt, z. B. <code>-99</code> →
+<code>DISPLAYED</code> und 0 Punkte. Ohne <code>codes_manual</code> wird
+diese Zuordnung hier nicht angewendet. Die abschließenden Missing-Scores
+weist erst <code><a href="../reference/complete_design.html">complete_design()</a></code> zu.</li>
+<li>
+<strong><code>complete_design(...)</code>:</strong> Die Funktion
+bestimmt zuerst die Missing-Art und ordnet ihr über
+<code>code_type</code> den Code und Score aus der Tabelle zu,
+<ol start="26" style="list-style-type: lower-alpha">
+<li>B. <code>MISSING_BY_OMISSION</code> → <code>-99</code> und 0 Punkte.
+Das gilt auch ohne manuelle Kodierung; fehlende Status werden
+ergänzt.</li>
+</ol>
+</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
 <h2 id="optional-manuelle-codes-einfügen">4. Optional: manuelle Codes einfügen<a class="anchor" aria-label="anchor" href="#optional-manuelle-codes-einf%C3%BCgen"></a>
@@ -268,7 +309,7 @@ weiter mit Abschnitt 5.</strong> Die fertige Tabelle
 und <code>code_id</code>: genau einen Code je zu kodierender Antwort,
 passend zum Kodierschema. <code>code_id</code> enthält den Code, nicht
 die Punktzahl.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Kennungen als Text, code_id als Ganzzahl einlesen</span></span>
 <span><span class="va">codes_manual</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="st">"daten/codes_manual.csv"</span>,</span>
 <span>                              col_types <span class="op">=</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/cols.html" class="external-link">cols</a></span><span class="op">(</span>.default <span class="op">=</span> <span class="st">"c"</span>, code_id <span class="op">=</span> <span class="st">"i"</span><span class="op">)</span><span class="op">)</span></span>
@@ -290,11 +331,7 @@ Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
 Aufgaben am Ende von Auslassungen vor später bearbeiteten Units
 unterschieden. Bereits als Auslassung kodierte Antworten bleiben
 standardmäßig Auslassungen.</p>
-<p>Hier gelten die Standardregeln: <strong>Auslassungen und ungültige
-Antworten erhalten 0 Punkte; Not reached und Kodierfehler
-<code>NA</code>.</strong> Eine eigene Zuordnung kann über
-<code>missings</code> übergeben werden (siehe Funktionshilfe).</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design_coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/complete_design.html">complete_design</a></span><span class="op">(</span>coded <span class="op">=</span> <span class="va">coded</span>, units <span class="op">=</span> <span class="va">units</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span>, <span class="va">code_type</span><span class="op">)</span></span>
@@ -314,7 +351,7 @@ bleiben beim späteren Umformen <code>NA</code>.</p>
 Bereichen enthält <code>domains</code> die jeweilige Zuordnung (ein
 Bereich je Unit). <a href="../reference/evaluate_psychometrics.html"><code>evaluate_psychometrics()</code></a>
 berechnet die Kennwerte.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">domains</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">units</span>, <span class="va">unit_key</span><span class="op">)</span></span>
 <span><span class="va">domains</span><span class="op">$</span><span class="va">domain</span> <span class="op">&lt;-</span> <span class="st">"Lesen"</span></span>
 <span></span>
@@ -339,7 +376,7 @@ ergänzt die Item-ID aus den Studio-Metadaten über <code>unit_key</code>
 und <code>variable_id</code>. Variablen ohne Item-Verknüpfung erhalten
 <code>NA</code>; im Beispiel werden nur verknüpfte Itemvariablen
 übernommen.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_item_id.html">add_item_id</a></span><span class="op">(</span><span class="va">analysis_data</span>, <span class="va">units</span><span class="op">)</span></span>
 <span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">item_data</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">item_id</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>

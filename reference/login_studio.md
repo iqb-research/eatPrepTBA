@@ -25,7 +25,8 @@ login_studio(
 - app_version:
 
   Character. App version of the IQB Studio instance. Defaults to
-  "16.0.0".
+  "16.0.0"; the server version is not detected automatically. Set this
+  explicitly to the version used by your Studio instance.
 
 - keyring:
 
@@ -59,15 +60,17 @@ class.
 
 ## Details
 
-Calling the `login_studio()` function generates the following curl
-request on the `base_url` (default is "https://www.iqb-studio.de/) with
-the `name` and the `password` provided by the user:
+The login request sends the username and password as a JSON body to
+`{base_url}/api/login`. An equivalent curl request is:
 
-    curl --location --request POST '{base_url}/api/login?username={name}&password={password}'
-    --header 'app-version: 16.0.0'
-    }'
+    curl --request POST '{base_url}/api/login' \
+      --header 'app-version: {app_version}' \
+      --header 'Content-Type: application/json' \
+      --data '{"username":"{name}","password":"{password}"}'
 
-Note that the name and the password are only available to the function
-call and cannot be accessed later as they are not part of the
-[Login](https://iqb-research.github.io/eatPrepTBA/reference/Login-class.md)
-object generated.
+The returned
+[LoginStudio](https://iqb-research.github.io/eatPrepTBA/reference/LoginStudio-class.md)
+object contains workspace information and a request function that uses
+the access token for subsequent API calls. It does not retain the
+password. With `keyring = TRUE`, credentials are saved separately in the
+local credential store and reused on later logins.

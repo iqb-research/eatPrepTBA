@@ -103,6 +103,11 @@ functions such as <code><a href="../reference/login_studio.html">login_studio()<
 <code><a href="../reference/list_units.html">list_units()</a></code>, <code><a href="../reference/get_units.html">get_units()</a></code>, or
 <code><a href="../reference/prepare_codebook.html">prepare_codebook()</a></code> so that users do not need to write
 <code>httr2</code> code directly.</p>
+<p>For a first connection, see the <a href="eatPrepTBA.html">Studio
+introduction</a>. The examples below use placeholder credentials and
+example workspace and unit IDs. Replace them with your own values.
+Screenshots show an earlier Studio version; the saved metadata example
+has been adapted to the current format.</p>
 <div class="section level2">
 <h2 id="http-requests">HTTP requests<a class="anchor" aria-label="anchor" href="#http-requests"></a>
 </h2>
@@ -176,12 +181,16 @@ inspect the request headers. In the <code>Authorization</code> header,
 the token appears in the form
 <code>Bearer &lt;access-token&gt;</code>.</p>
 <p>When reproducing the request in R with <code>httr2</code>, this value
-is passed with <code>req_headers()</code>. In eatPrepTBA, users normally
-do not need to copy this token manually, because
-<code><a href="../reference/login_studio.html">login_studio()</a></code> handles the login and stores the token for
-later requests.</p>
+is passed with <code>req_headers()</code>. In eatPrepTBA, <a href="../reference/login_studio.html"><code>login_studio()</code></a>
+returns a <code>LoginStudio</code> object whose request function uses
+the token for later requests; users do not need to copy it manually.</p>
+<p>Set <code>app_version</code> once to the version shown by your Studio
+instance. It is not detected automatically. For manual requests, the
+version is also visible in the browser’s <code>App-Version</code>
+request header.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu">eatPrepTBA</span><span class="fu">::</span><span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>app_version <span class="op">=</span> <span class="st">"17.0.1"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"STUDIO_VERSION"</span></span>
+<span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu">eatPrepTBA</span><span class="fu">::</span><span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>app_version <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="a-simple-get-request-with-httr2">A simple GET request with httr2<a class="anchor" aria-label="anchor" href="#a-simple-get-request-with-httr2"></a>
@@ -192,14 +201,10 @@ this case, workspace 1300).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">httr2_result</span> <span class="op">&lt;-</span> <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://www.iqb-studio.de/api/"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"workspaces"</span>, <span class="fl">1300</span>, <span class="st">"units"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_query</a></span><span class="op">(</span></span>
-<span>    targetWorkspaceId <span class="op">=</span> <span class="fl">1300</span>,</span>
-<span>    withLastSeenCommentTimeStamp <span class="op">=</span> <span class="st">"true"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
-<span>    <span class="st">"App-Version"</span> <span class="op">=</span> <span class="st">"17.0.1"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_query</a></span><span class="op">(</span>targetWorkspaceId <span class="op">=</span> <span class="fl">1300</span>,</span>
+<span>                       withLastSeenCommentTimeStamp <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span><span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
+<span>                     <span class="st">"App-Version"</span> <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/resp_body_raw.html" class="external-link">resp_body_json</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The request starts from the Studio API base URL. The path
@@ -328,15 +333,10 @@ the previous unit-list request, now requesting a specific unit and its
 <span><span class="va">unit_id</span> <span class="op">&lt;-</span> <span class="fl">145615</span></span>
 <span></span>
 <span><span class="va">properties</span> <span class="op">&lt;-</span> <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://www.iqb-studio.de/api/"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span></span>
-<span>    <span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
-<span>    <span class="st">"units"</span>, <span class="va">unit_id</span>,</span>
-<span>    <span class="st">"properties"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
-<span>    <span class="st">"App-Version"</span> <span class="op">=</span> <span class="st">"17.0.1"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
+<span>                            <span class="st">"units"</span>, <span class="va">unit_id</span>, <span class="st">"properties"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span><span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
+<span>                     <span class="st">"App-Version"</span> <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/resp_body_raw.html" class="external-link">resp_body_json</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The response is again parsed with <code>resp_body_json()</code>. The
@@ -356,7 +356,8 @@ fields that are shown in Studio under
 |   `-- items                 # metadata for individual items
 |       `-- item 1
 |           |-- id
-|           |-- variableId
+|           |-- sourceVariableId
+|           |-- sourceVariableUuid
 |           |-- description
 |           `-- profiles
 |               `-- profile
@@ -368,27 +369,44 @@ fields that are shown in Studio under
 |-- player
 |-- editor
 `-- ...</code></pre>
-<p>For example, we can extract some unit-level metadata for the unit
-<code>145615</code> in workspace <code>1300</code>.</p>
+<p><code>sourceVariableId</code> links an item to its variable;
+<code>sourceVariableUuid</code> stores the variable UUID when available.
+eatPrepTBA exposes these as <code>variable_id</code> and
+<code>variable_ref</code>. Older saved responses may still use
+<code>variableId</code> and <code>variableReadOnlyId</code>; the package
+also accepts those fields.</p>
+<p>Metadata values can be vocabulary selections, language-coded text, or
+simple values with <code>raw</code> and <code>asText</code>. The
+following examples select entries by ID within the example profile,
+rather than relying on their position.</p>
 <div class="side-by-side">
 <div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Kompetenzbereich</span></span>
-<span><span class="va">properties</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">profiles</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">entries</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">label</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
+<span><span class="va">entries</span> <span class="op">&lt;-</span> <span class="va">properties</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">profiles</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">entries</span></span>
+<span><span class="va">competence</span> <span class="op">&lt;-</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/keep.html" class="external-link">keep</a></span><span class="op">(</span><span class="va">entries</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="st">"w8"</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">competence</span><span class="op">$</span><span class="va">label</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] "Kompetenzbereich"</span></span>
-<span><span class="va">properties</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">profiles</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">entries</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">valueAsText</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
+<span><span class="va">competence</span><span class="op">$</span><span class="va">value</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">id</span></span>
+<span><span class="co">#&gt; [1] "https://w3id.org/iqb/v12/s1/z7e"</span></span>
+<span><span class="va">competence</span><span class="op">$</span><span class="va">value</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">label</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] "2 Schreiben"</span></span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quellenangaben</span></span>
-<span><span class="va">properties</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">profiles</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">entries</span><span class="op">[[</span><span class="fl">5</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">label</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
+<span><span class="va">copyright</span> <span class="op">&lt;-</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/keep.html" class="external-link">keep</a></span><span class="op">(</span><span class="va">entries</span>, <span class="op">~</span> <span class="va">.x</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="st">"iqb_copyright"</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">copyright</span><span class="op">$</span><span class="va">label</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] "Quellenangaben"</span></span>
-<span><span class="va">properties</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">profiles</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">entries</span><span class="op">[[</span><span class="fl">5</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">valueAsText</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
+<span><span class="va">copyright</span><span class="op">$</span><span class="va">value</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] "BT: D0_86_01"</span></span></code></pre></div>
 </div>
 <div>
 <p><img src="images/manually_extract_metadata_example.png" class="r-plt" alt="" width="100%"></p>
 </div>
 </div>
+<p>Older metadata may have a separate <code>valueAsText</code> field.
+For routine analysis, <a href="../reference/get_units.html"><code>get_units()</code></a> prepares
+both formats as <code>unit_profiles</code>, <code>items_list</code>, and
+<code>items_profiles</code>, so these manual lookups are not needed.</p>
 </div>
 <div class="section level2">
 <h2 id="retrieving-a-coding-scheme">Retrieving a coding scheme<a class="anchor" aria-label="anchor" href="#retrieving-a-coding-scheme"></a>
@@ -408,15 +426,10 @@ the app version. Only the final part of the request path changes from
 <span><span class="va">unit_id</span> <span class="op">&lt;-</span> <span class="fl">145615</span></span>
 <span></span>
 <span><span class="va">scheme_response</span> <span class="op">&lt;-</span> <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://www.iqb-studio.de/api/"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span></span>
-<span>    <span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
-<span>    <span class="st">"units"</span>, <span class="va">unit_id</span>,</span>
-<span>    <span class="st">"scheme"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
-<span>    <span class="st">"App-Version"</span> <span class="op">=</span> <span class="st">"17.0.1"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
+<span>                            <span class="st">"units"</span>, <span class="va">unit_id</span>, <span class="st">"scheme"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span><span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
+<span>                     <span class="st">"App-Version"</span> <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/resp_body_raw.html" class="external-link">resp_body_json</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The response from the API contains the coding scheme. In some cases,
@@ -451,11 +464,7 @@ as JSON scalars instead of arrays of length one. This is important
 because the Studio API scheme format expects values such as
 <code>"id": "01a"</code> rather than <code>"id": ["01a"]</code>.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">scheme_json</span> <span class="op">&lt;-</span> <span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">toJSON</a></span><span class="op">(</span></span>
-<span>  <span class="va">scheme_list</span>,</span>
-<span>  auto_unbox <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  pretty <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">scheme_json</span> <span class="op">&lt;-</span> <span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">toJSON</a></span><span class="op">(</span><span class="va">scheme_list</span>, auto_unbox <span class="op">=</span> <span class="cn">TRUE</span>, pretty <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <div class="side-by-side">
 <div>
 <pre><code><span><span class="co">#&gt; {</span></span>
@@ -486,12 +495,7 @@ because the Studio API scheme format expects values such as
 </div>
 <p>The JSON representation can then be written to a file:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/read_json.html" class="external-link">write_json</a></span><span class="op">(</span></span>
-<span>  <span class="va">scheme_list</span>,</span>
-<span>  <span class="st">"scheme.json"</span>,</span>
-<span>  auto_unbox <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  pretty <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/read_json.html" class="external-link">write_json</a></span><span class="op">(</span><span class="va">scheme_list</span>, <span class="st">"scheme.json"</span>, auto_unbox <span class="op">=</span> <span class="cn">TRUE</span>, pretty <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>In summary, not every response is immediately available as a
 conveniently nested R object. Sometimes the API returns JSON inside a
 string. In those cases, eatPrepTBA parses the string before the coding
@@ -528,22 +532,13 @@ request.</p>
 <span></span>
 <span><span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://www.iqb-studio.de/api/"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_method.html" class="external-link">req_method</a></span><span class="op">(</span><span class="st">"POST"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span></span>
-<span>    <span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
-<span>    <span class="st">"units"</span>, <span class="va">unit_id</span>,</span>
-<span>    <span class="st">"comments"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
-<span>    <span class="st">"App-Version"</span> <span class="op">=</span> <span class="st">"17.0.1"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_body.html" class="external-link">req_body_json</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    body <span class="op">=</span> <span class="st">"&lt;p&gt;Dies ist ein Test-Kommentar.&lt;/p&gt;"</span>,</span>
-<span>    parentId <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    unitId <span class="op">=</span> <span class="va">unit_id</span>,</span>
-<span>    userId <span class="op">=</span> <span class="va">user_id</span>,</span>
-<span>    userName <span class="op">=</span> <span class="st">"Mustermann, Max"</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
+<span>                            <span class="st">"units"</span>, <span class="va">unit_id</span>, <span class="st">"comments"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span><span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
+<span>                     <span class="st">"App-Version"</span> <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_body.html" class="external-link">req_body_json</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>body <span class="op">=</span> <span class="st">"&lt;p&gt;Dies ist ein Test-Kommentar.&lt;/p&gt;"</span>,</span>
+<span>                                  parentId <span class="op">=</span> <span class="cn">NULL</span>, unitId <span class="op">=</span> <span class="va">unit_id</span>,</span>
+<span>                                  userId <span class="op">=</span> <span class="va">user_id</span>, userName <span class="op">=</span> <span class="st">"Mustermann, Max"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>In eatPrepTBA, users should usually not construct this request body
 manually. The package can use information from the Studio login, for
@@ -565,19 +560,11 @@ short name of a unit modifies the existing unit properties:</p>
 <span></span>
 <span><span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://www.iqb-studio.de/api/"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_method.html" class="external-link">req_method</a></span><span class="op">(</span><span class="st">"PATCH"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span></span>
-<span>    <span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
-<span>    <span class="st">"units"</span>, <span class="va">unit_id</span>,</span>
-<span>    <span class="st">"properties"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
-<span>    <span class="st">"App-Version"</span> <span class="op">=</span> <span class="st">"17.0.1"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_body.html" class="external-link">req_body_json</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    id <span class="op">=</span> <span class="va">unit_id</span>,</span>
-<span>    key <span class="op">=</span> <span class="st">"UNIT_001"</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"workspaces"</span>, <span class="va">workspace_id</span>,</span>
+<span>                            <span class="st">"units"</span>, <span class="va">unit_id</span>, <span class="st">"properties"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_headers.html" class="external-link">req_headers</a></span><span class="op">(</span><span class="st">"Authorization"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Bearer"</span>, <span class="va">access_token</span><span class="op">)</span>,</span>
+<span>                     <span class="st">"App-Version"</span> <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_body.html" class="external-link">req_body_json</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="va">unit_id</span>, key <span class="op">=</span> <span class="st">"UNIT_001"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="images/Change_Kurzname.png" class="r-plt" alt="" width="100%"></p>
 </div>
