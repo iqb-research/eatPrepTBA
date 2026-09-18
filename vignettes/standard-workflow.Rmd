@@ -142,6 +142,37 @@ Untervariablen, die selbst keine Items werden, können andere Status behalten,
 ohne dass ein Problem vorliegt. Zu klären sind offene Kodierungen und Fehler,
 die die Itemvariablen oder deren Berechnung betreffen.
 
+### Zur Information: die voreingestellte Missing-Zuordnung
+
+**Das Objekt muss nicht selbst angelegt oder übergeben werden.** Die folgende
+Tabelle zeigt nur zur Information die Standardwerte von `complete_design()`:
+Auslassungen und ungültige Antworten erhalten 0 Punkte, Not reached und
+Kodierfehler `NA`. Die Beispielaufrufe verwenden diese Voreinstellung automatisch.
+
+```{r missing-rules, eval=FALSE}
+missings <- tibble::tribble(
+  ~code_id, ~code_status,   ~code_score, ~code_type,
+  -96,     "NOT_REACHED",  NA_real_,   "MISSING_NOT_REACHED",
+  -97,     "CODING_ERROR", NA_real_,   "MISSING_CODING_IMPOSSIBLE",
+  -98,     "INVALID",      0,          "MISSING_INVALID_RESPONSE",
+  -99,     "DISPLAYED",    0,          "MISSING_BY_OMISSION")
+```
+
+Nur für eigene Regeln wird `missings` vor Abschnitt 4 angelegt und mit
+`missings = missings` an die Aufrufe in Abschnitt 4 und 5 übergeben.
+
+Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen Richtungen:
+
+- **`code_responses(..., codes_manual = ...)`:**
+  Ein manuell gelieferter Missing-Code in `code_id` wird in Status und Score
+  übersetzt, z. B. `-99` → `DISPLAYED` und 0 Punkte. Ohne `codes_manual` wird
+  diese Zuordnung hier nicht angewendet. Die abschließenden Missing-Scores
+  weist erst `complete_design()` zu.
+- **`complete_design(...)`:** Die Funktion bestimmt zuerst die Missing-Art und
+  ordnet ihr über `code_type` den Code und Score aus der Tabelle zu,
+  z. B. `MISSING_BY_OMISSION` → `-99` und 0 Punkte. Das gilt auch
+  ohne manuelle Kodierung; fehlende Status werden ergänzt.
+
 ## 4. Optional: manuelle Codes einfügen
 
 **Nur nötig, wenn Antworten manuell kodiert werden. Sonst weiter mit Abschnitt 5.**
@@ -171,19 +202,6 @@ wie in Abschnitt 3 prüfen.
 Anhand der Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
 Aufgaben am Ende von Auslassungen vor später bearbeiteten Units unterschieden.
 Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
-
-Hier gelten die Standardregeln: **Auslassungen und ungültige Antworten erhalten
-0 Punkte; Not reached und Kodierfehler `NA`.** Eine eigene Zuordnung kann über
-`missings` übergeben werden (siehe Funktionshilfe).
-
-Negative Missing-Codes sind Kennzeichnungen, keine Minuspunkte. Die Zuordnung
-wird in zwei Richtungen genutzt:
-
-- **Manuelle Codes einfügen:** Steht in `codes_manual$code_id` z. B. `-99`,
-  ergänzt `code_responses()` den Status `DISPLAYED` und den Score 0.
-- **Design vervollständigen:** Stellt `complete_design()` eine Auslassung fest,
-  weist es den Code `-99` und den Score 0 zu. Negative Missing-Codes entstehen
-  also auch ohne manuelle Kodierung.
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design)
