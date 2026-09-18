@@ -16,7 +16,7 @@ login_studio(
 \arguments{
 \item{base_url}{Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.}
 
-\item{app_version}{Character. App version of the IQB Studio instance. Defaults to "16.0.0".}
+\item{app_version}{Character. App version of the IQB Studio instance. Defaults to "16.0.0"; the server version is not detected automatically. Set this explicitly to the version used by your Studio instance.}
 
 \item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
 
@@ -33,15 +33,17 @@ An object of the \linkS4class{LoginStudio} class.
 Provides a routine to login to an instance of the IQB Studio Lite.
 }
 \details{
-Calling the \code{login_studio()} function generates the following curl request
-on the \code{base_url} (default is "https://www.iqb-studio.de/) with the \code{name}
-and the \code{password} provided by the user:
+The login request sends the username and password as a JSON body to
+\code{{base_url}/api/login}. An equivalent curl request is:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{curl --location --request POST '\{base_url\}/api/login?username=\{name\}&password=\{password\}'
---header 'app-version: 16.0.0'
-\}'
+\if{html}{\out{<div class="sourceCode">}}\preformatted{curl --request POST '\{base_url\}/api/login' \\
+  --header 'app-version: \{app_version\}' \\
+  --header 'Content-Type: application/json' \\
+  --data '\{"username":"\{name\}","password":"\{password\}"\}'
 }\if{html}{\out{</div>}}
 
-Note that the name and the password are only available to the function call
-and cannot be accessed later as they are not part of the \linkS4class{Login} object generated.
+The returned \linkS4class{LoginStudio} object contains workspace information and
+a request function that uses the access token for subsequent API calls.
+It does not retain the password. With \code{keyring = TRUE}, credentials are saved
+separately in the local credential store and reused on later logins.
 }

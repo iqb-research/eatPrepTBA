@@ -8,7 +8,8 @@
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iqb-research/eatPrepTBA/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/iqb-research/eatPrepTBA/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iqb-research/eatPrepTBA?branch=main)
+[![Codecov test
+coverage](https://codecov.io/gh/iqb-research/eatPrepTBA/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iqb-research/eatPrepTBA?branch=main)
 <!-- badges: end -->
 
 The goal of eatPrepTBA is to provide wrapper functions to interact with
@@ -28,6 +29,15 @@ You can install the development version of eatPrepTBA from
 [GitHub](https://github.com/) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("iqb-research/eatPrepTBA")
+install.packages("pak") # once
+pak::pak("iqb-research/eatPrepTBA")
 ```
+
+## Getting started
+
+Start with the [Studio
+introduction](https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.html)
+to connect to a workspace and retrieve units. For response coding,
+missing values, and a scaling data set, see the [standard
+workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html)
+(in German).
