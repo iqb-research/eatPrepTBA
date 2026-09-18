@@ -274,13 +274,6 @@ copyright$label[[1]]$value
 copyright$value[[1]]$value
 ```
 
-```{r aufgabenzeit}
-# Aufgabenzeit: stored value and formatted text
-duration <- purrr::keep(entries, ~ .x$id == "iqb_time_unit")[[1]]
-duration$value$raw
-duration$value$asText[[1]]$value
-```
-
 :::
 
 ::: {}

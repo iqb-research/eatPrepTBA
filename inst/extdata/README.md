@@ -9,11 +9,12 @@ They are not live API results.
   `locked`, `position`, and `weighting` fields were removed. Profiles use
   `order`; vocabulary entries use `label`, simple values use `raw`/`asText`,
   and language-coded text remains a list of language/value pairs.
-- `example_units.rds`: the same unit, prepared from that properties response
-  and its recorded coding scheme using the current `read_units()` and
-  `read_metadata()` helpers. Workspace settings were retained from the previous
-  example. This replaces the older three-unit snapshot and no longer includes
-  retired item columns. The unit profile's displayed values were preserved.
+- `example_units.rds`: an anonymized recorded three-unit snapshot (`D2_BT18`,
+  `D3_UF04`, `D3_JP03`) containing all 37 original variables and their metadata.
+  Retired item columns were removed; profile identifiers and ordering information
+  not retained in this historical snapshot are represented as missing values.
+  The separate `example_properties.rds` response has an empty `variables` list
+  and cannot be used to reconstruct this complete unit table.
 - `example_httr2_result.rds`: an anonymized historical unit-list response used
   to illustrate the outer API response structure.
 - `example_scheme_string.json`: the recorded coding scheme for the example

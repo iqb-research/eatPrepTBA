@@ -30,13 +30,15 @@ library(eatPrepTBA)
 
 To log in to the IQB Studio, use [`login_studio()`](../reference/login_studio.html).
 Replace `STUDIO_VERSION` with the version shown by your Studio instance
-(for example, at <https://www.iqb-studio.de>). Workspace IDs below are examples;
+(marked as `app_version` in the screenshot below, for example at
+<https://www.iqb-studio.de>). Workspace IDs below are examples;
 replace them with IDs available to your account.
 The Studio version is not detected automatically; set it explicitly rather than
 relying on the package's older default.
 
 ```{r, eval=FALSE}
-login <- login_studio(keyring = TRUE, app_version = "STUDIO_VERSION")
+app_version <- "STUDIO_VERSION"
+login <- login_studio(keyring = TRUE, app_version = app_version)
 ```
 
 By default, credentials are entered in a dialog with masked password input,
@@ -97,9 +99,8 @@ Use `unit_definition = TRUE` if you also need page information.
 units <- get_units(workspace = workspace)
 ```
 
-The output below uses one anonymized example unit, prepared with the current
-metadata reader from a saved response adapted to the current metadata format.
-It is an illustration, not a live download.
+The output below uses three anonymized example units with 37 variables from a
+saved Studio export. It is an illustration, not a live download.
 
 ```{r echo = FALSE}
 # ...that can be used in the vignette without needing to log into the Studio
