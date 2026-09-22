@@ -51,7 +51,7 @@ profile is selected. Profile codes are added to each variable; the Studio
 field \code{code} becomes \code{code_id} in the returned table. An unknown label
 raises an error before downloading.}
 
-\item{only_coded}{Logical. Should only variables with codes be shown? Defaults to \code{TRUE}.}
+\item{only_coded}{Logical. Should only variables with codes be shown? Defaults to \code{FALSE}.}
 
 \item{general_instructions}{Logical. Should the general coding instructions be printed? Defaults to \code{FALSE}. (Currently not displayed.)}
 
@@ -78,7 +78,7 @@ To include missing-value codes maintained in Studio, set \code{missings_profile}
 to the exact profile label shown in Studio's codebook export dialog.
 These codes are returned separately for each unit by Studio and added to
 each variable in the prepared table. The numeric Studio \code{code} is used as
-\code{code_id}; the profile entry's technical \code{id} is not used as a code ID.
+\code{code_id}; the missing category's identifier (for example, \code{mci}) is not used as a code ID.
 
 To supply your own missing-value codes, pass a tibble through \code{missings}.
 If both arguments are supplied, your entries replace profile entries with
