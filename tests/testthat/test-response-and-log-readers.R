@@ -86,6 +86,39 @@ test_that("read_system_checks unnests JSON response content from semicolon CSV",
   expect_equal(out$status, "VALUE_CHANGED")
 })
 
+test_that("read_system_checks keeps system check rows with missing responses", {
+  file <- tempfile(fileext = ".csv")
+  response_content <- jsonlite::toJSON(
+    list(list(id = "download_speed", value = "20", status = "VALUE_CHANGED")),
+    auto_unbox = TRUE
+  )
+  responses <- jsonlite::toJSON(
+    list(list(content = response_content)),
+    auto_unbox = TRUE
+  )
+  writeLines(
+    c(
+      "Name;groupname;downlink;rtt;Responses",
+      paste("check1", "G1", "12.5", "50", gsub("\"", "`", responses), sep = ";"),
+      "check2;;10;40;NA"
+    ),
+    file
+  )
+
+  out <- read_system_checks(file)
+  summary <- summarise_system_checks(out)
+  check2 <- summary[summary$Name == "check2", ]
+
+  expect_equal(out$Name, c("check1", "check2"))
+  expect_true(is.na(out$groupname[2]))
+  expect_equal(out$variable_id[1], "download_speed")
+  expect_true(is.na(out$variable_id[2]))
+  expect_equal(check2$n_system_check_rows, 1L)
+  expect_true(check2$has_network_metrics)
+  expect_equal(check2$system_check_download_value, "10")
+  expect_equal(check2$system_check_rtt_value, "40")
+})
+
 test_that("prepare_responses and prepare_coded unnest response JSON", {
   responses <- tibble::tibble(
     login_name = "L1",

@@ -1,3 +1,61 @@
+# eatPrepTBA 0.9.8.9035 [2026-09-22]
+
+## bug fixes
+
+* Connected `missings_profile` to Studio's codebook export for JSON and DOCX. Profile labels are checked against the server and retain their exact spelling; unknown profiles raise an error.
+* Added Studio profile missing-value codes to each variable returned by `prepare_codebook()`. User-supplied `missings` replace profile entries with the same code ID and supplement the remaining entries.
+* Isolated temporary codebook downloads per preparation call and clean them up on both success and failure.
+
+## tests
+
+* Added regression coverage for profile lookup, case-sensitive labels, failed requests, unit-specific profile codes, user overrides, empty profiles, and temporary-file cleanup.
+
+# eatPrepTBA 0.9.8.9034 [2026-09-17]
+
+## new features
+
+* Added `add_item_id()` to attach Studio item identifiers to variable-level data without changing row count or order, with explicit errors for ambiguous mappings.
+* Supported item links from both `items_list` and prepared `item_metadata`, with unmatched rows returned as `NA` and explicit opt-in to replace an existing `item_id` column.
+
+## documentation
+
+* Added a German beginner workflow vignette separating Studio resources from Testcenter response retrieval or CSV import, explaining coding schemes and the autocoder, and demonstrating design-based not-reached completion, psychometrics, and a persons-by-items data set for eatModel.
+* Linked function help pages and further coding and scaling documentation, using direct function calls and short base-pipe examples.
+
+## tests
+
+* Added regression coverage for item lookup, repeated and conflicting mappings, missing links, empty inputs, prepared metadata, and explicit overwriting.
+
+# eatPrepTBA 0.9.8.9033 [2026-09-03]
+
+## bug fixes
+
+* Restored masked password dialogs for credential prompts, including keyring setup, by using an interactive GUI credential dialog before falling back to RStudio dialogs or console input.
+* Updated `login_testcenter()` to fall back to the Testcenter 18.2+ challenge-based admin login when brute-force protection blocks the legacy direct login endpoint.
+
+## tests
+
+* Added regression coverage for the Testcenter challenge-login fallback, ALTCHA challenge solver, and masked credential prompts.
+
+# eatPrepTBA 0.9.8.9032 [2026-09-02]
+
+## bug fixes
+
+* Fixed `read_system_checks()` so missing or empty `Responses` payloads no longer drop otherwise usable system-check rows, preserving available wide system-check values such as network metrics for `summarise_system_checks()`.
+* Restored standard CSV missing-value handling for non-response columns in `read_system_checks()`.
+
+## tests
+
+* Added regression coverage for system-check exports with mixed valid and missing `Responses` payloads.
+
+# eatPrepTBA 0.9.8.9031 [2026-08-31]
+
+## bug fixes
+
+* Fixed `estimate_unit_times()` so `CURRENT_PAGE_ID = -1` events, which can occur when the Testcenter cannot map the player-reported page to its current valid pages, are not interpreted as page 1; page summaries, anomaly detection, and unit-time outputs now expose these unmapped page states diagnostically.
+* Kept `unit_has_pages = FALSE` available when a log data set contains no valid page IDs at all, preserving downstream compatibility for `compute_staytime_tables()`.
+* Kept valid `CURRENT_PAGE_ID` events visible when they are also the final log entry in a damaged or aborted booklet log, and added `valid_page_id_before_running` to disambiguate page IDs observed before `PLAYER = RUNNING`.
+
 # eatPrepTBA 0.9.8.9030 [2026-08-17]
 
 ## new features
