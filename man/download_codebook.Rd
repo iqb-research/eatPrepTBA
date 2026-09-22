@@ -40,7 +40,7 @@ download_codebook(
 )
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to download codebook via the API.}
+\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to download codebook via the API.}
 
 \item{path}{Character. Path of the directory for the codebook files to be downloaded to. The default filename is determined by the id and the label of the IQB Studio workspace.}
 
@@ -50,7 +50,9 @@ download_codebook(
 
 \item{format}{Character. Either \code{"docx"} (default) or \code{"json"}.}
 
-\item{missings_profile}{Missings profile. (Currently without effect.)}
+\item{missings_profile}{Character (optional). Exact, case-sensitive label of
+a missing-value profile configured in Studio. With \code{NULL} (default), no
+profile is selected. An unknown label raises an error before downloading.}
 
 \item{only_coded}{Logical. Should only variables with codes be shown?}
 
@@ -70,6 +72,13 @@ download_codebook(
 }
 \description{
 This function downloads codebooks from the IQB Studio.
+}
+\details{
+Missing-value profiles are configured in Studio. Use the exact profile label
+shown in Studio's codebook export dialog. A selected profile is checked via
+\code{admin/settings/missings-profiles} using the workspace's login before export.
+Its missing-value codes are included in the downloaded JSON or DOCX file.
+With \code{missings_profile = NULL}, no profile lookup is performed.
 }
 \section{Functions}{
 \itemize{

@@ -5,7 +5,9 @@
 #' @param file_prefix Character (optional). Path prefix, e.g., a date to keep track of different versions of the codebook.
 #' @param unit_keys Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to `NULL` (default), the codebook will be generated for the all units.
 #' @param format Character. Either `"docx"` (default) or `"json"`.
-#' @param missings_profile Missings profile. (Currently without effect.)
+#' @param missings_profile Character (optional). Exact, case-sensitive label of
+#'   a missing-value profile configured in Studio. With `NULL` (default), no
+#'   profile is selected. An unknown label raises an error before downloading.
 #' @param only_coded Logical. Should only variables with codes be shown?
 #' @param general_instructions Logical. Should the general coding instructions be printed? Defaults to `TRUE`.
 #' @param hide_item_var_relation Logocal. Should item-variable relations be printed? Defaults to `FALSE`.
@@ -17,6 +19,13 @@
 #'
 #' @description
 #' This function downloads codebooks from the IQB Studio.
+#'
+#' @details
+#' Missing-value profiles are configured in Studio. Use the exact profile label
+#' shown in Studio's codebook export dialog. A selected profile is checked via
+#' `admin/settings/missings-profiles` using the workspace's login before export.
+#' Its missing-value codes are included in the downloaded JSON or DOCX file.
+#' With `missings_profile = NULL`, no profile lookup is performed.
 #'
 #' @return NULL
 #' @export
@@ -70,6 +79,11 @@ setMethod("download_codebook",
                    show_score = FALSE,
                    code_label_to_upper = TRUE) {
             format <- match.arg(format)
+            checkmate::assert_string(missings_profile, null.ok = TRUE, min.chars = 1)
+
+            if (!is.null(missings_profile)) {
+              check_studio_missings_profile(workspace@login, missings_profile)
+            }
 
             base_req <- workspace@login@base_req
             ws_id <- workspace@ws_id
@@ -123,6 +137,11 @@ setMethod("download_codebook",
                 ) %>%
                 purrr::map(stringr::str_to_lower)
 
+              # Studio matches profile labels exactly, including case.
+              if (!is.null(missings_profile)) {
+                query_params$missingsProfile <- missings_profile
+              }
+
               final_path <- stringr::str_glue("{path}/{file_prefix}{ws$ws_label}.{format}")
 
               req <- function() {
@@ -152,3 +171,22 @@ setMethod("download_codebook",
 
                 })
           })
+
+# Validate against the same profile registry used by Studio's export dialog.
+check_studio_missings_profile <- function(login, label) {
+  profiles <- login@base_req(
+    method = "GET",
+    endpoint = c("admin", "settings", "missings-profiles")
+  ) %>%
+    httr2::req_perform() %>%
+    httr2::resp_body_json()
+
+  labels <- vapply(profiles, function(profile) profile$label, character(1))
+  if (!label %in% labels) {
+    available <- if (length(labels)) paste(shQuote(labels), collapse = ", ") else "none"
+    cli::cli_abort(
+      "Unknown Studio missing-value profile {.val {label}}. Available profiles: {available}. Profile labels are case-sensitive."
+    )
+  }
+  invisible(NULL)
+}

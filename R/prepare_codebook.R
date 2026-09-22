@@ -2,8 +2,15 @@
 #'
 #' @param workspace [WorkspaceStudio-class]. Workspace information necessary to download codebook via the API.
 #' @param unit_keys Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to `NULL` (default), the codebook will be generated for the all units.
-#' @param missings Tibble (optional). Missing table to be added to each variable.
-#' @param missings_profile Missings profile. (Currently without effect.)
+#' @param missings Tibble (optional). Missing-value codes with columns `id`,
+#'   `label`, and `description`, added to each variable. When a Studio profile
+#'   is also selected, these codes replace profile codes with the same `id`;
+#'   all other profile codes are retained. Studio itself is not modified.
+#' @param missings_profile Character (optional). Exact, case-sensitive label of
+#'   a missing-value profile configured in Studio. With `NULL` (default), no
+#'   profile is selected. Profile codes are added to each variable; the Studio
+#'   field `code` becomes `code_id` in the returned table. An unknown label
+#'   raises an error before downloading.
 #' @param only_coded Logical. Should only variables with codes be shown? Defaults to `TRUE`.
 #' @param general_instructions Logical. Should the general coding instructions be printed? Defaults to `FALSE`. (Currently not displayed.)
 #' @param hide_item_var_relation Logical. Should item-variable relations be printed? Defaults to `TRUE`.
@@ -14,7 +21,20 @@
 #' @param code_label_to_upper Logical. Should the code labels be printed in capital letters? Defaults to `TRUE`.
 #'
 #' @description
-#' This function is a wrapper around [download_units()] that provides a rectangular codebook.
+#' This function is a wrapper around [download_codebook()] that provides a rectangular codebook.
+#'
+#' @details
+#' To include missing-value codes maintained in Studio, set `missings_profile`
+#' to the exact profile label shown in Studio's codebook export dialog.
+#' These codes are returned separately for each unit by Studio and added to
+#' each variable in the prepared table. The numeric Studio `code` is used as
+#' `code_id`; the profile entry's technical `id` is not used as a code ID.
+#'
+#' To supply your own missing-value codes, pass a tibble through `missings`.
+#' If both arguments are supplied, your entries replace profile entries with
+#' matching code IDs, including their labels and descriptions. Other profile
+#' entries are retained, and additional user entries are appended. These
+#' changes affect only the returned table; they do not modify Studio.
 #'
 #' @return A tibble.
 #' @export
@@ -62,9 +82,9 @@ setMethod("prepare_codebook",
                    closed = TRUE,
                    show_score = FALSE,
                    code_label_to_upper = TRUE) {
-            tmp <- tempdir()
-            tmp_codebooks <- stringr::str_glue("{tmp}/codebooks")
-            dir.create(tmp_codebooks, showWarnings = FALSE)
+            tmp_codebooks <- tempfile("eatPrepTBA-codebooks-")
+            dir.create(tmp_codebooks)
+            on.exit(unlink(tmp_codebooks, recursive = TRUE), add = TRUE)
 
             # missings <-
             #   tibble::tibble(
@@ -112,31 +132,56 @@ setMethod("prepare_codebook",
               ) %>%
               tidyr::unnest(variables) %>%
               dplyr::mutate(
-                codes = purrr::map(codes, function(codes) prepare_codebook_codes(codes, missing_codes = missing_codes))
+                codes = purrr::map2(codes, missings, function(codes, profile_codes) {
+                  combined_missing_codes <- combine_codebook_missing_codes(
+                    profile_codes, missing_codes
+                  )
+                  prepare_codebook_codes(codes, missing_codes = combined_missing_codes)
+                })
               ) %>%
+              dplyr::select(-missings) %>%
               tidyr::unnest(codes)
-
-            # Clean-up
-            list.files(tmp_codebooks, full.names = TRUE) %>%
-              purrr::map(function(x) file.remove(x)) %>%
-              invisible()
 
             return(codebooks)
           })
 
 #' @keywords internal
 prepare_codebook_units <- function(units,
-                                   unit_entries = c("key", "name", "variables")) {
-  units %>%
+                                   unit_entries = c("key", "name", "variables", "missings")) {
+  columns <- units %>%
     purrr::map(function(unit) {
+      if (is.null(unit$missings)) unit$missings <- list()
       unit[unit_entries]
     }) %>%
-    purrr::list_transpose() %>%
+    purrr::list_transpose()
+  if ("missings" %in% unit_entries) {
+    # Keep even a single profile entry nested within its unit.
+    columns$missings <- purrr::map(units, function(unit) {
+      if (is.null(unit$missings)) list() else unit$missings
+    })
+  }
+  columns %>%
     tibble::as_tibble() %>%
     dplyr::rename(any_of(c(
       "unit_key" = "key",
       "unit_label" = "name"
     )))
+}
+
+# Studio stores missing codes separately from each variable's regular codes.
+combine_codebook_missing_codes <- function(profile_codes, missing_codes) {
+  profile_codes <- purrr::map(profile_codes, function(missing) {
+    if (is.null(missing$code) || length(missing$code) != 1L ||
+        !is.atomic(missing$code) || is.na(missing$code) ||
+        !nzchar(as.character(missing$code))) {
+      cli::cli_abort("A Studio profile missing-value entry has no valid {.field code}.")
+    }
+    list(id = as.character(missing$code), label = missing$label,
+         description = missing$description)
+  })
+  own_ids <- vapply(missing_codes, function(missing) as.character(missing$id), character(1))
+  profile_codes <- purrr::discard(profile_codes, function(missing) missing$id %in% own_ids)
+  c(profile_codes, missing_codes)
 }
 
 #' @keywords internal
