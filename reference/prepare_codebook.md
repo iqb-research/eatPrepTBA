@@ -70,7 +70,7 @@ prepare_codebook(
 - only_coded:
 
   Logical. Should only variables with codes be shown? Defaults to
-  `TRUE`.
+  `FALSE`.
 
 - general_instructions:
 
@@ -115,8 +115,8 @@ To include missing-value codes maintained in Studio, set
 `missings_profile` to the exact profile label shown in Studio's codebook
 export dialog. These codes are returned separately for each unit by
 Studio and added to each variable in the prepared table. The numeric
-Studio `code` is used as `code_id`; the profile entry's technical `id`
-is not used as a code ID.
+Studio `code` is used as `code_id`; the missing category's identifier
+(for example, `mci`) is not used as a code ID.
 
 To supply your own missing-value codes, pass a tibble through
 `missings`. If both arguments are supplied, your entries replace profile

@@ -20,6 +20,15 @@
   failed requests, unit-specific profile codes, user overrides, empty
   profiles, and temporary-file cleanup.
 
+### documentation
+
+- Expanded the codebook vignette with Studio profile selection, custom
+  missing-value codes and their precedence, and JSON, DOCX, and Excel
+  exports. Clarified login prerequisites and the limits of general
+  instructions in the prepared table.
+- Renamed the example DOCX document to use a portable filename and
+  included it in package builds.
+
 ## eatPrepTBA 0.9.8.9034 \[2026-09-17\]
 
 ### new features

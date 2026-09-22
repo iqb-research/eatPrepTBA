@@ -105,7 +105,7 @@ raises an error before downloading.</p></dd>
 
 
 <dt id="arg-only-coded">only_coded<a class="anchor" aria-label="anchor" href="#arg-only-coded"></a></dt>
-<dd><p>Logical. Should only variables with codes be shown? Defaults to <code>TRUE</code>.</p></dd>
+<dd><p>Logical. Should only variables with codes be shown? Defaults to <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-general-instructions">general_instructions<a class="anchor" aria-label="anchor" href="#arg-general-instructions"></a></dt>
@@ -146,7 +146,7 @@ raises an error before downloading.</p></dd>
 to the exact profile label shown in Studio's codebook export dialog.
 These codes are returned separately for each unit by Studio and added to
 each variable in the prepared table. The numeric Studio <code>code</code> is used as
-<code>code_id</code>; the profile entry's technical <code>id</code> is not used as a code ID.</p>
+<code>code_id</code>; the missing category's identifier (for example, <code>mci</code>) is not used as a code ID.</p>
 <p>To supply your own missing-value codes, pass a tibble through <code>missings</code>.
 If both arguments are supplied, your entries replace profile entries with
 matching code IDs, including their labels and descriptions. Other profile

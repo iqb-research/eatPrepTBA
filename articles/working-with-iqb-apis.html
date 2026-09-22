@@ -187,9 +187,10 @@ the token for later requests; users do not need to copy it manually.</p>
 <p>Set <code>app_version</code> once to the version shown by your Studio
 instance. It is not detected automatically. For manual requests, the
 version is also visible in the browser’s <code>App-Version</code>
-request header.</p>
+request header. The example uses version <code>20.0.1</code>; adjust it
+if your instance uses a different version.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"STUDIO_VERSION"</span></span>
+<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"20.0.1"</span></span>
 <span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu">eatPrepTBA</span><span class="fu">::</span><span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>app_version <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

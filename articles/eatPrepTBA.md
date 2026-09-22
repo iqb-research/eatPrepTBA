@@ -29,16 +29,16 @@ library(eatPrepTBA)
 
 To log in to the IQB Studio, use
 [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md).
-Replace `STUDIO_VERSION` with the version shown by your Studio instance
-(marked as `app_version` in the screenshot below, for example at
-<https://www.iqb-studio.de>). Workspace IDs below are examples; replace
-them with IDs available to your account. The Studio version is not
-detected automatically; set it explicitly rather than relying on the
-package’s older default.
+The example uses Studio version `20.0.1`. Use the version shown by your
+Studio instance (marked as `app_version` in the screenshot below, for
+example at <https://www.iqb-studio.de>). Workspace IDs below are
+examples; replace them with IDs available to your account. The Studio
+version is not detected automatically; set it explicitly rather than
+relying on the package’s older default.
 
 ``` r
 
-app_version <- "STUDIO_VERSION"
+app_version <- "20.0.1"
 login <- login_studio(keyring = TRUE, app_version = app_version)
 ```
 

@@ -95,11 +95,12 @@ later requests; users do not need to copy it manually.
 
 Set `app_version` once to the version shown by your Studio instance. It
 is not detected automatically. For manual requests, the version is also
-visible in the browser’s `App-Version` request header.
+visible in the browser’s `App-Version` request header. The example uses
+version `20.0.1`; adjust it if your instance uses a different version.
 
 ``` r
 
-app_version <- "STUDIO_VERSION"
+app_version <- "20.0.1"
 login <- eatPrepTBA::login_studio(app_version = app_version)
 ```
 

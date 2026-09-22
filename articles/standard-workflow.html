@@ -121,8 +121,11 @@ meldet am Studio an, <a href="../reference/access_workspace.html"><code>access_w
 wählt den Arbeitsbereich. <a href="../reference/get_units.html"><code>get_units()</code></a> lädt die
 Units; <a href="../reference/add_coding_scheme.html"><code>add_coding_scheme()</code></a>
 bereitet ihre vorhandenen Kodierschemata für die Auswertung auf.</p>
+<p>Das Beispiel verwendet Studio-Version <code>20.0.1</code>. Falls auf
+deiner Studio-Anmeldeseite eine andere Version steht, trage diese bei
+<code>app_version</code> ein.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">studio_login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>app_version <span class="op">=</span> <span class="st">"STUDIO_VERSION"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">studio_login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>app_version <span class="op">=</span> <span class="st">"20.0.1"</span><span class="op">)</span></span>
 <span><span class="va">studio</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/access_workspace.html">access_workspace</a></span><span class="op">(</span><span class="va">studio_login</span>, ws_id <span class="op">=</span> <span class="fl">123</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_units.html">get_units</a></span><span class="op">(</span><span class="va">studio</span>, metadata <span class="op">=</span> <span class="cn">TRUE</span>, unit_definition <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>

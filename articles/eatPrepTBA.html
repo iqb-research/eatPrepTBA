@@ -95,14 +95,14 @@ German).</p>
 <h2 id="iqb-studio-login">IQB-Studio Login<a class="anchor" aria-label="anchor" href="#iqb-studio-login"></a>
 </h2>
 <p>To log in to the IQB Studio, use <a href="../reference/login_studio.html"><code>login_studio()</code></a>.
-Replace <code>STUDIO_VERSION</code> with the version shown by your
-Studio instance (marked as <code>app_version</code> in the screenshot
-below, for example at <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>). Workspace IDs below are
+The example uses Studio version <code>20.0.1</code>. Use the version
+shown by your Studio instance (marked as <code>app_version</code> in the
+screenshot below, for example at <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>). Workspace IDs below are
 examples; replace them with IDs available to your account. The Studio
 version is not detected automatically; set it explicitly rather than
 relying on the package’s older default.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"STUDIO_VERSION"</span></span>
+<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"20.0.1"</span></span>
 <span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span></span></code></pre></div>
 <p>By default, credentials are entered in a dialog with masked password
 input, also outside RStudio when a GUI is available. If no dialog is
