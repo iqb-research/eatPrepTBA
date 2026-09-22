@@ -1,7 +1,7 @@
 # Prepares a rectangular codebook
 
 This function is a wrapper around
-[`download_units()`](https://iqb-research.github.io/eatPrepTBA/reference/download_units.md)
+[`download_codebook()`](https://iqb-research.github.io/eatPrepTBA/reference/download_codebook.md)
 that provides a rectangular codebook.
 
 ## Usage
@@ -54,11 +54,18 @@ prepare_codebook(
 
 - missings:
 
-  Tibble (optional). Missing table to be added to each variable.
+  Tibble (optional). Missing-value codes with columns `id`, `label`, and
+  `description`, added to each variable. When a Studio profile is also
+  selected, these codes replace profile codes with the same `id`; all
+  other profile codes are retained. Studio itself is not modified.
 
 - missings_profile:
 
-  Missings profile. (Currently without effect.)
+  Character (optional). Exact, case-sensitive label of a missing-value
+  profile configured in Studio. With `NULL` (default), no profile is
+  selected. Profile codes are added to each variable; the Studio field
+  `code` becomes `code_id` in the returned table. An unknown label
+  raises an error before downloading.
 
 - only_coded:
 
@@ -101,6 +108,22 @@ prepare_codebook(
 ## Value
 
 A tibble.
+
+## Details
+
+To include missing-value codes maintained in Studio, set
+`missings_profile` to the exact profile label shown in Studio's codebook
+export dialog. These codes are returned separately for each unit by
+Studio and added to each variable in the prepared table. The numeric
+Studio `code` is used as `code_id`; the profile entry's technical `id`
+is not used as a code ID.
+
+To supply your own missing-value codes, pass a tibble through
+`missings`. If both arguments are supplied, your entries replace profile
+entries with matching code IDs, including their labels and descriptions.
+Other profile entries are retained, and additional user entries are
+appended. These changes affect only the returned table; they do not
+modify Studio.
 
 ## Functions
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9034</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9035</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,9 @@
 
 
 <dt id="arg-missings-profile">missings_profile<a class="anchor" aria-label="anchor" href="#arg-missings-profile"></a></dt>
-<dd><p>Missings profile. (Currently without effect.)</p></dd>
+<dd><p>Character (optional). Exact, case-sensitive label of
+a missing-value profile configured in Studio. With <code>NULL</code> (default), no
+profile is selected. An unknown label raises an error before downloading.</p></dd>
 
 
 <dt id="arg-only-coded">only_coded<a class="anchor" aria-label="anchor" href="#arg-only-coded"></a></dt>
@@ -141,6 +143,14 @@
 <dd><p>Logical. Should the code labels be printed in capital letters? Defaults to <code>TRUE</code>.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Missing-value profiles are configured in Studio. Use the exact profile label
+shown in Studio's codebook export dialog. A selected profile is checked via
+<code>admin/settings/missings-profiles</code> using the workspace's login before export.
+Its missing-value codes are included in the downloaded JSON or DOCX file.
+With <code>missings_profile = NULL</code>, no profile lookup is performed.</p>
+    </div>
     <div class="section level2">
     <h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a></h2>
 

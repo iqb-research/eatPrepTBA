@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9034</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9035</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,19 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9035" id="eatpreptba-0989035-2026-09-22">eatPrepTBA 0.9.8.9035 [2026-09-22]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989035-2026-09-22"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9035">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9035"></a></h3>
+<ul><li>Connected <code>missings_profile</code> to Studio’s codebook export for JSON and DOCX. Profile labels are checked against the server and retain their exact spelling; unknown profiles raise an error.</li>
+<li>Added Studio profile missing-value codes to each variable returned by <code><a href="../reference/prepare_codebook.html">prepare_codebook()</a></code>. User-supplied <code>missings</code> replace profile entries with the same code ID and supplement the remaining entries.</li>
+<li>Isolated temporary codebook downloads per preparation call and clean them up on both success and failure.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9035">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9035"></a></h3>
+<ul><li>Added regression coverage for profile lookup, case-sensitive labels, failed requests, unit-specific profile codes, user overrides, empty profiles, and temporary-file cleanup.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9034" id="eatpreptba-0989034-2026-09-17">eatPrepTBA 0.9.8.9034 [2026-09-17]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989034-2026-09-17"></a></h2>
 <div class="section level3">

@@ -71,7 +71,9 @@ download_codebook(
 
 - missings_profile:
 
-  Missings profile. (Currently without effect.)
+  Character (optional). Exact, case-sensitive label of a missing-value
+  profile configured in Studio. With `NULL` (default), no profile is
+  selected. An unknown label raises an error before downloading.
 
 - only_coded:
 
@@ -109,6 +111,15 @@ download_codebook(
 
   Logical. Should the code labels be printed in capital letters?
   Defaults to `TRUE`.
+
+## Details
+
+Missing-value profiles are configured in Studio. Use the exact profile
+label shown in Studio's codebook export dialog. A selected profile is
+checked via `admin/settings/missings-profiles` using the workspace's
+login before export. Its missing-value codes are included in the
+downloaded JSON or DOCX file. With `missings_profile = NULL`, no profile
+lookup is performed.
 
 ## Functions
 
