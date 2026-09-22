@@ -18,7 +18,6 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-#devtools::install_github("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
 ```
 
@@ -28,19 +27,21 @@ This vignette explains how to access, prepare, customize, and export codebooks f
 
 ## Login Procedure
 
-To log in to the IQB Studio, use the `login_studio()` function. You will be asked to provide your username and password either in the console or, when using RStudio, in a dialog window. This is equivalent to logging in to the IQB Studio by entering your credentials at https://www.iqb-studio.de.
+To log in to the IQB Studio, use `login_studio()`. By default, credentials are entered in a dialog with masked password input when a GUI is available. Otherwise, the function uses the console. Use the same credentials as for your Studio instance, for example https://www.iqb-studio.de.
 
-The current `app_version` needs to be specified manually and can be found [here](https://www.iqb-studio.de/).
+Replace `STUDIO_VERSION` with the version shown on your Studio login page. Replace the example workspace ID `1300` with an ID available to your account.
 
-For further information on the login procedure, including how to log in to the example workspace and retrieve a workspace, see the [Get Started](eatPrepTBA.html) page.
+For details on login, storing credentials with `keyring`, and selecting workspaces, see the [Get Started](eatPrepTBA.html) page.
 
 
 ```{r eval=FALSE}
 
-login <- login_studio(keyring = TRUE, app_version = "20.0.1")
+login <- login_studio(keyring = TRUE, app_version = "STUDIO_VERSION")
 
 workspace <- access_workspace(login = login, ws_id = 1300)
 ```
+
+The screenshots show an earlier Studio version; your interface may look different.
 
 ```{r, out.width="100%", echo = FALSE}
 knitr::include_graphics("images/Studio_Login.png")
@@ -90,11 +91,7 @@ Information on all available arguments can be displayed with:
 ?prepare_codebook
 ```
 
-```{r, out.width="100%", echo = FALSE}
-knitr::include_graphics("images/3.png")
-```
-
-By default, `prepare_codebook()` prepares the complete codebook of a workspace:
+By default, `prepare_codebook()` retrieves coding information from all units in the selected workspace:
 
 ```{r prepare-codebook-default, eval=FALSE}
 cb <- prepare_codebook(workspace)
@@ -132,11 +129,12 @@ For example:
 
 - `unit_keys` specifies which units should be included.
 - `only_coded` determines whether only variables with assigned codes should be included.
-- `general_instructions` determines whether general coding instructions should be included.
+- `general_instructions` requests general coding instructions from Studio. These are not retained in the table returned by `prepare_codebook()`. To include them in a coding manual, set `general_instructions = TRUE` when downloading a DOCX file with `download_codebook()`.
 - `derived`, `manual`, and `closed` control which types of variables are included.
 - `show_score` determines whether score information is included.
 - `code_label_to_upper` controls whether code labels are converted to uppercase.
-- `missings` and `missings_profile` can be used to specify information on missing-value codes.
+- `missings_profile` selects a missing-value profile configured in Studio by its exact name. Its codes are added to each variable in the prepared codebook.
+- `missings` supplies your own missing-value codes as a tibble. You can use it on its own or to supplement and override a Studio profile, as shown below.
 
 
 The resulting object `cb` contains the prepared codebook, which is automatically transformed into a tabular format and can subsequently be inspected or further processed in R.
@@ -152,7 +150,9 @@ cb_D2_D3 <- prepare_codebook(
 )
 ```
 
-```{r, out.width="30%", echo = FALSE}
+The Studio interface also supports selecting one or several units:
+
+```{r, out.width="70%", echo = FALSE}
 knitr::include_graphics("images/6.png")
 knitr::include_graphics("images/7.png")
 ```
@@ -180,9 +180,28 @@ cb %>%
 
 Missing-value codes can be added when specific response categories, such as omitted or invalid responses, should be documented alongside the regular coding categories.
 
-Missing-value codes can be defined in a tibble and supplied to `prepare_codebook()` via the `missings` argument.
+#### Using a profile configured in Studio
 
-For example:
+Use `missings_profile` to select an existing Studio profile. The name must match the name shown in Studio's codebook export dialog, including upper- and lowercase letters. The following example assumes that a profile named `IQB-Standard` is configured; replace it with a profile available in your instance.
+
+```{r prepare-codebook-profile, eval=FALSE}
+cb_profile <- prepare_codebook(
+  workspace,
+  missings_profile = "IQB-Standard"
+)
+```
+
+The function checks that the profile exists before downloading. An unknown name produces an error listing the available profile names. With the default `missings_profile = NULL`, no Studio profile is selected.
+
+Profile codes are added to each variable in the prepared table. Studio distinguishes a missing category's identifier, such as `mci`, from its numeric code, such as `-97`. The numeric code becomes `code_id` in the table, stored as text (`"-97"`).
+
+One profile is selected per call. If `workspace` contains several workspaces, that profile applies to all of them. To use different profiles for different workspaces, make separate calls with the corresponding workspace and profile.
+
+#### Supplying your own missing-value codes
+
+Define a tibble with columns `id`, `label`, and `description` and pass it via `missings`. Here, `id` contains the code value as text, for example `"-97"`. These codes are added locally to each variable in the returned table; the coding scheme and profiles stored in Studio remain unchanged.
+
+The following example adds three missing-value codes to each variable:
 
 ```{r define-missings}
 missings <- tibble::tibble(
@@ -215,9 +234,29 @@ head(cb_withmissings)
 knitr::include_graphics("images/8.png")
 ```
 
+#### Combining a Studio profile with your own codes
+
+You can supply both arguments:
+
+```{r prepare-codebook-profile-and-missings, eval=FALSE}
+cb_combined <- prepare_codebook(
+  workspace,
+  missings_profile = "IQB-Standard",
+  missings = missings
+)
+```
+
+If your tibble contains a code ID that is also in the profile, your entry replaces the profile entry, including its label and description. Other profile codes are retained, and additional codes from your tibble are appended. For example, your `id = "-97"` entry replaces the Studio entry whose numeric `code` is `-97`.
+
 ### Exporting the prepared codebook to Excel
 
 The tabular codebook created by `prepare_codebook()` can also be exported as an Excel file for easier inspection and sharing.
+
+This example uses the separate `writexl` package. Install it once if needed:
+
+```{r install-writexl, eval=FALSE}
+install.packages("writexl")
+```
 
 ```{r export-excel, eval=FALSE}
 
@@ -237,10 +276,11 @@ Information on the available arguments can be displayed with:
 ?download_codebook
 ```
 
-First, specify the path where the exported file should be stored:
+First, choose and create an output directory relative to your current working directory:
 
-```{r set-path}
-path <- "vignettes"
+```{r set-path, eval=FALSE}
+path <- file.path("output", "codebooks")
+dir.create(path, recursive = TRUE, showWarnings = FALSE)
 ```
 
 The `format` argument determines whether a codebook (JSON) or a coding manual (DOCX) is created.
@@ -273,6 +313,19 @@ download_codebook(
   format = "docx"
 )
 ```
+
+To include a Studio missing-value profile in either export format, also set `missings_profile`:
+
+```{r download-codebook-profile, eval=FALSE}
+download_codebook(
+  workspace,
+  path,
+  format = "docx",
+  missings_profile = "IQB-Standard"
+)
+```
+
+`download_codebook()` uses the profile stored in Studio. To add your own missing-value codes from an R tibble, use `prepare_codebook(workspace, missings = missings)` and export the resulting table instead.
 
 
 ## Summary
