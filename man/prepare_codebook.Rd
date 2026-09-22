@@ -40,9 +40,16 @@ prepare_codebook(
 
 \item{unit_keys}{Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to \code{NULL} (default), the codebook will be generated for the all units.}
 
-\item{missings}{Tibble (optional). Missing table to be added to each variable.}
+\item{missings}{Tibble (optional). Missing-value codes with columns \code{id},
+\code{label}, and \code{description}, added to each variable. When a Studio profile
+is also selected, these codes replace profile codes with the same \code{id};
+all other profile codes are retained. Studio itself is not modified.}
 
-\item{missings_profile}{Missings profile. (Currently without effect.)}
+\item{missings_profile}{Character (optional). Exact, case-sensitive label of
+a missing-value profile configured in Studio. With \code{NULL} (default), no
+profile is selected. Profile codes are added to each variable; the Studio
+field \code{code} becomes \code{code_id} in the returned table. An unknown label
+raises an error before downloading.}
 
 \item{only_coded}{Logical. Should only variables with codes be shown? Defaults to \code{TRUE}.}
 
@@ -64,7 +71,20 @@ prepare_codebook(
 A tibble.
 }
 \description{
-This function is a wrapper around \code{\link[=download_units]{download_units()}} that provides a rectangular codebook.
+This function is a wrapper around \code{\link[=download_codebook]{download_codebook()}} that provides a rectangular codebook.
+}
+\details{
+To include missing-value codes maintained in Studio, set \code{missings_profile}
+to the exact profile label shown in Studio's codebook export dialog.
+These codes are returned separately for each unit by Studio and added to
+each variable in the prepared table. The numeric Studio \code{code} is used as
+\code{code_id}; the profile entry's technical \code{id} is not used as a code ID.
+
+To supply your own missing-value codes, pass a tibble through \code{missings}.
+If both arguments are supplied, your entries replace profile entries with
+matching code IDs, including their labels and descriptions. Other profile
+entries are retained, and additional user entries are appended. These
+changes affect only the returned table; they do not modify Studio.
 }
 \section{Functions}{
 \itemize{

@@ -1,3 +1,15 @@
+# eatPrepTBA 0.9.8.9035 [2026-09-22]
+
+## bug fixes
+
+* Connected `missings_profile` to Studio's codebook export for JSON and DOCX. Profile labels are checked against the server and retain their exact spelling; unknown profiles raise an error.
+* Added Studio profile missing-value codes to each variable returned by `prepare_codebook()`. User-supplied `missings` replace profile entries with the same code ID and supplement the remaining entries.
+* Isolated temporary codebook downloads per preparation call and clean them up on both success and failure.
+
+## tests
+
+* Added regression coverage for profile lookup, case-sensitive labels, failed requests, unit-specific profile codes, user overrides, empty profiles, and temporary-file cleanup.
+
 # eatPrepTBA 0.9.8.9034 [2026-09-17]
 
 ## new features
