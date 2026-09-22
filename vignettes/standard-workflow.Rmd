@@ -45,8 +45,11 @@ Es kann auch Regeln zur Ableitung weiterer Variablen enthalten.
 [`add_coding_scheme()`](../reference/add_coding_scheme.html) bereitet ihre
 vorhandenen Kodierschemata für die Auswertung auf.
 
+Das Beispiel verwendet Studio-Version `20.0.1`. Falls auf deiner Studio-Anmeldeseite
+eine andere Version steht, trage diese bei `app_version` ein.
+
 ```{r studio, eval=FALSE}
-studio_login <- login_studio(app_version = "STUDIO_VERSION")
+studio_login <- login_studio(app_version = "20.0.1")
 studio <- access_workspace(studio_login, ws_id = 123)
 
 units <- get_units(studio, metadata = TRUE, unit_definition = TRUE)

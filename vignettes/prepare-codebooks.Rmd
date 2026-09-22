@@ -29,14 +29,14 @@ This vignette explains how to access, prepare, customize, and export codebooks f
 
 To log in to the IQB Studio, use `login_studio()`. By default, credentials are entered in a dialog with masked password input when a GUI is available. Otherwise, the function uses the console. Use the same credentials as for your Studio instance, for example https://www.iqb-studio.de.
 
-Replace `STUDIO_VERSION` with the version shown on your Studio login page. Replace the example workspace ID `1300` with an ID available to your account.
+The example uses Studio version `20.0.1`. If your Studio login page shows a different version, use that value for `app_version`. Replace the example workspace ID `1300` with an ID available to your account.
 
 For details on login, storing credentials with `keyring`, and selecting workspaces, see the [Get Started](eatPrepTBA.html) page.
 
 
 ```{r eval=FALSE}
 
-login <- login_studio(keyring = TRUE, app_version = "STUDIO_VERSION")
+login <- login_studio(keyring = TRUE, app_version = "20.0.1")
 
 workspace <- access_workspace(login = login, ws_id = 1300)
 ```
