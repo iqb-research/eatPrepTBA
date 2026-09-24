@@ -1,3 +1,85 @@
+mock_mixed_metadata_units <- function() {
+  testthat::local_mocked_bindings(
+    get_metadata_profile = function(url) {
+      tibble::tibble(
+        profile_name = c("Klassenstufe", "Thema", "Titel"),
+        profile_type = "text",
+        multiple = c(url == "multi", url == "multi", FALSE),
+        data = rep(list(tibble::tibble(
+          value_id = NA_character_, value_label = NA_character_
+        )), 3)
+      )
+    },
+    .package = "eatPrepTBA", .env = parent.frame()
+  )
+
+  grades <- list("5", c("5", "6", "7", "8"), c("7", "8"))
+  topics <- list("A", c("A", "B"), c("A", "B", "C", "D"))
+  profile_ids <- c("single", "multi", "multi")
+  unit_profiles <- lapply(seq_along(grades), function(i) {
+    tibble::tibble(
+      profile_id = profile_ids[[i]],
+      profile_name = c(rep("Klassenstufe", length(grades[[i]])),
+                       rep("Thema", length(topics[[i]])), "Titel"),
+      value_id = NA_character_,
+      value_text = c(grades[[i]], topics[[i]], paste("Unit", i))
+    )
+  })
+  units <- tibble::tibble(
+    ws_id = c(1L, 2L, 2L),
+    unit_id = c(10L, 10L, 11L),
+    unit_profiles = unit_profiles,
+    items_profiles = lapply(unit_profiles, function(x) dplyr::mutate(x, item_no = 1L)),
+    items_list = rep(list(tibble::tibble(item_no = 1L, item_id = "item")), 3)
+  )
+  attr(units, "ws_settings") <- tibble::tibble(
+    ws_id = c(1L, 2L),
+    unit_md_profile = c("single", "multi"),
+    item_md_profile = c("single", "multi")
+  )
+  units
+}
+
+test_that("add_metadata preserves multiple values when workspace definitions differ", {
+  units <- mock_mixed_metadata_units()
+
+  out <- add_metadata(units)
+
+  expect_equal(out$ws_id, units$ws_id)
+  expect_equal(out$unit_id, units$unit_id)
+  expect_equal(attr(out, "ws_settings"), attr(units, "ws_settings"))
+  for (column in c("unit_metadata", "item_metadata")) {
+    expect_equal(vapply(out[[column]], nrow, integer(1)), rep(1L, 3))
+    expect_equal(lapply(out[[column]], function(x) x$Klassenstufe[[1]]),
+                 list("5", c("5", "6", "7", "8"), c("7", "8")))
+    expect_equal(lapply(out[[column]], function(x) x$Thema[[1]]),
+                 list("A", c("A", "B"), c("A", "B", "C", "D")))
+    expect_true(all(vapply(out[[column]], function(x) is.list(x$Klassenstufe), logical(1))))
+    expect_equal(vapply(out[[column]], function(x) x$Titel, character(1)),
+                 paste("Unit", 1:3))
+  }
+  for (profile in c("unit_md_profile", "item_md_profile")) {
+    definitions <- attr(out, profile)
+    expect_equal(definitions$multiple[definitions$profile_name == "Klassenstufe"],
+                 c(FALSE, TRUE))
+  }
+})
+
+test_that("add_metadata keeps scalar columns when all profiles allow only one value", {
+  units <- mock_mixed_metadata_units()
+  settings <- attr(units, "ws_settings")
+  units <- units[1, ]
+  attr(units, "ws_settings") <- settings[1, ]
+
+  out <- add_metadata(units)
+
+  for (column in c("unit_metadata", "item_metadata")) {
+    expect_equal(out[[column]][[1]]$Klassenstufe, "5")
+    expect_equal(out[[column]][[1]]$Thema, "A")
+    expect_equal(out[[column]][[1]]$Titel, "Unit 1")
+  }
+})
+
 metadata_entry <- function(label = "Variablenbezeichnung", value = "Expected label") {
   list(
     id = "iqb_var_name",

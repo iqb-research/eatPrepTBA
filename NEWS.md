@@ -1,3 +1,17 @@
+# eatPrepTBA 0.9.8.9036 [2026-09-24]
+
+## bug fixes
+
+* Fixed `add_metadata()` failing when the same metadata field allows single values in one workspace profile and multiple values in another. Such fields now remain list-columns across workspaces, preserving all values without expanding rows. This applies to both unit and item metadata.
+
+## tests
+
+* Added regression coverage for mixed workspace profiles with two and four values, preserved unit rows and profile attributes, and unchanged scalar columns for fields that allow only single values across profiles.
+
+## documentation
+
+* Documented how `add_metadata()` represents fields with differing multiplicity across workspace profiles.
+
 # eatPrepTBA 0.9.8.9035 [2026-09-22]
 
 ## bug fixes
