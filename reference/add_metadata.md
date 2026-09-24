@@ -5,7 +5,9 @@ calling
 [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
 Please note that no other operation except for filtering or
 [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
-should be applied to the `units`.
+should be applied to the `units`. Metadata fields remain list-columns if
+any of the selected workspace profiles allow multiple values for that
+field, including in workspaces allowing only one value.
 
 ## Usage
 
