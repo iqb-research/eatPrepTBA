@@ -379,17 +379,38 @@ ergänzt die Item-ID aus den Studio-Metadaten über <code>unit_key</code>
 und <code>variable_id</code>. Variablen ohne Item-Verknüpfung erhalten
 <code>NA</code>; im Beispiel werden nur verknüpfte Itemvariablen
 übernommen.</p>
+<p>Für die Spaltennamen wird <code>item</code> nach der Konvention
+<code>unit_key__item_id</code> gebildet, z. B. <code>DH001__08</code>.
+<code>item_id</code> bleibt dabei eine Zeichenkette: Führende Nullen
+müssen erhalten bleiben und dürfen nicht durch eine Umwandlung in Zahlen
+verloren gehen.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_item_id.html">add_item_id</a></span><span class="op">(</span><span class="va">analysis_data</span>, <span class="va">units</span><span class="op">)</span></span>
-<span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">item_data</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">item_id</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">item_data</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">item_id</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Optional: fehlende führende Nullen ergänzen.</strong> Falls
+die Studio-Metadaten einstellige Item-IDs wie <code>"8"</code>
+enthalten, diesen Chunk vor dem nächsten Schritt ausführen. Nach der
+Konvention besteht <code>item_id</code> hier aus genau zwei Ziffern:
+<code>"8"</code> wird zu <code>"08"</code>, <code>"08"</code> und
+<code>"12"</code> bleiben unverändert. Die Prüfung bricht bei anderen
+Formaten ab, damit keine ungültigen IDs entstehen.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^[0-9]{1,2}$"</span>, <span class="va">item_data</span><span class="op">$</span><span class="va">item_id</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="va">item_data</span>,</span>
+<span>                    item_id <span class="op">=</span> <span class="fu">stringr</span><span class="fu">::</span><span class="fu"><a href="https://stringr.tidyverse.org/reference/str_pad.html" class="external-link">str_pad</a></span><span class="op">(</span><span class="va">item_id</span>, width <span class="op">=</span> <span class="fl">2</span>, pad <span class="op">=</span> <span class="st">"0"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Anschließend die Itemnamen bilden und ins weite Format umformen:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">item_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="va">item_data</span>, item <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">unit_key</span>, <span class="st">"__"</span>, <span class="va">item_id</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">scaling_data</span> <span class="op">&lt;-</span> <span class="va">item_data</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">group_id</span>, <span class="va">login_name</span>, <span class="va">login_code</span>, <span class="va">item_id</span>, <span class="va">code_score</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">item_id</span>, values_from <span class="op">=</span> <span class="va">code_score</span><span class="op">)</span></span>
-<span><span class="va">scaling_data</span><span class="op">$</span><span class="va">person_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">scaling_data</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/all_of.html" class="external-link">any_of</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"group_id"</span>, <span class="st">"login_name"</span>, <span class="st">"login_code"</span>, <span class="st">"IDSTUD"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>         <span class="va">item</span>, <span class="va">code_score</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">item</span>, values_from <span class="op">=</span> <span class="va">code_score</span><span class="op">)</span></span></code></pre></div>
 <p><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link"><code>pivot_wider()</code></a>
 erzeugt eine Zeile je Person und eine Scorespalte je Item; die
-Testcenter-Kennungen bleiben neben <code>person_id</code> erhalten.
+vorhandenen Kennungen (<code>group_id</code>, <code>login_name</code>,
+<code>login_code</code>, <code>IDSTUD</code>) bleiben erhalten.
+<code><a href="https://tidyselect.r-lib.org/reference/all_of.html" class="external-link">any_of()</a></code> überspringt fehlende Kennungsspalten.
 Voraussetzung sind eindeutige Itemnamen und genau ein Score je Person
 und Item. Fehlende Werte bleiben <code>NA</code>, sie werden nicht mit 0
 aufgefüllt. <code>analysis_data</code> aufbewahren: Darin bleiben die
