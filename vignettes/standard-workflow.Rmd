@@ -250,19 +250,43 @@ Itemscore des Bereichs (nicht part-whole-korrigiert).
 und `variable_id`. Variablen ohne Item-Verknüpfung erhalten `NA`; im Beispiel
 werden nur verknüpfte Itemvariablen übernommen.
 
-```{r wide, eval=FALSE}
+Für die Spaltennamen wird `item` nach der Konvention `unit_key__item_id`
+gebildet, z. B. `DH001__08`. `item_id` bleibt dabei eine Zeichenkette:
+Führende Nullen müssen erhalten bleiben und dürfen nicht durch eine Umwandlung
+in Zahlen verloren gehen.
+
+```{r item-ids, eval=FALSE}
 item_data <- add_item_id(analysis_data, units)
 item_data <- filter(item_data, !is.na(item_id))
+```
+
+**Optional: fehlende führende Nullen ergänzen.** Falls die Studio-Metadaten
+einstellige Item-IDs wie `"8"` enthalten, diesen Chunk vor dem nächsten Schritt
+ausführen. Nach der Konvention besteht `item_id` hier aus genau zwei Ziffern:
+`"8"` wird zu `"08"`, `"08"` und `"12"` bleiben unverändert.
+Die Prüfung bricht bei anderen Formaten ab, damit keine ungültigen IDs entstehen.
+
+```{r pad-item-ids, eval=FALSE}
+stopifnot(all(grepl("^[0-9]{1,2}$", item_data$item_id)))
+item_data <- mutate(item_data,
+                    item_id = stringr::str_pad(item_id, width = 2, pad = "0"))
+```
+
+Anschließend die Itemnamen bilden und ins weite Format umformen:
+
+```{r wide, eval=FALSE}
+item_data <- mutate(item_data, item = paste0(unit_key, "__", item_id))
 
 scaling_data <- item_data |>
-  select(group_id, login_name, login_code, item_id, code_score) |>
-  pivot_wider(names_from = item_id, values_from = code_score)
-scaling_data$person_id <- seq_len(nrow(scaling_data))
+  select(any_of(c("group_id", "login_name", "login_code", "IDSTUD")),
+         item, code_score) |>
+  pivot_wider(names_from = item, values_from = code_score)
 ```
 
 [`pivot_wider()`](https://tidyr.tidyverse.org/reference/pivot_wider.html) erzeugt
 eine Zeile je Person und eine Scorespalte je Item;
-die Testcenter-Kennungen bleiben neben `person_id` erhalten. Voraussetzung sind
+die vorhandenen Kennungen (`group_id`, `login_name`, `login_code`, `IDSTUD`)
+bleiben erhalten. `any_of()` überspringt fehlende Kennungsspalten. Voraussetzung sind
 eindeutige Itemnamen und genau ein Score je Person und Item. Fehlende Werte
 bleiben `NA`, sie werden nicht mit 0 aufgefüllt.
 `analysis_data` aufbewahren: Darin bleiben die Missing-Arten unterscheidbar.
