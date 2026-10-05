@@ -178,6 +178,17 @@ cb %>%
 
 ### Adding missing-value codes
 
+Codebook missing-value labels document codes; they do not classify responses.
+Analytical missing classification is performed locally by
+[`complete_design()`](../reference/complete_design.html) or
+[`recode_missings()`](../reference/recode_missings.html). Their `missings`
+argument uses `code_id`, `code_status`, `code_score`, and `code_type`, whereas
+the codebook examples below use `id`, `label`, and `description`.
+The response's technical `code_status` is preserved during classification.
+For analytical categories use `code_type`: a derived Invalid reclassified as
+Not reached can retain its original `code_id`. See the worked
+[missing-classification examples](missing-classification.html).
+
 Missing-value codes can be added when specific response categories, such as omitted or invalid responses, should be documented alongside the regular coding categories.
 
 #### Using a profile configured in Studio

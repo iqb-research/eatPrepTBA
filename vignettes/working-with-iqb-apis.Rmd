@@ -295,6 +295,16 @@ are not needed.
 
 ## Retrieving a coding scheme
 
+For expected variable positions, retrieve the unit definition in addition to
+item metadata, using `get_units(..., metadata = TRUE, unit_definition = TRUE)`.
+After preparing the coding schemes and supplying the booklet design,
+`get_design_order()` determines variable positions and Studio-based item
+positions locally. `complete_design()` and `recode_missings()` also work on
+these supplied data without additional API requests. They preserve technical
+`code_status` values, including `NA`. See
+[variable order and missing classification](missing-classification.html)
+for an offline example.
+
 The coding scheme of a unit can also be retrieved. In the browser developer tools, the corresponding request may already appear when opening or refreshing a unit, even if the **Kodierung** tab has not been selected manually.
 
 ```{r, out.width="100%", echo = FALSE}

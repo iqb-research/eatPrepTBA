@@ -177,6 +177,11 @@ Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen Richtungen
   ohne manuelle Kodierung. Der technische `code_status` bleibt dabei immer
   unverändert, auch wenn er `NA` ist.
 
+Die Spalte `code_status` im Objekt `missings` dient hier also der Zuordnung
+manueller Codes, nicht dem Auffüllen technischer Status durch
+`complete_design()` oder `recode_missings()`. Die Ausnahme für den erhaltenen
+`code_id` abgeleiteter Invalids wird in Abschnitt 5 beschrieben.
+
 ## 4. Optional: manuelle Codes einfügen
 
 **Nur nötig, wenn Antworten manuell kodiert werden. Sonst weiter mit Abschnitt 5.**
@@ -209,6 +214,8 @@ unterschieden, auch innerhalb derselben Unit. Die Reihenfolge entsteht aus
 Testheft, Unit-Vorkommen und Seiten bzw. Elementpositionen; wo Strukturangaben
 fehlen, ergänzen natürlich sortierte Variablennamen die Schätzung.
 Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
+Es geht um die **erwartete** Reihenfolge laut Testdesign; Antwort- oder
+Log-Zeitstempel werden dafür nicht verwendet.
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design)
@@ -258,6 +265,9 @@ Testheft, zusätzlich `order_group` und die Herkunft der Schätzung in
 Itempositionen verwenden standardmäßig die Studio-Zuordnung. Eine optionale
 `item_selection` wählt Itemvariablen aus, ohne Basisvariablen aus dem Datensatz
 zu entfernen. Erst **nach** der Missing-Klassifikation auf Items filtern.
+`order_group` fasst gemeinsame physische Positionen zusammen; die eindeutige
+Absolutposition steht in `variable_order`. Die geschätzte Reihenfolge wird von
+`recode_missings()` übernommen, nicht erneut aus Variablennamen bestimmt.
 
 Eine bekannte abweichende Unit-Reihenfolge kann über `order_overrides`
 festgelegt werden. Dafür die vollständige lokale Basisvariablenreihenfolge
@@ -268,6 +278,14 @@ order_overrides <- tibble::tibble(
   unit_key = "U1", variable_id = c("02a", "01a", "01b"), local_order = 1:3)
 positions <- get_design_order(design, units, order_overrides = order_overrides)
 ```
+
+Mit zusätzlichen Spalten `booklet_id`, `testlet_no` und/oder `unit_booklet_no`
+lassen sich Overrides auf bestimmte Unit-Vorkommen begrenzen. Ohne solche
+Angaben gelten sie für alle Vorkommen der Unit.
+
+Die Vignette [Variablenreihenfolge und Missing-Klassifikation](missing-classification.html)
+zeigt ein vollständig lokal ausführbares Beispiel mit allen Kodierfeldern,
+den drei Einstellungen, einer Itemauswahl und einer manuellen Reihenfolge.
 
 ## 6. Psychometrische Kennwerte berechnen
 

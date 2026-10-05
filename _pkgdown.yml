@@ -8,6 +8,8 @@ navbar:
       menu:
       - text: Vom Testcenter zum Skalierungsdatensatz
         href: articles/standard-workflow.html
+      - text: Variablenreihenfolge und Missing-Klassifikation
+        href: articles/missing-classification.html
       - text: Log-Daten
         href: articles/log-data.html
       - text: Prepare Codebooks
