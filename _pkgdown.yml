@@ -116,6 +116,8 @@ reference:
   - unpack_response_jsons
   - prepare_unpacked_codes
   - complete_design
+  - get_design_order
+  - recode_missings
   - estimate_unit_times
   - estimate_audio_video_plays
   - evaluate_psychometrics

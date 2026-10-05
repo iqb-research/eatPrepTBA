@@ -1,17 +1,62 @@
-#' Complete design with coded responses
+#' Complete the expected response design
 #'
-#' @param coded Tibble. Response data coded with [code_responses()]. The argument `prepare` must be `TRUE`.
-#' @param units Tibble. Unit data retrieved from the IQB Studio after setting the argument `unit_definition = TRUE` for [get_units()] -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by [`add_coding_scheme()`] to save some time.
-#' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
-#' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
-#' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
-#' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a testlet? Defaults to `FALSE`.
+#' @param coded Tibble of coded responses, as returned by [eatPrepTBA::code_responses()]
+#'   with `prepare = TRUE`.
+#' @param units Tibble of Studio units. Prepared `unit_codes` can be reused.
+#'   Retrieve unit definitions to use page and element locations for ordering,
+#'   and metadata to obtain the Studio item mapping.
+#' @param design Tibble returned by [get_design()], or an equivalent design.
+#'   Both unit-level and variable-level designs are supported. All active coding
+#'   variables of every supplied unit occurrence are completed, even when the
+#'   supplied design lists only a subset of variables.
+#' @param identifiers Character vector of person identifiers. Defaults to the
+#'   Testcenter identifiers `group_id`, `login_name`, and `login_code`.
+#' @param overwrite Logical. Rebuild existing `unit_codes`? Defaults to `FALSE`.
+#' @param missings Optional missing-value scheme with `code_id`, `code_status`,
+#'   `code_score`, and `code_type`. Used only when missing classification is
+#'   enabled. The scheme never fills or changes the technical `code_status`.
+#' @param recode_omissions_to_not_reached `FALSE` (default), `TRUE`, or `NULL`.
+#'   `FALSE` adds expected positions and classifies missings while preserving
+#'   omissions; existing not-reached values before later basis-variable work
+#'   become omissions. `TRUE` additionally recodes trailing omissions to not
+#'   reached. `NULL` only completes the design: supplied coding fields remain
+#'   unchanged and newly inserted coding fields remain missing. No positions
+#'   are computed in that mode.
+#' @param order_overrides Optional local basis-variable ordering, passed to
+#'   [get_design_order()].
+#' @param item_selection Optional item-variable selection, passed to
+#'   [get_design_order()]. It affects item positions, not the response row set
+#'   or variable positions.
 #'
 #' @description
-#' This function automatically completes missings for coded responses.
+#' Completes coded responses with the expected variables of each booklet.
+#' Expected positions are shared by everyone assigned the same booklet.
+#' Missing classification then runs separately per person and testlet.
 #'
-#' @return A tibble.
+#' @details
+#' The technical `code_status` is always preserved, including `NA`. The logical
+#' `response_present` records whether a row originated in the response data,
+#' rather than inferring its origin from possibly missing coding fields. An
+#' existing presence marker is retained when completing again. `id_used` retains
+#' its historical meaning: at least one supplied technical status is nonmissing
+#' for that person.
+#'
+#' Only basis variables determine the not-reached boundary. Derived variables
+#' cannot act as evidence of later work. Valid derived codes are preserved.
+#' With `TRUE`, an invalid derived result can become analytically not reached
+#' when all its basis sources are omissions/not reached and its source position
+#' lies in the trailing region. In this exception only `code_type` and
+#' `code_score` change; its original `code_id` and `code_status` remain intact.
+#' Consequently, use `code_type` for the analytical missing category.
+#'
+#' The same operations can be called separately: complete with `NULL`, obtain
+#' a static table using [get_design_order()], and pass that table to
+#' [recode_missings()]. Classify before filtering to selected items, so later
+#' basis-variable work remains available as evidence.
+#'
+#' @return A tibble with completed response rows and `response_present`.
+#'   With `FALSE` or `TRUE`, also includes `variable_order`, `item_order`,
+#'   `order_group`, and `order_source` (and the Studio `item_id` when available).
 #' @export
 complete_design <- function(coded,
                             units,
@@ -19,211 +64,135 @@ complete_design <- function(coded,
                             identifiers = c("group_id", "login_name", "login_code"),
                             overwrite = FALSE,
                             missings = NULL,
-                            recode_omissions_to_not_reached = FALSE
-) {
-  # input validation
-  checkmate::assert_character(identifiers)
-  checkmate::assert_logical(overwrite, len = 1)
-  checkmate::assert_logical(recode_omissions_to_not_reached, len = 1)
-
+                            recode_omissions_to_not_reached = FALSE,
+                            order_overrides = NULL,
+                            item_selection = NULL) {
+  checkmate::assert_character(identifiers, min.len = 1L, any.missing = FALSE)
+  checkmate::assert_flag(overwrite)
+  if (!is.null(recode_omissions_to_not_reached)) {
+    checkmate::assert_flag(recode_omissions_to_not_reached)
+  }
   checkmate::assert_tibble(design)
-  identifiers <- intersect(names(design), identifiers)
-  design_cols <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id", "booklet_no", "testlet_no", "unit_booklet_no")
-  assert_cols(design, design_cols, "design")
-
   checkmate::assert_tibble(coded)
-  coded_cols <- c(identifiers, "unit_key", "unit_alias", "variable_id", "booklet_id", "code_status", "value", "code_id", "code_type", "code_score")
-  assert_cols(coded, coded_cols, "coded")
-
   checkmate::assert_tibble(units)
-  units_cols <- if (!overwrite && tibble::has_name(units, "unit_codes")) {
-    c("unit_key", "unit_codes")
+  identifiers <- intersect(identifiers, names(design))
+  if (!length(identifiers)) {
+    cli::cli_abort("{.arg design} must contain at least one of {.arg identifiers}.")
+  }
+  occurrence_keys <- c(identifiers, "booklet_id", "booklet_no", "testlet_no",
+                       "unit_booklet_no", "unit_key", "unit_alias")
+  assert_cols(design, occurrence_keys, "design")
+  coded_keys <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id")
+  code_fields <- c("code_status", "value", "code_id", "code_type", "code_score")
+  assert_cols(coded, c(coded_keys, code_fields), "coded")
+  if ("response_present" %in% names(coded)) {
+    checkmate::assert_logical(coded$response_present, len = nrow(coded),
+                             any.missing = FALSE)
   } else {
-    c("unit_key", "ws_id", "unit_id", "coding_scheme", "unit_variables")
-  }
-  assert_cols(units, units_cols, "units")
-
-  checkmate::assert_tibble(missings, null.ok = TRUE)
-  missings_cols <- c("code_id", "code_status", "code_score", "code_type")
-  if(!is.null(missings)) assert_cols(missings, missings_cols, "missings")
-
-  if (is.null(missings)) {
-    missings <-
-      tibble::tribble(
-        ~code_id, ~code_status, ~code_score, ~code_type,
-        -96, "NOT_REACHED", NA_real_, "MISSING_NOT_REACHED",
-        -97, "CODING_ERROR", NA_real_, "MISSING_CODING_IMPOSSIBLE",
-        -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
-        -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
-      )
-  }
-
-  missings_lookup <-
-    missings %>%
-    dplyr::select(
-      code_type,
-      missing_code_id = code_id,
-      missing_code_status = code_status,
-      missing_code_score = code_score
-    )
-
-  not_reached_tail_types <- "MISSING_NOT_REACHED"
-  if (recode_omissions_to_not_reached) {
-    not_reached_tail_types <- c(not_reached_tail_types, "MISSING_BY_OMISSION")
+    coded$response_present <- rep(TRUE, nrow(coded))
   }
 
   cli_setting()
+  prepared_units <- add_coding_scheme(units, overwrite = overwrite,
+                                      filter_has_codes = TRUE)
+  metadata <- design_order_metadata(prepared_units)
+  # The dependency graph stays on the unit table, rather than being copied to
+  # every person's response rows.
+  row_metadata <- metadata %>%
+    dplyr::select(-dplyr::any_of(c("source_ids", "basis_sources", "sources_known")))
+  completed <- complete_design_rows(design, row_metadata, occurrence_keys,
+                                    code_fields)
 
-  cli::cli_h3("Preparing {.unit-label units}")
-  units_cs <-
-    add_coding_scheme(
-      units = units,
-      overwrite = overwrite,
-      filter_has_codes = TRUE
-    )
-
-  units_cs_merge <-
-    units_cs %>%
-    dplyr::select(
-      unit_key, unit_codes
-    ) %>%
-    tidyr::unnest(unit_codes) %>%
-    dplyr::select(dplyr::any_of(c(
-      "unit_key", "variable_id", "variable_source_type",
-      "variable_level", "variable_page", "variable_section", "variable_page_always_visible"
+  # Unit aliases normally disambiguate repeated units. If they do not, require
+  # the occurrence columns in coded instead of attaching one response twice.
+  join_keys <- c(identifiers, ".booklet_merge", "unit_key", "unit_alias",
+                 "variable_id",
+                 intersect(c("booklet_no", "testlet_no", "unit_booklet_no"),
+                           names(coded)))
+  completed$.booklet_merge <- stringr::str_to_upper(completed$booklet_id)
+  coded$.booklet_merge <- stringr::str_to_upper(coded$booklet_id)
+  if (anyDuplicated(coded[join_keys])) {
+    cli::cli_abort("{.arg coded} contains duplicate response keys. Supply one row per variable and unit occurrence.")
+  }
+  ambiguous <- completed %>%
+    dplyr::select(dplyr::all_of(join_keys)) %>%
+    dplyr::filter(duplicated(.) | duplicated(., fromLast = TRUE)) %>%
+    dplyr::semi_join(coded, by = join_keys)
+  if (nrow(ambiguous)) {
+    cli::cli_abort("Repeated unit occurrences cannot be distinguished in {.arg coded}. Include {.field testlet_no} and {.field unit_booklet_no} (and {.field booklet_no} for repeated booklet assignments).")
+  }
+  # Expected-design metadata takes precedence over copied response metadata;
+  # the actual coding fields and presence marker always come from coded.
+  coded_payload <- coded %>%
+    dplyr::select(-dplyr::any_of(c(
+      "booklet_id", setdiff(intersect(names(coded), names(completed)), join_keys)
     )))
-
-  # Merge codes and design
-  design_coded <-
-    design %>%
-    dplyr::mutate(
-      booklet_merge = stringr::str_to_upper(booklet_id)
-    ) %>%
-    dplyr::left_join(
-      coded %>% dplyr::mutate(booklet_merge = stringr::str_to_upper(booklet_id)) %>% dplyr::select(-booklet_id),
-      by = dplyr::join_by(!!! c(identifiers, "booklet_merge", "unit_key", "unit_alias", "variable_id"))
-    ) %>%
-    dplyr::select(-dplyr::any_of(c("variable_source_type"))) %>%
-    dplyr::left_join(units_cs_merge,
-                     by = dplyr::join_by("unit_key", "variable_id")) %>%
-    dplyr::group_by(
-      dplyr::across(dplyr::any_of(identifiers))
-    ) %>%
-    dplyr::mutate(
-      id_used = !all(is.na(code_status))
-    ) %>%
+  completed <- completed %>%
+    dplyr::left_join(coded_payload, by = join_keys, relationship = "one-to-one") %>%
+    dplyr::mutate(response_present = dplyr::coalesce(.data$response_present, FALSE)) %>%
+    dplyr::select(-dplyr::any_of(".booklet_merge")) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(identifiers))) %>%
+    dplyr::mutate(id_used = any(!is.na(code_status))) %>%
     dplyr::ungroup()
 
-  design_missings <-
-    design_coded %>%
-    dplyr::mutate(
-      # TODO: Diese Korrektur nach Auto-Coder-Fix entfernen!
-      code_type = dplyr::case_when(
-        # -99 mbo: Omissions (needs to be recoded with -99)
-        # Real omissions, flagged by manual coding
-        (is.na(value) | code_id == -99) & code_status == "DISPLAYED" ~ "MISSING_BY_OMISSION",
-        # Omissions found by the Studio
-        is.na(code_type) & code_status %in% c("DISPLAYED", "PARTLY_DISPLAYED") ~ "MISSING_BY_OMISSION",
-        # -98 mir: Invalid responses due to derivation (e.g., numbers in solver) or manual coding
-        is.na(code_type) & code_status %in% c("INVALID", "DERIVE_ERROR") ~ "MISSING_INVALID_RESPONSE",
-        # -97 mci: Coding errors und Coding impossible
-        is.na(code_type) & code_status == "CODING_ERROR" ~ "MISSING_CODING_IMPOSSIBLE",
-        # -96 mnr: Not reached (needs to be recoded with -99)
-        is.na(code_type) & (code_status == "NOT_REACHED" | is.na(code_status)) ~ "MISSING_NOT_REACHED",
-        # -93 mnc: No codes available -- reserviere -94 für Missing By Design
-        is.na(code_type) & code_status == "NO_CODING" ~ "NO_CODING",
-        # -90: Coding incomplete
-        code_status %in% c("CODING_INCOMPLETE", "DERIVE_PENDING", "INTENDED_INCOMPLETE") ~ code_status,
-        .default = code_type
-      ),
-      code_id = dplyr::case_match(
-        code_type,
-        "MISSING_BY_OMISSION" ~ -99,
-        "MISSING_INVALID_RESPONSE" ~ -98,
-        "MISSING_CODING_IMPOSSIBLE" ~ -97,
-        "MISSING_NOT_REACHED" ~ -96,
-        "INTENDED_INCOMPLETE" ~ -95,
-        "NO_CODING" ~ -93,
-        # Should not be in the final dataset after manual coding!
-        c("CODING_INCOMPLETE", "DERIVE_PENDING") ~ -90,
+  if (is.null(recode_omissions_to_not_reached)) return(completed)
 
-        .default = code_id
+  completed <- completed %>%
+    dplyr::select(-dplyr::any_of(c(
+      "variable_order", "item_order", "order_group", "order_source", "item_order_source"
+    )))
+  positions <- get_design_order(completed, prepared_units,
+                                order_overrides = order_overrides,
+                                item_selection = item_selection)
+  recode_missings(completed, prepared_units, positions = positions,
+                  identifiers = identifiers, missings = missings,
+                  recode_omissions_to_not_reached = recode_omissions_to_not_reached)
+}
+
+# Complete all active variables, propagating unit-level design columns while
+# retaining variable-specific design columns only on their original variables.
+complete_design_rows <- function(design, metadata, occurrence_keys, code_fields) {
+  metadata_fields <- setdiff(names(metadata), c("unit_key", "variable_id"))
+  design <- design %>%
+    dplyr::select(-dplyr::any_of(c(
+      metadata_fields, code_fields, "response_present", "id_used"
+    )))
+  unknown_units <- setdiff(unique(design$unit_key), unique(metadata$unit_key))
+  if (length(unknown_units)) {
+    cli::cli_abort("No active variable metadata for design units: {unknown_units}.")
+  }
+  variable_keys <- c(occurrence_keys, "variable_id")
+  if ("variable_id" %in% names(design)) {
+    if (anyDuplicated(design[variable_keys])) {
+      cli::cli_abort("{.arg design} contains duplicate variable/occurrence keys.")
+    }
+    unknown <- design %>%
+      dplyr::anti_join(metadata, by = c("unit_key", "variable_id"))
+    if (nrow(unknown)) {
+      cli::cli_abort("Design variables absent from active unit metadata: {unique(paste(unknown$unit_key, unknown$variable_id, sep = '/'))}.")
+    }
+  }
+  extra_columns <- setdiff(names(design), variable_keys)
+  variable_only <- grepl("^(variable_|item_|order_)", extra_columns)
+  unit_columns <- extra_columns[!variable_only & vapply(extra_columns, function(column) {
+    counts <- design %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(occurrence_keys))) %>%
+      dplyr::summarise(.count = dplyr::n_distinct(.data[[column]]),
+                       .groups = "drop")
+    all(counts$.count <= 1L)
+  }, logical(1))]
+  occurrences <- design %>%
+    dplyr::select(dplyr::all_of(c(occurrence_keys, unit_columns))) %>%
+    dplyr::distinct()
+  expanded <- occurrences %>%
+    dplyr::left_join(metadata, by = "unit_key", relationship = "many-to-many")
+  variable_columns <- setdiff(extra_columns, unit_columns)
+  if (length(variable_columns)) {
+    expanded <- expanded %>%
+      dplyr::left_join(
+        design %>% dplyr::select(dplyr::all_of(c(variable_keys, variable_columns))),
+        by = variable_keys, relationship = "one-to-one"
       )
-    )
-
-  not_reached_classification <-
-    design_missings %>%
-    # Units müssen absteigend hier geordnet werden, damit cumany() funktioniert
-    # arrange(booklet_no, testlet_no, block_no, desc(unit_no)) %>%
-    dplyr::group_by(dplyr::across(
-      dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no"
-      ))
-    )) %>%
-    dplyr::summarise(
-      not_reach = all(code_type %in% not_reached_tail_types | is.na(code_type)),
-      .groups = "drop"
-    )
-
-  not_reached_cases <-
-    not_reached_classification %>%
-    dplyr::group_by(dplyr::across(
-      dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no"
-      ))
-    )) %>%
-    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
-    dplyr::mutate(
-      nr = dplyr::cumall(not_reach),
-      # Da es keine Unit danach mehr geben kann, wird sie diese hypothetische Unit als NOT_REACHED behandelt
-      lag_nr = dplyr::lag(nr, default = TRUE),
-      check_nr = nr | lag_nr
-    ) %>%
-    dplyr::ungroup()
-
-  design_missings %>%
-    dplyr::left_join(
-      not_reached_cases,
-      by = dplyr::join_by(!!! identifiers, "booklet_no", "testlet_no", "unit_booklet_no")
-    ) %>%
-    dplyr::mutate(
-      code_type = dplyr::case_when(
-        # Setzt -96, wenn Unit leer oder teilweise befüllt, aber letzte Unit vor Ende oder leeren Units
-        (code_type %in% not_reached_tail_types | is.na(code_type)) &
-          check_nr ~  "MISSING_NOT_REACHED",
-        # Kodiert andernfalls auf -99
-        (code_type %in% not_reached_tail_types | is.na(code_type))
-        ~  "MISSING_BY_OMISSION",
-        .default = code_type),
-      code_id = dplyr::case_when(
-        code_type == "MISSING_NOT_REACHED" & (is.na(code_id) | code_id != -96) ~ -96,
-        code_type == "MISSING_BY_OMISSION" & (is.na(code_id) | code_id != -99) ~ -99,
-        .default = code_id
-      ),
-      code_score = dplyr::case_when(
-        code_id %in% c(-99, -98) ~ 0,
-        code_id %in% c(-97, -96, -95, -93, -90) ~ NA,
-        .default = code_score
-      )
-    ) %>%
-    dplyr::left_join(
-      missings_lookup,
-      by = dplyr::join_by("code_type")
-    ) %>%
-    dplyr::mutate(
-      code_id = dplyr::coalesce(missing_code_id, code_id),
-      code_status = dplyr::coalesce(code_status, missing_code_status),
-      code_score = dplyr::coalesce(missing_code_score, code_score)
-    ) %>%
-    dplyr::arrange(dplyr::across(
-      dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
-      ))
-    )) %>%
-    dplyr::select(
-      -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr",
-        "missing_code_id", "missing_code_status", "missing_code_score"
-      ))
-    )
+  }
+  expanded
 }

@@ -174,7 +174,8 @@ Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen Richtungen
 - **`complete_design(...)`:** Die Funktion bestimmt zuerst die Missing-Art und
   ordnet ihr über `code_type` den Code und Score aus der Tabelle zu,
   z. B. `MISSING_BY_OMISSION` → `-99` und 0 Punkte. Das gilt auch
-  ohne manuelle Kodierung; fehlende Status werden ergänzt.
+  ohne manuelle Kodierung. Der technische `code_status` bleibt dabei immer
+  unverändert, auch wenn er `NA` ist.
 
 ## 4. Optional: manuelle Codes einfügen
 
@@ -202,8 +203,11 @@ wie in Abschnitt 3 prüfen.
 
 **Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
 [`complete_design()`](../reference/complete_design.html) ergänzt fehlende Einträge aus dem vollständigen Design.
-Anhand der Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
-Aufgaben am Ende von Auslassungen vor später bearbeiteten Units unterschieden.
+Anhand der erwarteten Variablenreihenfolge innerhalb eines Testlets werden nicht
+erreichte Aufgaben am Ende von Auslassungen vor später bearbeiteten Variablen
+unterschieden, auch innerhalb derselben Unit. Die Reihenfolge entsteht aus
+Testheft, Unit-Vorkommen und Seiten bzw. Elementpositionen; wo Strukturangaben
+fehlen, ergänzen natürlich sortierte Variablennamen die Schätzung.
 Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
 
 ```{r complete, eval=FALSE}
@@ -214,10 +218,56 @@ analysis_data <- filter(design_coded, id_used)
 ```
 
 `id_used` kennzeichnet Personen mit mindestens einem gespeicherten Kodierstatus.
+`response_present` unterscheidet vorhandene Antwortzeilen von neu ergänzten
+Designzeilen. Der technische `code_status` wird weder aufgefüllt noch geändert.
 Mit `recode_omissions_to_not_reached = TRUE` können zusätzlich abschließende
 Auslassungen als nicht erreicht eingeordnet werden. Aufgaben, die laut Design
 gar nicht vorgesehen waren, sind **Missing by Design**, nicht Not reached;
 ihre Zellen bleiben beim späteren Umformen `NA`.
+
+| `recode_omissions_to_not_reached` | Verhalten |
+|:--|:--|
+| `NULL` | Nur vervollständigen; vorhandene Kodierfelder bleiben erhalten, ergänzte Kodierfelder bleiben `NA`. Keine neuen Positionen. |
+| `FALSE` (Standard) | Positionen bestimmen und Missings klassifizieren; bestehende Auslassungen bleiben Auslassungen. Not reached vor späterer Bearbeitung wird korrigiert. |
+| `TRUE` | Zusätzlich abschließende Auslassungen zu Not reached umkodieren. |
+
+**Nur Basisvariablen bestimmen die Grenze.** Abgeleitete Variablen zählen nicht
+als Nachweis späterer Bearbeitung. Ihre Positionen liegen in einem eindeutigen
+Ableitungsblock nach der letzten Quelle; für die Missing-Einordnung zählt die
+Position ihrer letzten Basisquelle. Gültige Ableitungscodes bleiben erhalten.
+Bei `TRUE` kann auch ein abgeleitetes Invalid zu Not reached werden, wenn alle
+Basisquellen Auslassungen oder Not reached sind und seine Quellenposition im
+nicht erreichten Schluss liegt. In dieser Ausnahme ändern sich nur `code_type`
+und `code_score`; `code_id` und `code_status` bleiben erhalten. Für die
+analytische Missing-Art daher `code_type` verwenden. Bei `FALSE` bleiben
+abgeleitete Invalids unverändert.
+
+Die beiden Schritte sind auch separat aufrufbar:
+
+```{r separate-completion, eval=FALSE}
+design_completed <- complete_design(coded, units, design,
+                                    recode_omissions_to_not_reached = NULL)
+positions <- get_design_order(design, units)
+design_coded <- recode_missings(design_completed, units, positions = positions,
+                               recode_omissions_to_not_reached = TRUE)
+```
+
+`positions` enthält eindeutige `variable_order` und separate `item_order` je
+Testheft, zusätzlich `order_group` und die Herkunft der Schätzung in
+`order_source`. Personen mit demselben Testheft erhalten dieselben Positionen.
+Itempositionen verwenden standardmäßig die Studio-Zuordnung. Eine optionale
+`item_selection` wählt Itemvariablen aus, ohne Basisvariablen aus dem Datensatz
+zu entfernen. Erst **nach** der Missing-Klassifikation auf Items filtern.
+
+Eine bekannte abweichende Unit-Reihenfolge kann über `order_overrides`
+festgelegt werden. Dafür die vollständige lokale Basisvariablenreihenfolge
+der Unit angeben; Ableitungen werden weiterhin nach ihren Quellen eingefügt:
+
+```{r manual-variable-order, eval=FALSE}
+order_overrides <- tibble::tibble(
+  unit_key = "U1", variable_id = c("02a", "01a", "01b"), local_order = 1:3)
+positions <- get_design_order(design, units, order_overrides = order_overrides)
+```
 
 ## 6. Psychometrische Kennwerte berechnen
 
@@ -246,9 +296,11 @@ Itemscore des Bereichs (nicht part-whole-korrigiert).
 
 ## 7. Personen × Items für eatModel
 
-[`add_item_id()`](../reference/add_item_id.html) ergänzt die Item-ID aus den Studio-Metadaten über `unit_key`
-und `variable_id`. Variablen ohne Item-Verknüpfung erhalten `NA`; im Beispiel
-werden nur verknüpfte Itemvariablen übernommen.
+`complete_design()` enthält bei eingeschalteter Positionsbestimmung bereits
+die Item-ID aus den Studio-Metadaten. Bei separat vorbereiteten Daten kann
+[`add_item_id()`](../reference/add_item_id.html) diese über `unit_key` und
+`variable_id` ergänzen. Variablen ohne Item-Verknüpfung erhalten `NA`; im
+Beispiel werden nur verknüpfte Itemvariablen übernommen.
 
 Für die Spaltennamen wird `item` nach der Konvention `unit_key__item_id`
 gebildet, z. B. `DH001__08`. `item_id` bleibt dabei eine Zeichenkette:
@@ -256,8 +308,7 @@ Führende Nullen müssen erhalten bleiben und dürfen nicht durch eine Umwandlun
 in Zahlen verloren gehen.
 
 ```{r item-ids, eval=FALSE}
-item_data <- add_item_id(analysis_data, units)
-item_data <- filter(item_data, !is.na(item_id))
+item_data <- filter(analysis_data, !is.na(item_id))
 ```
 
 **Optional: fehlende führende Nullen ergänzen.** Falls die Studio-Metadaten

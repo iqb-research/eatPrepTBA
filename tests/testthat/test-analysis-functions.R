@@ -366,7 +366,7 @@ test_that("complete_design applies custom missing metadata", {
 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$code_id, -196L)
-  expect_equal(out$code_status, "CUSTOM_NOT_REACHED")
+  expect_true(is.na(out$code_status))
   expect_equal(out$code_score, 0.5)
 })
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/complete_design.R
 \name{complete_design}
 \alias{complete_design}
-\title{Complete design with coded responses}
+\title{Complete the expected response design}
 \usage{
 complete_design(
   coded,
@@ -11,28 +11,76 @@ complete_design(
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
   missings = NULL,
-  recode_omissions_to_not_reached = FALSE
+  recode_omissions_to_not_reached = FALSE,
+  order_overrides = NULL,
+  item_selection = NULL
 )
 }
 \arguments{
-\item{coded}{Tibble. Response data coded with \code{\link[=code_responses]{code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
+\item{coded}{Tibble of coded responses, as returned by \code{\link[=code_responses]{code_responses()}}
+with \code{prepare = TRUE}.}
 
-\item{units}{Tibble. Unit data retrieved from the IQB Studio after setting the argument \code{unit_definition = TRUE} for \code{\link[=get_units]{get_units()}} -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save some time.}
+\item{units}{Tibble of Studio units. Prepared \code{unit_codes} can be reused.
+Retrieve unit definitions to use page and element locations for ordering,
+and metadata to obtain the Studio item mapping.}
 
-\item{design}{Tibble. Design retrieved from Testcenter via \code{\link[=get_design]{get_design()}} or an object formatted in the same way.}
+\item{design}{Tibble returned by \code{\link[=get_design]{get_design()}}, or an equivalent design.
+Both unit-level and variable-level designs are supported. All active coding
+variables of every supplied unit occurrence are completed, even when the
+supplied design lists only a subset of variables.}
 
-\item{identifiers}{Character. Contains person identifiers of the dataset \code{coded}. Defaults to \code{c("group_id", "login_name", "login_code")} which corresponds to the identifiers of the IQB Testcenter.}
+\item{identifiers}{Character vector of person identifiers. Defaults to the
+Testcenter identifiers \code{group_id}, \code{login_name}, and \code{login_code}.}
 
-\item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
+\item{overwrite}{Logical. Rebuild existing \code{unit_codes}? Defaults to \code{FALSE}.}
 
-\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
+\item{missings}{Optional missing-value scheme with \code{code_id}, \code{code_status},
+\code{code_score}, and \code{code_type}. Used only when missing classification is
+enabled. The scheme never fills or changes the technical \code{code_status}.}
 
-\item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a testlet? Defaults to \code{FALSE}.}
+\item{recode_omissions_to_not_reached}{\code{FALSE} (default), \code{TRUE}, or \code{NULL}.
+\code{FALSE} adds expected positions and classifies missings while preserving
+omissions; existing not-reached values before later basis-variable work
+become omissions. \code{TRUE} additionally recodes trailing omissions to not
+reached. \code{NULL} only completes the design: supplied coding fields remain
+unchanged and newly inserted coding fields remain missing. No positions
+are computed in that mode.}
 
+\item{order_overrides}{Optional local basis-variable ordering, passed to
+\code{\link[=get_design_order]{get_design_order()}}.}
+
+\item{item_selection}{Optional item-variable selection, passed to
+\code{\link[=get_design_order]{get_design_order()}}. It affects item positions, not the response row set
+or variable positions.}
 }
 \value{
-A tibble.
+A tibble with completed response rows and \code{response_present}.
+With \code{FALSE} or \code{TRUE}, also includes \code{variable_order}, \code{item_order},
+\code{order_group}, and \code{order_source} (and the Studio \code{item_id} when available).
 }
 \description{
-This function automatically completes missings for coded responses.
+Completes coded responses with the expected variables of each booklet.
+Expected positions are shared by everyone assigned the same booklet.
+Missing classification then runs separately per person and testlet.
+}
+\details{
+The technical \code{code_status} is always preserved, including \code{NA}. The logical
+\code{response_present} records whether a row originated in the response data,
+rather than inferring its origin from possibly missing coding fields. An
+existing presence marker is retained when completing again. \code{id_used} retains
+its historical meaning: at least one supplied technical status is nonmissing
+for that person.
+
+Only basis variables determine the not-reached boundary. Derived variables
+cannot act as evidence of later work. Valid derived codes are preserved.
+With \code{TRUE}, an invalid derived result can become analytically not reached
+when all its basis sources are omissions/not reached and its source position
+lies in the trailing region. In this exception only \code{code_type} and
+\code{code_score} change; its original \code{code_id} and \code{code_status} remain intact.
+Consequently, use \code{code_type} for the analytical missing category.
+
+The same operations can be called separately: complete with \code{NULL}, obtain
+a static table using \code{\link[=get_design_order]{get_design_order()}}, and pass that table to
+\code{\link[=recode_missings]{recode_missings()}}. Classify before filtering to selected items, so later
+basis-variable work remains available as evidence.
 }

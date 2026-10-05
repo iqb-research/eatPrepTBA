@@ -1,3 +1,20 @@
+# eatPrepTBA 0.9.8.9037 [2026-10-05]
+
+## new features
+
+* Added `get_design_order()` for static variable and item positions per booklet, using unit occurrences, page/element locations, natural naming fallback, source dependencies, and optional manual basis-variable orders. Studio item mappings are the default; explicit item selections leave variable positions unchanged.
+* Added independently callable `recode_missings()`. `complete_design()` uses the same ordering and classification functions; `recode_omissions_to_not_reached = NULL` now completes the design without assigning positions or changing coding fields.
+* Added `response_present` to distinguish original response rows with missing coding fields from rows newly added from the design.
+
+## bug fixes
+
+* Classify not-reached values within units rather than treating every missing in the last partly worked unit as trailing. Only basis variables determine the boundary per person and testlet; derived results cannot count as evidence of later work.
+* Preserve technical `code_status` values, including `NA`, in all completion/classification modes. With omission recoding enabled, eligible invalid derived results can become analytically not reached while retaining their original code ID and technical status. With `FALSE`, derived invalid results remain unchanged.
+
+## tests and documentation
+
+* Added regression coverage for within-unit boundaries, all three modes, source trees, static ranks, repeated occurrences, overrides, item selections, coding-result preservation, and separate versus integrated calls. Updated the standard workflow and function help.
+
 # eatPrepTBA 0.9.8.9036 [2026-09-24]
 
 ## bug fixes
