@@ -27,6 +27,13 @@
 #' @param item_selection Optional item-variable selection, passed to
 #'   [get_design_order()]. It affects item positions, not the response row set
 #'   or variable positions.
+#' @param use_variable_names_for_recoding Logical. Explicitly confirm natural
+#'   variable-name order for missing classification. Defaults to `FALSE`.
+#'   Known physical positions and manual overrides remain usable in either mode.
+#' @param diagnostics Character. `"compact"` prints a summary of actual changes
+#'   in this call; `"full"` adds counts by booklet/testlet/unit occurrence;
+#'   `"none"` suppresses the summary. Added rows and changes to existing rows
+#'   are counted separately, regardless of earlier `response_present` values.
 #'
 #' @description
 #' Completes coded responses with the expected variables of each booklet.
@@ -42,12 +49,17 @@
 #' for that person.
 #'
 #' Only basis variables determine the not-reached boundary. Derived variables
-#' cannot act as evidence of later work. Valid derived codes are preserved.
-#' With `TRUE`, an invalid derived result can become analytically not reached
-#' when all its basis sources are omissions/not reached and its source position
-#' lies in the trailing region. In this exception only `code_type` and
-#' `code_score` change; its original `code_id` and `code_status` remain intact.
-#' Consequently, use `code_type` for the analytical missing category.
+#' cannot act as evidence of later work. Valid and invalid derived results
+#' become not reached when all their transitive basis sources are known and
+#' demonstrably not reached. A mixture of omissions and not-reached sources is
+#' insufficient; otherwise these derived results are preserved. This rule applies
+#' whenever classification is enabled, regardless of the previous score.
+#' The missing scheme updates `code_type`, `code_id`, and `code_score`
+#' together; `code_status` remains intact. Use the original coded input when
+#' comparing policies, since replaced analytical fields cannot be reconstructed.
+#' Uncertain ordering preserves existing categories and leaves unclassified
+#' rows unresolved. Names may resolve uncertainty only with explicit confirmation;
+#' conflicts with known physical order require an `order_overrides` entry.
 #'
 #' The same operations can be called separately: complete with `NULL`, obtain
 #' a static table using [get_design_order()], and pass that table to
@@ -66,9 +78,13 @@ complete_design <- function(coded,
                             missings = NULL,
                             recode_omissions_to_not_reached = FALSE,
                             order_overrides = NULL,
-                            item_selection = NULL) {
+                            item_selection = NULL,
+                            use_variable_names_for_recoding = FALSE,
+                            diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
   checkmate::assert_character(identifiers, min.len = 1L, any.missing = FALSE)
   checkmate::assert_flag(overwrite)
+  checkmate::assert_flag(use_variable_names_for_recoding)
   if (!is.null(recode_omissions_to_not_reached)) {
     checkmate::assert_flag(recode_omissions_to_not_reached)
   }
@@ -93,8 +109,8 @@ complete_design <- function(coded,
   }
 
   cli_setting()
-  prepared_units <- add_coding_scheme(units, overwrite = overwrite,
-                                      filter_has_codes = TRUE)
+  prepared_units <- suppressMessages(add_coding_scheme(
+    units, overwrite = overwrite, filter_has_codes = TRUE))
   metadata <- design_order_metadata(prepared_units)
   # The dependency graph stays on the unit table, rather than being copied to
   # every person's response rows.
@@ -127,6 +143,9 @@ complete_design <- function(coded,
     dplyr::select(-dplyr::any_of(c(
       "booklet_id", setdiff(intersect(names(coded), names(completed)), join_keys)
     )))
+  marker <- utils::tail(make.unique(c(names(completed), names(coded_payload),
+                               ".completion_supplied")), 1L)
+  coded_payload[[marker]] <- rep(TRUE, nrow(coded_payload))
   completed <- completed %>%
     dplyr::left_join(coded_payload, by = join_keys, relationship = "one-to-one") %>%
     dplyr::mutate(response_present = dplyr::coalesce(.data$response_present, FALSE)) %>%
@@ -135,18 +154,37 @@ complete_design <- function(coded,
     dplyr::mutate(id_used = any(!is.na(code_status))) %>%
     dplyr::ungroup()
 
-  if (is.null(recode_omissions_to_not_reached)) return(completed)
+  added <- is.na(completed[[marker]])
+  completed[[marker]] <- NULL
+  before <- completed
+
+  if (is.null(recode_omissions_to_not_reached)) {
+    if (diagnostics != "none") {
+      report <- missing_change_report(before, completed, added = added, classified = FALSE)
+      emit_missing_report(report, diagnostics, source = "complete_design")
+    }
+    return(completed)
+  }
 
   completed <- completed %>%
     dplyr::select(-dplyr::any_of(c(
-      "variable_order", "item_order", "order_group", "order_source", "item_order_source"
+      "variable_order", "item_order", "order_group", "order_source", "item_order_source", "item_id"
     )))
   positions <- get_design_order(completed, prepared_units,
                                 order_overrides = order_overrides,
                                 item_selection = item_selection)
-  recode_missings(completed, prepared_units, positions = positions,
-                  identifiers = identifiers, missings = missings,
-                  recode_omissions_to_not_reached = recode_omissions_to_not_reached)
+  out <- recode_missings_impl(
+    completed, prepared_units, positions = positions,
+    identifiers = identifiers, missings = missings,
+    recode_omissions_to_not_reached = recode_omissions_to_not_reached,
+    use_variable_names_for_recoding = use_variable_names_for_recoding
+  )
+  if (diagnostics != "none") {
+    report <- missing_change_report(before, out$data, added = added,
+                                    reasons = out$reasons, basis = out$basis)
+    emit_missing_report(report, diagnostics, source = "complete_design")
+  }
+  out$data
 }
 
 # Complete all active variables, propagating unit-level design columns while

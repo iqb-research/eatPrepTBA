@@ -18,6 +18,7 @@ complete_order_units <- function(derived = FALSE) {
     variable_level = ifelse(derived & ids %in% c("01", "02"), 1L, 0L),
     variable_page = if (derived) c(1L, 1L, 1L, 2L, 2L, 2L) else c(1L, 1L, 2L, 2L),
     variable_section = 1L,
+    variable_element = if (derived) c(1L, 2L, NA_integer_, 1L, 2L, NA_integer_) else c(1L, 2L, 1L, 2L),
     variable_page_always_visible = FALSE,
     variable_sources = sources
   )
@@ -195,7 +196,7 @@ test_that("not-reached boundaries reset at each testlet", {
   expect_equal(out$code_status, coded$code_status)
 })
 
-test_that("derived Invalid is preserved in FALSE and changed only after a basis-only boundary in TRUE", {
+test_that("derived Invalid recoding automatically follows a proven basis-only boundary", {
   units <- complete_order_units(derived = TRUE)
   design <- complete_order_design(units)
   types <- c("MISSING_INVALID_RESPONSE", "FULL_CREDIT", "MISSING_BY_OMISSION",
@@ -215,16 +216,17 @@ test_that("derived Invalid is preserved in FALSE and changed only after a basis-
   expect_equal(earlier$code_score, 0)
   expect_equal(later$code_type, "MISSING_NOT_REACHED")
   expect_true(is.na(later$code_score))
-  expect_equal(later$code_id, -98)
+  expect_equal(later$code_id, -96)
   expect_equal(later$code_status, "INVALID")
 
-  # A synthetic valid derived value must neither move the frontier nor be replaced.
+  # A synthetic valid derived value cannot move the frontier; all-NR sources correct it.
   valid <- complete_order_coded(design, ifelse(design$variable_id == "02", "FULL_CREDIT", "MISSING_BY_OMISSION"))
   out <- complete_design(valid, units, design, recode_omissions_to_not_reached = TRUE)
   expect_true(all(out$code_type[out$variable_source_type == "BASE"] == "MISSING_NOT_REACHED"))
-  expect_equal(out$code_type[out$variable_id == "02"], "FULL_CREDIT")
-  expect_equal(out$code_id[out$variable_id == "02"], 1)
-  expect_equal(out$code_score[out$variable_id == "02"], 1)
+  expect_equal(out$code_type[out$variable_id == "02"], "MISSING_NOT_REACHED")
+  expect_equal(out$code_id[out$variable_id == "02"], -96)
+  expect_true(is.na(out$code_score[out$variable_id == "02"]))
+  expect_equal(out$code_status[out$variable_id == "02"], "CODING_COMPLETE")
   expect_equal(out$code_type[out$variable_id == "01"], "MISSING_NOT_REACHED")
   expect_equal(out$code_id[out$variable_id == "01"], -96)
   expect_equal(out$code_status[out$variable_id == "01"], "DISPLAYED")
@@ -239,7 +241,52 @@ test_that("derived Invalid is preserved in FALSE and changed only after a basis-
   expect_equal(out$code_score[out$variable_id == "01"], 0)
 })
 
-test_that("repeated classification preserves the original ID of recoded derived Invalids", {
+test_that("valid and invalid derived corrections follow transitive sources separately per person", {
+  units <- complete_order_units(derived = TRUE)
+  codes <- units$unit_codes[[1]]
+  total <- codes[codes$variable_id == "02", ]
+  total$variable_id <- "TOTAL"
+  total$variable_ref <- "ref_TOTAL"
+  total$variable_level <- 2L
+  total$variable_sources <- list(tibble::tibble(
+    variable_source_id = c("01", "02"),
+    variable_source_ref = c("ref_01", "ref_02"),
+    variable_source_level = 1L, variable_source_direct = TRUE
+  ))
+  units$unit_codes[[1]] <- dplyr::bind_rows(codes, total)
+  design <- complete_order_design(units, persons = c("P1", "P2"))
+  derived <- design$variable_id %in% c("01", "02", "TOTAL")
+  types <- ifelse(derived | (design$login_code == "P2" & design$variable_id == "01a"),
+                   "FULL_CREDIT", "MISSING_NOT_REACHED")
+  coded <- complete_order_coded(design, types)
+  coded$code_score[derived] <- 0
+  total_rows <- coded$variable_id == "TOTAL"
+  coded$code_type[total_rows] <- "MISSING_INVALID_RESPONSE"
+  coded$code_status[total_rows] <- "INVALID"
+  coded$code_id[total_rows] <- -98
+  expect_message(out <- complete_design(coded, units, design),
+                  "MISSING_INVALID_RESPONSE -> MISSING_NOT_REACHED (derived): 1", fixed = TRUE)
+  p1 <- dplyr::filter(out, login_code == "P1")
+  expect_true(all(p1$code_type == "MISSING_NOT_REACHED"))
+  expect_true(all(is.na(p1$code_score)))
+  p2 <- dplyr::filter(out, login_code == "P2", variable_id %in% c("01", "02", "TOTAL")) %>%
+    dplyr::arrange(variable_id)
+  expect_equal(p2$code_type, c("FULL_CREDIT", "MISSING_NOT_REACHED", "MISSING_INVALID_RESPONSE"))
+  expect_equal(p2$code_score, c(0, NA_real_, 0))
+  expect_true(all(out$code_status[out$variable_id %in% c("01", "02")] == "CODING_COMPLETE"))
+  expect_true(all(out$code_status[out$variable_id == "TOTAL"] == "INVALID"))
+
+  expect_message(repeated <- complete_design(out, units, design),
+                  "0 analytically changed", fixed = TRUE)
+  expect_identical(repeated, out)
+  expect_identical(recode_missings(out, units, diagnostics = "none"), out)
+  completed_only <- complete_design(coded, units, design,
+                                     recode_omissions_to_not_reached = NULL, diagnostics = "none")
+  expect_true(all(completed_only$code_type[completed_only$variable_id == "TOTAL"] == "MISSING_INVALID_RESPONSE"))
+  expect_true(all(completed_only$code_type[completed_only$variable_id %in% c("01", "02")] == "FULL_CREDIT"))
+})
+
+test_that("repeated classification preserves consistent recoded derived Invalid fields", {
   units <- complete_order_units(derived = TRUE)
   design <- complete_order_design(units)
   types <- ifelse(design$variable_id %in% c("01", "02"),
@@ -252,7 +299,7 @@ test_that("repeated classification preserves the original ID of recoded derived 
     integrated_second <- complete_design(first, units, design, recode_omissions_to_not_reached = TRUE)
     derived <- first %>% dplyr::filter(variable_id %in% c("01", "02"))
     expect_true(all(derived$code_type == "MISSING_NOT_REACHED"))
-    expect_true(all(derived$code_id == -98))
+    expect_true(all(derived$code_id == -96))
     expect_true(all(is.na(derived$code_score)))
     expect_equal(derived$code_status, rep(status, 2L))
     expect_equal(complete_order_compare(second), complete_order_compare(first))

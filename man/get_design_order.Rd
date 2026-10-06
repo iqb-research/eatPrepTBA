@@ -47,10 +47,16 @@ Basis variables follow page and available numeric section/element paths,
 with natural variable-name order as a deterministic fallback. Derived
 variables follow their latest source in dependency order. Unknown or cyclic
 dependencies are placed in a diagnostic unresolved block.
+Variables with unknown pages are inserted using names while respecting known
+physical relationships, rather than being placed at the end of the unit.
 
 \code{variable_order} is a unique, consecutive integer within each booklet.
-\code{order_group} retains equal physical positions; it is not a second unique
-variable index. \code{order_source} records the ordering information used.
+It is a display order, not evidence that every relationship is known.
+\code{order_group} retains equal or incomplete physical positions; it can be
+nonmonotone when unknown-page variables are inserted among known positions.
+\code{order_source} records the ordering information used. \code{\link[=recode_missings]{recode_missings()}}
+uses names analytically only with \code{use_variable_names_for_recoding = TRUE};
+otherwise it uses known physical relationships and explicit overrides.
 Item positions use Studio metadata and are consecutive within each booklet.
 No item identifiers are inferred from variable names.
 }

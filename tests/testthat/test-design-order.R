@@ -72,6 +72,110 @@ test_that("numeric structural paths precede naming and partial paths fall back t
   expect_true(all(out$order_source == "page_naming"))
 })
 
+test_that("unknown pages use natural display order without overriding known positions", {
+  units <- order_test_units(c("V1", "V2", "V10"), page = c(1, NA, 2))
+  out <- get_design_order(order_test_design(), units)
+  expect_identical(out$variable_id, c("V1", "V2", "V10"))
+  expect_identical(out$order_source, c("page_section_element", "naming", "page_section_element"))
+
+  units <- order_test_units(c("V1", "V2", "V3"), page = c(2, NA, 1))
+  out <- get_design_order(order_test_design(), units)
+  expect_identical(out$variable_id, c("V2", "V3", "V1"))
+  expect_identical(out$variable_order, 1:3)
+  units$unit_codes[[1]] <- units$unit_codes[[1]][3:1, ]
+  expect_identical(get_design_order(order_test_design(), units), out)
+})
+
+test_that("known siblings retain their physical order despite a missing sibling path", {
+  units <- order_test_units(c("V1", "V2", "V3"), section = c(2, NA, 1))
+  out <- get_design_order(order_test_design(), units)
+  expect_identical(out$variable_id, c("V2", "V3", "V1"))
+  units$unit_codes[[1]]$variable_section <- 0L
+  units$unit_codes[[1]]$variable_element <- c(2, NA, 1)
+  expect_identical(get_design_order(order_test_design(), units)$variable_id,
+                   c("V2", "V3", "V1"))
+})
+
+test_that("analytic precedence uses known locations and leaves unknown pages incomparable", {
+  metadata <- eatPrepTBA:::design_order_metadata(
+    order_test_units(c("V1", "V2", "V3"), page = c(1, NA, 2))
+  )
+  before <- eatPrepTBA:::design_order_precedence(metadata, c(3L, 2L, 1L))
+  expected <- matrix(FALSE, 3, 3)
+  expected[1, 3] <- TRUE
+  expect_identical(before, expected)
+
+  confirmed <- eatPrepTBA:::design_order_precedence(
+    metadata, c(3L, 2L, 1L), use_variable_names_for_recoding = TRUE
+  )
+  expect_identical(confirmed, upper.tri(expected))
+
+  metadata$variable_page <- c(1, 1, 2)
+  metadata$variable_section <- rep(list(NA_integer_), 3)
+  before <- eatPrepTBA:::design_order_precedence(
+    metadata, 1:3, order_source = rep("page_naming", 3)
+  )
+  expected[2, 3] <- TRUE
+  expect_identical(before, expected)
+})
+
+test_that("unconfirmed display ranks and element identifiers do not prove precedence", {
+  metadata <- tibble::tibble(unit_key = "U1", variable_id = c("V1", "V2"))
+  expect_identical(eatPrepTBA:::design_order_precedence(metadata, c(2L, 1L)),
+                   matrix(FALSE, 2, 2))
+  confirmed <- eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
+  )
+  expect_true(confirmed[1, 2])
+  expect_false(confirmed[2, 1])
+
+  metadata$variable_page <- 1
+  metadata$variable_section <- list("section1", "section2")
+  metadata$variable_element <- list(1, 2)
+  expect_identical(eatPrepTBA:::design_order_precedence(metadata, 1:2),
+                   matrix(FALSE, 2, 2))
+  expect_identical(eatPrepTBA:::design_order_precedence(metadata[0, ], integer()),
+                   matrix(FALSE, 0, 0))
+})
+
+test_that("confirming names rejects conflicts with known physical precedence", {
+  metadata <- eatPrepTBA:::design_order_metadata(
+    order_test_units(c("V1", "V2"), page = c(2, 1))
+  )
+  expect_error(eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
+  ), "unit.*U1.*V2.*V1")
+  expect_error(eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
+  ), "order_overrides")
+
+  metadata$variable_page <- 1
+  metadata$variable_section <- list(2, 1)
+  expect_error(eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
+  ), "conflicts with physical metadata")
+  metadata$variable_section <- list(0, 0)
+  metadata$variable_element <- list(2, 1)
+  expect_error(eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
+  ), "conflicts with physical metadata")
+})
+
+test_that("complete occurrence overrides establish precedence independently of names", {
+  metadata <- eatPrepTBA:::design_order_metadata(order_test_units())
+  expected <- matrix(FALSE, 2, 2)
+  expected[2, 1] <- TRUE
+  for (use_names in c(FALSE, TRUE)) {
+    expect_identical(eatPrepTBA:::design_order_precedence(
+      metadata, c(2L, 1L), order_source = c("override", "override"),
+      use_variable_names_for_recoding = use_names
+    ), expected)
+  }
+  expect_error(eatPrepTBA:::design_order_precedence(
+    metadata, c(2L, 1L), order_source = c("override", "page_naming")
+  ), "every basis variable")
+})
+
 test_that("derived blocks resolve original references, siblings, and chains", {
   units <- order_test_units(
     ids = c("01a", "01b", "01", "same", "02", "03"),

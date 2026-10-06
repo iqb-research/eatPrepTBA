@@ -10,7 +10,9 @@ recode_missings(
   positions = NULL,
   identifiers = c("group_id", "login_name", "login_code"),
   missings = NULL,
-  recode_omissions_to_not_reached = FALSE
+  recode_omissions_to_not_reached = FALSE,
+  use_variable_names_for_recoding = FALSE,
+  diagnostics = c("compact", "full", "none")
 )
 }
 \arguments{
@@ -21,7 +23,8 @@ including the design keys, \code{value}, and the four \verb{code_*} fields.}
 
 \item{positions}{Optional position table returned by \code{\link[=get_design_order]{get_design_order()}}.
 If omitted, \code{data} must already contain \code{variable_order}. The order is never
-inferred again by this function.}
+rearranged. A display rank alone does not establish within-unit certainty;
+the unit metadata and explicit ordering provenance determine allowed comparisons.}
 
 \item{identifiers}{Character vector of person identifiers.}
 
@@ -31,6 +34,15 @@ inferred again by this function.}
 \item{recode_omissions_to_not_reached}{Logical. With \code{FALSE}, existing omissions
 are retained. With \code{TRUE}, omissions after the last worked-on basis variable
 are additionally classified as not reached.}
+
+\item{use_variable_names_for_recoding}{Logical. Confirm that natural variable
+name order may resolve otherwise unknown positions. Defaults to \code{FALSE}.
+Known physical positions and explicit overrides are always respected.
+Conflicts between confirmed names and physical positions require an override.}
+
+\item{diagnostics}{Character. \code{"compact"} (default) prints a change summary,
+\code{"full"} adds counts per booklet/testlet/unit occurrence, and \code{"none"}
+suppresses the summary. Counts describe changes in this call only.}
 }
 \value{
 The input table with updated analytical missing types, IDs, and scores,
@@ -38,9 +50,12 @@ preserving its row order and row count.
 }
 \description{
 Classifies each person, booklet, and testlet separately. Only basis variables
-determine the last reached position. Derived variables use the position of
-their last transitive basis source, not their artificial position in the
-complete ordering. Technical \code{code_status} values, including \code{NA}, and stored
+determine the reached region. Within-unit comparisons use known physical
+positions, explicit overrides, and names only when confirmed by the caller.
+Unknown positions do not establish a trailing region. Existing categories
+are retained when the evidence is ambiguous; unclassified rows stay unresolved.
+Derived variables use their transitive basis sources, not their artificial
+position in the complete ordering. Technical \code{code_status} values and stored
 response values are never changed.
 Valid and invalid basis results count as reached. Coding-error, no-coding,
 and pending results count as work only when a nonmissing response value is
@@ -56,9 +71,14 @@ variable of each supplied unit occurrence must be present. A supplied position
 table also permits validation of entirely absent unit occurrences. Without
 that table, an entirely removed occurrence cannot be detected.
 
-An existing invalid derived result can become not reached only with \code{TRUE},
-when all known basis sources are omissions or not reached and its last source
-lies beyond the reached boundary. In that exception only \code{code_type} and
-\code{code_score} change: the original \code{code_id} and \code{code_status} are retained.
-Valid derived results and existing coding-error/no-coding results are protected.
+Valid and invalid derived results follow the same rule: they become not
+reached when every transitive basis source is known and demonstrably not
+reached. A mixture of omissions and not-reached sources is insufficient.
+This rule applies regardless of the previous score and the omission-recoding
+setting. It updates \code{code_type}, \code{code_id}, and \code{code_score} consistently
+while preserving \code{code_status}, including \code{NA}.
+Use the original coded data to compare different policies: changing an option
+does not restore previously replaced analytical fields. Otherwise valid and
+invalid derived results are preserved. Existing coding-error/no-coding
+results are protected.
 }

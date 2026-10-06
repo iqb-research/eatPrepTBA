@@ -20,6 +20,7 @@ recode_fixture <- function(types, sources = list(), status = NULL, value = NULL)
     group_id = "G1", login_name = "L1", login_code = "C1", booklet_id = "B1",
     booklet_no = 1L, testlet_no = 1L, unit_booklet_no = 1L, unit_key = "U1",
     unit_alias = "U1", variable_id = ids, variable_order = seq_len(n),
+    order_source = "override",
     value = value, code_status = status, code_id = code_id,
     code_type = unname(types), code_score = score, response_present = TRUE
   )
@@ -123,9 +124,10 @@ test_that("derived valid and invalid results never move the basis boundary", {
     f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = derived_type),
                         sources = list(D = "B"))
     out <- recode_missings(f$data, f$units)
-    expect_equal(out$code_type, f$data$code_type)
-    expect_equal(out$code_id, f$data$code_id)
-    expect_equal(out$code_score, f$data$code_score)
+    expect_equal(out$code_type[1], "MISSING_NOT_REACHED")
+    expect_equal(out$code_type[2], "MISSING_NOT_REACHED")
+    expect_equal(out$code_id[2], -96)
+    expect_true(is.na(out$code_score[2]))
   }
 })
 
@@ -144,7 +146,7 @@ test_that("derived missing classification uses actual last source instead of vir
   expect_equal(out$code_type[2], "MISSING_BY_OMISSION")
 })
 
-test_that("TRUE may override derived invalid only in a fully known missing suffix", {
+test_that("derived invalid recoding requires all sources to be proven not reached", {
   local_recode_metadata()
   f <- recode_fixture(c(B1 = "MISSING_BY_OMISSION", B2 = "FULL_CREDIT",
                         B3 = "MISSING_NOT_REACHED", D = "MISSING_INVALID_RESPONSE"),
@@ -155,18 +157,29 @@ test_that("TRUE may override derived invalid only in a fully known missing suffi
   expect_equal(original[4, c("code_status", "code_id", "code_type", "code_score")],
                f$data[4, c("code_status", "code_id", "code_type", "code_score")])
   out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
-  expect_equal(out$code_type[4], "MISSING_NOT_REACHED")
-  expect_true(is.na(out$code_score[4]))
-  expect_equal(out$code_id[4], -98)
-  expect_equal(out$code_status[4], "INVALID")
+  expect_equal(out[4, c("code_status", "code_id", "code_type", "code_score")],
+               f$data[4, c("code_status", "code_id", "code_type", "code_score")])
+
+  # A source before the reached boundary prevents the stricter invalid rule,
+  # even though every source is missing and the last source is not reached.
+  out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
+  expect_equal(out$code_type[4], "MISSING_INVALID_RESPONSE")
+  expect_equal(out$code_score[4], 0.75)
 
   f$units$basis_sources[[4]] <- c("B2", "B3")
   out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
   expect_equal(out$code_type[4], "MISSING_INVALID_RESPONSE")
   expect_equal(out$code_score[4], 0.75)
+
+  f$units$basis_sources[[4]] <- "B3"
+  out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
+  expect_equal(out$code_type[4], "MISSING_NOT_REACHED")
+  expect_true(is.na(out$code_score[4]))
+  expect_equal(out$code_id[4], -96)
+  expect_equal(out$code_status[4], "INVALID")
 })
 
-test_that("derived valid and coding failure results are protected under TRUE", {
+test_that("all-not-reached sources correct valid derived results but preserve coding failures", {
   local_recode_metadata()
   f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D1 = "FULL_CREDIT",
                         D2 = "MISSING_CODING_IMPOSSIBLE", D3 = "NO_CODING"),
@@ -174,8 +187,66 @@ test_that("derived valid and coding failure results are protected under TRUE", {
   f$data$code_id[2:4] <- c(42, 43, 44)
   f$data$code_score[2:4] <- c(0.4, 0.5, 0.6)
   out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
-  expect_equal(out[2:4, c("code_id", "code_type", "code_score")],
-               f$data[2:4, c("code_id", "code_type", "code_score")])
+  expect_equal(out$code_type[2], "MISSING_NOT_REACHED")
+  expect_equal(out$code_id[2], -96)
+  expect_true(is.na(out$code_score[2]))
+  expect_equal(out[3:4, c("code_id", "code_type", "code_score")],
+               f$data[3:4, c("code_id", "code_type", "code_score")])
+})
+
+test_that("valid and invalid derived corrections share the source rule and custom profiles", {
+  local_recode_metadata()
+  profile <- tibble::tibble(code_type = "MISSING_NOT_REACHED", code_id = -196,
+                            code_status = "CUSTOM_NR", code_score = NA_real_)
+  for (type in c("RESIDUAL_AUTO", "FULL_CREDIT", "MISSING_INVALID_RESPONSE", NA_character_)) {
+    for (score in c(0, 1)) {
+      f <- recode_fixture(c(B1 = "MISSING_NOT_REACHED", B2 = "MISSING_NOT_REACHED", D = type),
+                          sources = list(D = c("B1", "B2")),
+                          status = c("NOT_REACHED", NA_character_,
+                                     if (type %in% "MISSING_INVALID_RESPONSE") "INVALID" else "CODING_COMPLETE"))
+      f$data$code_id[3] <- 42
+      f$data$code_score[3] <- score
+      f$data$value[3] <- "stored derived value"
+      out <- recode_missings(f$data, f$units, missings = profile, diagnostics = "none")
+      expect_equal(out$code_type[3], "MISSING_NOT_REACHED")
+      expect_equal(out$code_id[3], -196)
+      expect_true(is.na(out$code_score[3]))
+      expect_identical(out$code_status, f$data$code_status)
+      expect_identical(out$value, f$data$value)
+      expect_identical(recode_missings(out, f$units, missings = profile,
+                                       diagnostics = "none"), out)
+    }
+  }
+})
+
+test_that("valid derived results require all sources to be proven not reached", {
+  local_recode_metadata()
+  for (source_type in c("FULL_CREDIT", "MISSING_BY_OMISSION", "MISSING_INVALID_RESPONSE")) {
+    f <- recode_fixture(c(B1 = source_type, B2 = "MISSING_NOT_REACHED", D = "RESIDUAL_AUTO"),
+                        sources = list(D = c("B1", "B2")))
+    f$data$code_id[3] <- 0
+    f$data$code_score[3] <- 0
+    out <- recode_missings_impl(f$data, f$units)
+    expect_identical(out$data[3, ], f$data[3, ])
+    expect_true(is.na(out$reasons[3]))
+  }
+  # Unknown source trees and unconfirmed relative positions cannot justify the change.
+  f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = "RESIDUAL_AUTO"),
+                      sources = list(D = character()))
+  out <- recode_missings_impl(f$data, f$units)
+  expect_identical(out$data[2, ], f$data[2, ])
+  expect_equal(out$reasons[2], "sources")
+
+  f <- recode_fixture(c(B1 = "FULL_CREDIT", B2 = "MISSING_NOT_REACHED", D = "RESIDUAL_AUTO"),
+                      sources = list(D = "B2"))
+  f$data$order_source <- "name_fallback"
+  f$units$variable_page <- NA_integer_
+  uncertain <- recode_missings_impl(f$data, f$units)
+  expect_identical(uncertain$data[3, ], f$data[3, ])
+  expect_equal(uncertain$reasons[3], "order")
+  confirmed <- recode_missings(f$data, f$units, use_variable_names_for_recoding = TRUE,
+                               diagnostics = "none")
+  expect_equal(confirmed$code_type[3], "MISSING_NOT_REACHED")
 })
 
 test_that("design-added derived rows are reconstructed only from complete missing sources", {
@@ -274,7 +345,7 @@ test_that("standalone positions are matched case-insensitively without reorderin
   positions$booklet_id <- "b1"
   positions$item_order <- c(1L, NA_integer_, 2L)
   positions$order_group <- c(1L, 1L, 2L)
-  positions$order_source <- c("page_name", "page_name", "page_name")
+  positions$order_source <- rep("override", 3)
   positions$item_id <- c("I1", NA_character_, "I2")
   positions$item_order_source <- c("item_selection", "not_an_item", "item_selection")
   shuffled <- f$data[c(3, 1, 2), ]
@@ -347,10 +418,10 @@ test_that("a valid untyped basis code remains evidence when raw values and statu
   expect_equal(out$code_score[2], 0)
 })
 
-test_that("normalizing a derived invalid status never replaces its original ID or score", {
+test_that("untyped derived invalid fields are preserved unless all sources are not reached", {
   local_recode_metadata()
-  f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = NA_character_),
-                      sources = list(D = "B"), status = c("NOT_REACHED", "INVALID"))
+  f <- recode_fixture(c(B = "FULL_CREDIT", D = NA_character_),
+                      sources = list(D = "B"), status = c("CODING_COMPLETE", "INVALID"))
   f$data$code_id[2] <- -198
   f$data$code_score[2] <- 0.75
   out <- recode_missings(f$data, f$units)
@@ -358,43 +429,95 @@ test_that("normalizing a derived invalid status never replaces its original ID o
   expect_equal(out$code_id[2], -198)
   expect_equal(out$code_score[2], 0.75)
   out <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
-  expect_equal(out$code_type[2], "MISSING_NOT_REACHED")
+  expect_equal(out$code_type[2], "MISSING_INVALID_RESPONSE")
   expect_equal(out$code_id[2], -198)
+  expect_equal(out$code_score[2], 0.75)
+
+  # Existing not-reached sources suffice: omission recoding remains FALSE.
+  f$data$code_type[1] <- "MISSING_NOT_REACHED"
+  f$data$code_id[1] <- -96
+  f$data$code_score[1] <- NA_real_
+  f$data$code_status[1] <- "NOT_REACHED"
+  f$data$value[1] <- NA_character_
+  out <- recode_missings(f$data, f$units)
+  expect_equal(out$code_type[2], "MISSING_NOT_REACHED")
+  expect_equal(out$code_id[2], -96)
   expect_true(is.na(out$code_score[2]))
+  expect_equal(out$code_status, f$data$code_status)
 })
 
-test_that("repeated derived invalid overrides retain the original invalid IDs", {
+test_that("automatic derived invalid recoding is stable for custom or missing IDs and statuses", {
   local_recode_metadata()
   for (raw_status in c("INVALID", "DERIVE_ERROR", NA_character_)) {
-    f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = "MISSING_INVALID_RESPONSE"),
-                        sources = list(D = "B"), status = c("NOT_REACHED", raw_status))
-    first <- recode_missings(f$data, f$units, recode_omissions_to_not_reached = TRUE)
-    second <- recode_missings(first, f$units, recode_omissions_to_not_reached = TRUE)
-    expect_equal(second, first)
-    switched <- recode_missings(first, f$units, recode_omissions_to_not_reached = FALSE)
-    expect_equal(switched$code_type[2], "MISSING_NOT_REACHED")
-    expect_equal(switched$code_id[2], -98)
-    expect_equal(switched$code_status, f$data$code_status)
+    for (raw_id in c(-98, -198, NA_real_)) {
+      f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = "MISSING_INVALID_RESPONSE"),
+                          sources = list(D = "B"), status = c("NOT_REACHED", raw_status))
+      f$data$code_id[2] <- raw_id
+      f$data$code_score[2] <- 0.75
+      first <- recode_missings(f$data, f$units,
+                               diagnostics = "none")
+      second <- recode_missings(first, f$units,
+                                diagnostics = "none")
+      expect_equal(first$code_type[2], "MISSING_NOT_REACHED")
+      expect_equal(first$code_id[2], -96)
+      expect_true(is.na(first$code_score[2]))
+      expect_equal(second, first)
+      switched <- recode_missings(first, f$units, recode_omissions_to_not_reached = TRUE,
+                                  diagnostics = "none")
+      expect_equal(switched, first)
+      expect_equal(first$code_status, f$data$code_status)
+    }
   }
 })
 
-test_that("a custom invalid ID is preserved on repetition without technical status", {
+test_that("custom profiles consistently recode derived invalid and ordinary omission IDs", {
   local_recode_metadata()
   f <- recode_fixture(c(B = "MISSING_NOT_REACHED", D = "MISSING_INVALID_RESPONSE",
                         O = "MISSING_BY_OMISSION"), sources = list(D = "B", O = "B"))
   f$data$code_id[2] <- -198
+  f$data$code_id[3] <- -98
   profile <- tibble::tibble(
-    code_type = c("MISSING_INVALID_RESPONSE", "MISSING_NOT_REACHED"),
-    code_id = c(-198, -196), code_status = c("INVALID", "NOT_REACHED"),
-    code_score = c(0, NA_real_)
+    code_type = c("MISSING_INVALID_RESPONSE", "MISSING_BY_OMISSION", "MISSING_NOT_REACHED"),
+    code_id = c(-198, -98, -196), code_status = c("INVALID", "DISPLAYED", "NOT_REACHED"),
+    code_score = c(0, 0, NA_real_)
   )
+  default <- recode_missings(f$data, f$units, missings = profile)
+  expect_equal(default$code_type, c("MISSING_NOT_REACHED", "MISSING_NOT_REACHED",
+                                     "MISSING_BY_OMISSION"))
+  expect_equal(default$code_id, c(-196, -196, -98))
+
   first <- recode_missings(f$data, f$units, missings = profile,
                            recode_omissions_to_not_reached = TRUE)
   second <- recode_missings(first, f$units, missings = profile,
                             recode_omissions_to_not_reached = TRUE)
-  expect_equal(first$code_id, c(-196, -198, -196))
+  expect_equal(first$code_type, rep("MISSING_NOT_REACHED", 3))
+  expect_equal(first$code_id, rep(-196, 3))
+  expect_true(all(is.na(first$code_score)))
+  expect_equal(first$code_status, f$data$code_status)
   expect_equal(second, first)
   switched <- recode_missings(first, f$units, missings = profile)
-  expect_equal(switched$code_id[2], -198)
-  expect_equal(switched$code_type[2], "MISSING_NOT_REACHED")
+  expect_equal(switched, first)
+})
+
+test_that("untyped basis missing IDs follow the effective custom profile", {
+  local_recode_metadata()
+  f <- recode_fixture(c("MISSING_BY_OMISSION", "MISSING_NOT_REACHED"))
+  f$data$code_type <- NA_character_
+  f$data$code_id <- c(-98, -196)
+  f$data$code_score <- 0
+  profile <- tibble::tibble(
+    code_type = c("MISSING_INVALID_RESPONSE", "MISSING_BY_OMISSION", "MISSING_NOT_REACHED"),
+    code_id = c(-198, -98, -196), code_status = c("INVALID", "DISPLAYED", "NOT_REACHED"),
+    code_score = c(0, 0, NA_real_)
+  )
+  out <- recode_missings(f$data, f$units, missings = profile)
+  expect_equal(out$code_type, c("MISSING_BY_OMISSION", "MISSING_NOT_REACHED"))
+  expect_equal(out$code_id, c(-98, -196))
+  expect_equal(out$code_score, c(0, NA_real_))
+  expect_equal(out$code_status, f$data$code_status)
+  tail <- recode_missings(f$data, f$units, missings = profile,
+                          recode_omissions_to_not_reached = TRUE)
+  expect_equal(tail$code_type, rep("MISSING_NOT_REACHED", 2))
+  expect_equal(tail$code_id, rep(-196, 2))
+  expect_true(all(is.na(tail$code_score)))
 })

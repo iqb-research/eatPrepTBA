@@ -5,19 +5,30 @@
 #' @param units Tibble of units, optionally prepared with [add_coding_scheme()].
 #' @param positions Optional position table returned by [eatPrepTBA::get_design_order()].
 #'   If omitted, `data` must already contain `variable_order`. The order is never
-#'   inferred again by this function.
+#'   rearranged. A display rank alone does not establish within-unit certainty;
+#'   the unit metadata and explicit ordering provenance determine allowed comparisons.
 #' @param identifiers Character vector of person identifiers.
 #' @param missings Optional missing-value schema with `code_type`, `code_id`,
 #'   `code_status`, and `code_score`. Entries override the default schema.
 #' @param recode_omissions_to_not_reached Logical. With `FALSE`, existing omissions
 #'   are retained. With `TRUE`, omissions after the last worked-on basis variable
 #'   are additionally classified as not reached.
+#' @param use_variable_names_for_recoding Logical. Confirm that natural variable
+#'   name order may resolve otherwise unknown positions. Defaults to `FALSE`.
+#'   Known physical positions and explicit overrides are always respected.
+#'   Conflicts between confirmed names and physical positions require an override.
+#' @param diagnostics Character. `"compact"` (default) prints a change summary,
+#'   `"full"` adds counts per booklet/testlet/unit occurrence, and `"none"`
+#'   suppresses the summary. Counts describe changes in this call only.
 #'
 #' @description
 #' Classifies each person, booklet, and testlet separately. Only basis variables
-#' determine the last reached position. Derived variables use the position of
-#' their last transitive basis source, not their artificial position in the
-#' complete ordering. Technical `code_status` values, including `NA`, and stored
+#' determine the reached region. Within-unit comparisons use known physical
+#' positions, explicit overrides, and names only when confirmed by the caller.
+#' Unknown positions do not establish a trailing region. Existing categories
+#' are retained when the evidence is ambiguous; unclassified rows stay unresolved.
+#' Derived variables use their transitive basis sources, not their artificial
+#' position in the complete ordering. Technical `code_status` values and stored
 #' response values are never changed.
 #' Valid and invalid basis results count as reached. Coding-error, no-coding,
 #' and pending results count as work only when a nonmissing response value is
@@ -33,11 +44,16 @@
 #' table also permits validation of entirely absent unit occurrences. Without
 #' that table, an entirely removed occurrence cannot be detected.
 #'
-#' An existing invalid derived result can become not reached only with `TRUE`,
-#' when all known basis sources are omissions or not reached and its last source
-#' lies beyond the reached boundary. In that exception only `code_type` and
-#' `code_score` change: the original `code_id` and `code_status` are retained.
-#' Valid derived results and existing coding-error/no-coding results are protected.
+#' Valid and invalid derived results follow the same rule: they become not
+#' reached when every transitive basis source is known and demonstrably not
+#' reached. A mixture of omissions and not-reached sources is insufficient.
+#' This rule applies regardless of the previous score and the omission-recoding
+#' setting. It updates `code_type`, `code_id`, and `code_score` consistently
+#' while preserving `code_status`, including `NA`.
+#' Use the original coded data to compare different policies: changing an option
+#' does not restore previously replaced analytical fields. Otherwise valid and
+#' invalid derived results are preserved. Existing coding-error/no-coding
+#' results are protected.
 #'
 #' @return The input table with updated analytical missing types, IDs, and scores,
 #'   preserving its row order and row count.
@@ -45,12 +61,36 @@
 recode_missings <- function(data, units, positions = NULL,
                             identifiers = c("group_id", "login_name", "login_code"),
                             missings = NULL,
-                            recode_omissions_to_not_reached = FALSE) {
+                            recode_omissions_to_not_reached = FALSE,
+                            use_variable_names_for_recoding = FALSE,
+                            diagnostics = c("compact", "full", "none")) {
+  diagnostics <- match.arg(diagnostics)
+  out <- recode_missings_impl(
+    data, units, positions = positions, identifiers = identifiers,
+    missings = missings,
+    recode_omissions_to_not_reached = recode_omissions_to_not_reached,
+    use_variable_names_for_recoding = use_variable_names_for_recoding
+  )
+  if (diagnostics != "none") {
+    report <- missing_change_report(data, out$data, reasons = out$reasons,
+                                    basis = out$basis)
+    emit_missing_report(report, diagnostics, source = "recode_missings")
+  }
+  out$data
+}
+
+# Shared implementation lets complete_design() report the entire operation once.
+recode_missings_impl <- function(data, units, positions = NULL,
+                                 identifiers = c("group_id", "login_name", "login_code"),
+                                 missings = NULL,
+                                 recode_omissions_to_not_reached = FALSE,
+                                 use_variable_names_for_recoding = FALSE) {
   checkmate::assert_tibble(data)
   checkmate::assert_tibble(units)
   checkmate::assert_tibble(positions, null.ok = TRUE)
   checkmate::assert_character(identifiers, any.missing = FALSE, min.len = 1L)
   checkmate::assert_flag(recode_omissions_to_not_reached)
+  checkmate::assert_flag(use_variable_names_for_recoding)
   checkmate::assert_tibble(missings, null.ok = TRUE)
 
   design_keys <- c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key",
@@ -63,6 +103,8 @@ recode_missings <- function(data, units, positions = NULL,
   }
   checkmate::assert_numeric(data$code_id)
   checkmate::assert_numeric(data$code_score)
+  checkmate::assert_numeric(data$unit_booklet_no, any.missing = FALSE,
+                            finite = TRUE, lower = 0)
 
   # Case-insensitive booklet matching agrees with complete_design(). This is an
   # internal key only; the original booklet spelling is preserved in the output.
@@ -110,11 +152,11 @@ recode_missings <- function(data, units, positions = NULL,
     }
     occurrence_fields <- setdiff(design_keys, "variable_id")
     expected_occurrences <- dplyr::distinct(position_keys[occurrence_fields])
-    assignments <- keys[c(identifiers, "booklet_id", "testlet_no")]
+    assignments <- keys[c(identifiers, "booklet_id")]
     if ("booklet_no" %in% names(data)) assignments$booklet_no <- data$booklet_no
     assignments <- dplyr::distinct(assignments)
     expected <- dplyr::left_join(assignments, expected_occurrences,
-                                 by = c("booklet_id", "testlet_no"), relationship = "many-to-many")
+                                 by = "booklet_id", relationship = "many-to-many")
     supplied <- dplyr::distinct(duplicate_keys[setdiff(names(duplicate_keys), "variable_id")])
     absent <- dplyr::anti_join(expected, supplied, by = names(expected))
     if (nrow(absent)) {
@@ -131,6 +173,7 @@ recode_missings <- function(data, units, positions = NULL,
   }
   static_order <- keys[design_keys]
   static_order$variable_order <- result$variable_order
+  if ("order_source" %in% names(result)) static_order$order_source <- result$order_source
   static_order <- dplyr::distinct(static_order)
   if (anyDuplicated(static_order[design_keys])) {
     cli::cli_abort("A variable occurrence must have the same static {.field variable_order} for all people assigned to its booklet.")
@@ -139,7 +182,7 @@ recode_missings <- function(data, units, positions = NULL,
     cli::cli_abort("Each static booklet position must identify only one variable occurrence.")
   }
 
-  metadata <- design_order_metadata(units)
+  metadata <- suppressMessages(design_order_metadata(units))
   assert_cols(metadata, c("unit_key", "variable_id", "variable_source_type",
                           "variable_level", "basis_sources", "sources_known"), "units")
   if (anyDuplicated(metadata[c("unit_key", "variable_id")])) {
@@ -187,7 +230,6 @@ recode_missings <- function(data, units, positions = NULL,
     "CODING_INCOMPLETE", -90, NA_real_,
     "DERIVE_PENDING", -90, NA_real_
   )
-  default_profile <- profile
   if (!is.null(missings)) {
     assert_cols(missings, c("code_type", "code_id", "code_status", "code_score"), "missings")
     checkmate::assert_character(missings$code_type, any.missing = FALSE, unique = TRUE)
@@ -212,10 +254,11 @@ recode_missings <- function(data, units, positions = NULL,
   types <- original_type
   # A coded result can have a masked raw value or missing type metadata. Do not
   # erase that evidence merely because the technical status is also absent.
-  valid_untyped_basis <- basis & present & is.na(types) &
+  valid_untyped_result <- present & is.na(types) &
     (is.na(data$code_status) | data$code_status %in% "CODING_COMPLETE") &
     ((!is.na(data$code_id) & data$code_id >= 0) |
        (is.na(data$code_id) & !is.na(data$code_score)))
+  valid_untyped_basis <- basis & valid_untyped_result
   unresolved <- is.na(types) & (basis | present) & !valid_untyped_basis
   status_types <- c(
     DISPLAYED = "MISSING_BY_OMISSION", PARTLY_DISPLAYED = "MISSING_BY_OMISSION",
@@ -228,14 +271,13 @@ recode_missings <- function(data, units, positions = NULL,
   types[unresolved & !is.na(mapped_status)] <- mapped_status[unresolved & !is.na(mapped_status)]
   # A missing score of zero is not evidence of work. When type and status are
   # absent, recognized negative missing IDs still identify basis missings.
-  missing_ids <- dplyr::distinct(dplyr::bind_rows(default_profile, profile)[c("code_id", "code_type")])
+  missing_ids <- dplyr::distinct(profile[c("code_id", "code_type")])
   missing_ids <- missing_ids[!is.na(missing_ids$code_id) & missing_ids$code_id < 0, ]
   ambiguous_ids <- duplicated(missing_ids$code_id) | duplicated(missing_ids$code_id, fromLast = TRUE)
   missing_ids <- missing_ids[!ambiguous_ids, ]
   from_id <- basis & is.na(types) & !valid_untyped_basis &
     data$code_id %in% missing_ids$code_id
   types[from_id] <- missing_ids$code_type[match(data$code_id[from_id], missing_ids$code_id)]
-  types[is.na(types) & basis & !has_value & !valid_untyped_basis & is.na(data$code_status)] <- "MISSING_NOT_REACHED"
 
   omission <- "MISSING_BY_OMISSION"
   not_reached <- "MISSING_NOT_REACHED"
@@ -243,7 +285,8 @@ recode_missings <- function(data, units, positions = NULL,
   nonwork_types <- c(omission, not_reached, "MISSING_CODING_IMPOSSIBLE", "NO_CODING",
                      "INTENDED_INCOMPLETE", "CODING_INCOMPLETE", "DERIVE_PENDING")
   valid_type <- !is.na(types) & !types %in% nonwork_types &
-    !startsWith(ifelse(is.na(types), "", types), "MISSING_")
+    !startsWith(dplyr::coalesce(types, ""), "MISSING_")
+  coded_derived <- !basis & (valid_type | valid_untyped_result | types %in% invalid)
   reached <- basis & (valid_type | valid_untyped_basis | types %in% invalid |
     (has_value & !types %in% c(omission, not_reached)) |
     (!recode_omissions_to_not_reached & types %in% omission))
@@ -255,22 +298,30 @@ recode_missings <- function(data, units, positions = NULL,
   if ("booklet_no" %in% names(data)) group_keys$booklet_no <- data$booklet_no
   group_ids <- dplyr::group_indices(dplyr::group_by(group_keys,
                                     dplyr::across(dplyr::all_of(group_cols))))
-  last_reached <- rep(-Inf, nrow(data))
-  for (rows in split(seq_len(nrow(data)), group_ids)) {
-    anchors <- rows[reached[rows]]
-    boundary <- if (length(anchors)) max(result$variable_order[anchors]) else -Inf
-    last_reached[rows] <- boundary
-    eligible <- rows[candidate[rows]]
-    types[eligible] <- ifelse(result$variable_order[eligible] > boundary,
-                              not_reached, omission)
-  }
+  evidence <- missing_order_evidence(
+    keys, result, variable_metadata, basis, reached, occurrence_rows, group_ids,
+    use_variable_names_for_recoding
+  )
+  reasons <- rep(NA_character_, nrow(data))
+  types[candidate & evidence$before] <- omission
+  types[candidate & evidence$tail] <- not_reached
+  reasons[candidate & !evidence$before & !evidence$tail] <- "order"
 
-  invalid_override <- rep(FALSE, nrow(data))
   for (rows in occurrence_rows) {
     for (i in rows[!basis[rows]]) {
-      if (!isTRUE(variable_metadata$sources_known[i])) next
+      derived_candidate <- types[i] %in% not_reached ||
+        (recode_omissions_to_not_reached && types[i] %in% omission) ||
+        (!present[i] && is.na(types[i])) || coded_derived[i]
+      if (!derived_candidate) next
+      if (!isTRUE(variable_metadata$sources_known[i])) {
+        reasons[i] <- "sources"
+        next
+      }
       sources <- variable_metadata$basis_sources[[i]]
-      if (!length(sources) || anyNA(sources)) next
+      if (!length(sources) || anyNA(sources)) {
+        reasons[i] <- "sources"
+        next
+      }
       source_rows <- rows[match(sources, data$variable_id[rows])]
       if (anyNA(source_rows)) {
         cli::cli_abort("The complete {.arg data} table is missing basis source rows for {.field {data$variable_id[i]}} in unit {.field {data$unit_key[i]}}.")
@@ -278,44 +329,45 @@ recode_missings <- function(data, units, positions = NULL,
       if (!all(basis[source_rows])) {
         cli::cli_abort("The basis sources of {.field {data$variable_id[i]}} do not resolve to basis variables.")
       }
-      in_tail <- max(result$variable_order[source_rows]) > last_reached[i]
+      in_tail <- any(evidence$tail[source_rows])
+      before_tail <- all(evidence$before[source_rows])
       all_sources_missing <- all(types[source_rows] %in% c(omission, not_reached))
       if (types[i] %in% not_reached ||
           (recode_omissions_to_not_reached && types[i] %in% omission)) {
-        types[i] <- if (in_tail) not_reached else omission
-      } else if (recode_omissions_to_not_reached && types[i] %in% invalid &&
-                 all_sources_missing && in_tail) {
-        types[i] <- not_reached
-        invalid_override[i] <- TRUE
+        if (in_tail) types[i] <- not_reached
+        else if (before_tail) types[i] <- omission
+        else reasons[i] <- "order"
+      } else if (coded_derived[i]) {
+        if (all(types[source_rows] %in% not_reached) && all(evidence$tail[source_rows])) {
+          types[i] <- not_reached
+        } else if (all_sources_missing &&
+                   any(!evidence$before[source_rows] & !evidence$tail[source_rows])) {
+          reasons[i] <- "order"
+        }
       } else if (!present[i] && is.na(types[i]) && all_sources_missing) {
-        types[i] <- if (in_tail) not_reached else omission
+        if (in_tail) types[i] <- not_reached
+        else if (before_tail) types[i] <- omission
+        else reasons[i] <- "order"
+      } else if (!present[i] && is.na(types[i])) {
+        reasons[i] <- if (any(reasons[source_rows] %in% "order")) "order" else "sources"
       }
     }
   }
 
   result$code_type <- types
   mapped <- match(types, profile$code_type)
-  # Existing non-candidate derived outputs are coding results, not a missing
-  # profile template. In particular, FALSE preserves invalid derived results.
+  # Every source-supported recoding uses the complete analytical profile.
+  # Derived outputs that do not satisfy the rule remain coding results.
   derived_changed <- !basis & (is.na(original_type) | original_type != types)
   derived_changed[is.na(derived_changed)] <- FALSE
   protected_derived <- !basis & types %in% c("MISSING_CODING_IMPOSSIBLE", "NO_CODING", invalid)
   known_sources <- !is.na(variable_metadata$sources_known) & variable_metadata$sources_known
-  apply_profile <- !is.na(mapped) & !protected_derived & (basis | invalid_override |
+  apply_profile <- !is.na(mapped) & !protected_derived & (basis |
     (known_sources & derived_changed) |
     (!basis & known_sources & original_type %in% c(omission, not_reached)))
-  # Preserve the raw invalid ID on subsequent calls as well. After an allowed
-  # override its analytical type is already O/NR, so the type alone no longer
-  # identifies the exception. Technical status or the invalid profile ID does.
-  invalid_ids <- unique(c(-98, profile$code_id[profile$code_type == invalid]))
-  invalid_ids <- invalid_ids[!is.na(invalid_ids)]
-  invalid_origin <- !basis & (data$code_status %in% c("INVALID", "DERIVE_ERROR") |
-                                data$code_id %in% invalid_ids)
-  preserve_invalid_id <- invalid_override |
-    (invalid_origin & types %in% c(omission, not_reached))
-  update_ids <- apply_profile & !preserve_invalid_id
-  result$code_id[update_ids] <- profile$code_id[mapped[update_ids]]
+  apply_profile <- apply_profile & is.na(reasons)
+  result$code_id[apply_profile] <- profile$code_id[mapped[apply_profile]]
   # Assign directly rather than coalescing: a custom NA score is intentional.
   result$code_score[apply_profile] <- profile$code_score[mapped[apply_profile]]
-  result
+  list(data = result, reasons = reasons, basis = basis)
 }

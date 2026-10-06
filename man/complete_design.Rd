@@ -13,7 +13,9 @@ complete_design(
   missings = NULL,
   recode_omissions_to_not_reached = FALSE,
   order_overrides = NULL,
-  item_selection = NULL
+  item_selection = NULL,
+  use_variable_names_for_recoding = FALSE,
+  diagnostics = c("compact", "full", "none")
 )
 }
 \arguments{
@@ -52,6 +54,15 @@ are computed in that mode.}
 \item{item_selection}{Optional item-variable selection, passed to
 \code{\link[=get_design_order]{get_design_order()}}. It affects item positions, not the response row set
 or variable positions.}
+
+\item{use_variable_names_for_recoding}{Logical. Explicitly confirm natural
+variable-name order for missing classification. Defaults to \code{FALSE}.
+Known physical positions and manual overrides remain usable in either mode.}
+
+\item{diagnostics}{Character. \code{"compact"} prints a summary of actual changes
+in this call; \code{"full"} adds counts by booklet/testlet/unit occurrence;
+\code{"none"} suppresses the summary. Added rows and changes to existing rows
+are counted separately, regardless of earlier \code{response_present} values.}
 }
 \value{
 A tibble with completed response rows and \code{response_present}.
@@ -72,12 +83,17 @@ its historical meaning: at least one supplied technical status is nonmissing
 for that person.
 
 Only basis variables determine the not-reached boundary. Derived variables
-cannot act as evidence of later work. Valid derived codes are preserved.
-With \code{TRUE}, an invalid derived result can become analytically not reached
-when all its basis sources are omissions/not reached and its source position
-lies in the trailing region. In this exception only \code{code_type} and
-\code{code_score} change; its original \code{code_id} and \code{code_status} remain intact.
-Consequently, use \code{code_type} for the analytical missing category.
+cannot act as evidence of later work. Valid and invalid derived results
+become not reached when all their transitive basis sources are known and
+demonstrably not reached. A mixture of omissions and not-reached sources is
+insufficient; otherwise these derived results are preserved. This rule applies
+whenever classification is enabled, regardless of the previous score.
+The missing scheme updates \code{code_type}, \code{code_id}, and \code{code_score}
+together; \code{code_status} remains intact. Use the original coded input when
+comparing policies, since replaced analytical fields cannot be reconstructed.
+Uncertain ordering preserves existing categories and leaves unclassified
+rows unresolved. Names may resolve uncertainty only with explicit confirmation;
+conflicts with known physical order require an \code{order_overrides} entry.
 
 The same operations can be called separately: complete with \code{NULL}, obtain
 a static table using \code{\link[=get_design_order]{get_design_order()}}, and pass that table to

@@ -8,51 +8,57 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, error = FALSE)
 library(eatPrepTBA)
 library(dplyr)
 ```
 
-`complete_design()` ergänzt die erwarteten Antwortzeilen. Optional bestimmt
-die Funktion außerdem Positionen und klassifiziert Missings. Die beiden
-Zusatzschritte lassen sich mit `get_design_order()` und `recode_missings()`
-auch separat aufrufen. Dieses Beispiel läuft vollständig lokal mit
-synthetischen Daten; ein Studio- oder Testcenter-Zugang ist nicht erforderlich.
-Den Weg von echten Exporten zu diesen Daten beschreibt der
-[Standard-Workflow](standard-workflow.html).
+`complete_design()` ergänzt fehlende Antwortzeilen und ordnet fehlende
+Antworten ein. Dabei unterscheidet die Funktion insbesondere:
 
-## Drei Einstellungen, unterschiedliche Aufgaben
+- **Auslassung:** Eine Antwort fehlt, obwohl später noch etwas bearbeitet wurde.
+- **Nicht erreicht (Not reached):** Eine Antwort fehlt nach der letzten Bearbeitung.
 
-| `recode_omissions_to_not_reached` | Verhalten von `complete_design()` |
-|:--|:--|
-| `NULL` | Nur das Design vervollständigen. Vorhandene Kodierfelder erhalten, neue Kodierfelder `NA` lassen. Keine neuen Positionen bestimmen. |
-| `FALSE` (Standard) | Positionen bestimmen und Missings klassifizieren. Bestehende Auslassungen erhalten; Not reached vor späterer Bearbeitung zu Auslassung korrigieren. |
-| `TRUE` | Wie `FALSE`, zusätzlich abschließende Auslassungen zu Not reached umkodieren. |
+Entscheidend ist die erwartete Reihenfolge im Testdesign. Ist sie nicht sicher
+bekannt, bleibt die bisherige Einordnung erhalten. Neu ergänzte Antworten
+können dann zunächst ohne Einordnung bleiben (`NA`).
 
-`FALSE` erhält damit die grundsätzliche Behandlung bestehender Auslassungen
-aus der Ursprungsvariante. Die Prüfung innerhalb einer Unit und der Erhalt
-technischer Statuswerte sind Teil der neuen Implementierung; `FALSE` ist
-keine vollständige Wiederherstellung des alten Algorithmus.
+Dieses Beispiel läuft ohne Serverzugang. Den Weg von echten Exporten zu den
+benötigten Daten zeigt der [Standard-Workflow](standard-workflow.html).
 
-**Der technische `code_status` bleibt in allen drei Einstellungen erhalten,
-einschließlich `NA`.** `code_type` bezeichnet die analytische Missing-Art,
-`code_score` die für die Auswertung zugewiesene Punktzahl. Bei gewöhnlichen
-Missing-Umklassifikationen wird auch `code_id` angepasst. Für abgeleitete
-Invalids gilt eine unten gezeigte Ausnahme.
+## Welche Einstellung brauche ich?
 
-## Ein Testheft mit zwei Units
+Mit `complete_design(coded, units, design)` gelten die Standardwerte:
 
-Das Testheft `B1` enthält in einem Testlet zunächst `U1`, dann `U2`.
-Die Basisvariablen haben Seiten- und Elementpositionen. Die Variablen `01`
-und `02` sind Ableitungen; ihre Quellen stehen im Kodierschema. Die
-Studio-Itemzuordnung verwendet in diesem Beispiel die Ableitungen als Items.
-Ein Item könnte ebenso eine Basisvariable sein.
+| Argument | Standard | Wann ändern? |
+|:--|:--|:--|
+| `recode_omissions_to_not_reached` | `FALSE`: bestehende Auslassungen erhalten | `TRUE`, wenn auch Auslassungen am Ende als nicht erreicht gelten sollen. `NULL` ergänzt nur fehlende Zeilen. |
+| `use_variable_names_for_recoding` | `FALSE`: Namen nur zur Sortierung nutzen | `TRUE`, wenn die Namen zuverlässig die Bearbeitungsreihenfolge angeben. |
+| `diagnostics` | `"compact"`: kurzen Änderungsbericht zeigen | `"full"` für Details, `"none"` für keine Ausgabe. |
 
-Der folgende Block erstellt bereits vorbereitete Unit-Metadaten. In echten
-Daten kommen sie aus `get_units(..., metadata = TRUE, unit_definition = TRUE)`
-und `add_coding_scheme()`.
+Die Entscheidungen zur Umkodierung sind unabhängig voneinander.
+**Beim Vergleich der Einstellungen immer mit den ursprünglichen Daten `coded`
+beginnen:** Geänderte Optionen stellen überschriebene Codes nicht wieder her.
 
-```{r example-units}
+## Kleine Beispieldaten
+
+Eine Person bearbeitet ein Testheft mit zwei Aufgaben, hier **Units** genannt:
+`U1` und `U2`. Jede Unit enthält direkte Antworten (**Basisvariablen** wie
+`01a` und `01b`) und daraus berechnete Ergebnisse (**Ableitungen** wie `01`).
+Nur Basisvariablen zeigen, wie weit die Person gearbeitet hat.
+
+In `U1` wurde `02b` beantwortet. Das davorliegende `02a` ist trotzdem als
+nicht erreicht gespeichert. In `U2` gibt es nur noch fehlende Basisantworten;
+die Zeile für `02a` fehlt ganz.
+
+<details>
+<summary>Beispieldaten anlegen – zum Ausführen aufklappen</summary>
+
+Der Block erzeugt drei Tabellen: `units` beschreibt die Variablen, `design`
+ihre Zuordnung zur Person und `coded` die kodierten Antworten. Seiten und
+Elementpositionen sind in diesem ersten Beispiel bekannt.
+
+```{r example-data}
 example_unit <- function(key, second_basis = c("02a", "02b")) {
   ids <- c("01a", "01b", "01", second_basis, "02")
   derived <- ids %in% c("01", "02")
@@ -92,50 +98,7 @@ design <- tibble::tibble(
   unit_booklet_no = 1:2, unit_key = c("U1", "U2"),
   unit_alias = c("first", "second")
 )
-```
 
-Eine Unit-Zeile je Person und Vorkommen genügt hier: `complete_design()`
-ergänzt sämtliche aktiven Variablen der betreffenden Units.
-
-### Erwartete Absolutpositionen
-
-```{r positions}
-positions <- get_design_order(design, units)
-knitr::kable(select(positions, booklet_id, unit_key, variable_id,
-                    variable_order, item_id, item_order, order_source))
-```
-
-`variable_order` ist eindeutig und fortlaufend **je Testheft**. Personen mit
-demselben Testheft erhalten dieselben Positionen; `booklet_no` ist dagegen die
-Zuordnung innerhalb einer Person. Eine mehrfach vorkommende Unit erhält pro
-Vorkommen eigene Positionen, unterschieden durch Testlet, Unitposition und Alias.
-`item_order` ist ein eigener fortlaufender Index für die ausgewählten Items.
-Er ist kein zweiter Name für `variable_order`.
-
-Die Basisreihenfolge folgt Testheft, Unit-Vorkommen, Seite und verfügbaren
-numerischen Abschnitts-/Elementpfaden. Fehlen belastbare Strukturangaben,
-ergänzt eine natürliche Namenssortierung die Schätzung, etwa `2` vor `10`.
-`order_source` dokumentiert die verwendete Information; `order_group` fasst
-gemeinsame physische Positionen zusammen. Ein eindeutiger Index allein beweist
-keine eindeutig bekannte physische Reihenfolge. Antwort- und Log-Zeitstempel
-werden nicht verwendet.
-
-Ableitungen stehen in einem eindeutigen Block nach ihrer letzten Quelle.
-Mehrstufige Ableitungen folgen der Abhängigkeitsreihenfolge. Bei unbekannten
-oder zyklischen Quellen entsteht ein diagnostischer Block
-(`derived_unresolved`, `sources_known = FALSE`); solche Quellen werden nicht
-als vollständig bekannt behandelt.
-
-## Eingangsdaten und drei Ergebnisse
-
-In `U1` liegt eine Auslassung vor späterer Bearbeitung. Außerdem ist `02a`
-bereits als Not reached kodiert, obwohl `02b` danach beantwortet wurde.
-In `U2` liegen nur noch ausgelassene bzw. nicht erreichte Basisvariablen.
-Für `U2/02a` fehlt sogar die Antwortzeile. Trotzdem hat die abgeleitete
-Variable `U2/02` einen gültigen Code mit 0 Punkten: Dieser darf erhalten
-bleiben, zählt aber nicht als später bearbeitete Basisvariable.
-
-```{r responses}
 coded <- tibble::tribble(
   ~unit_key, ~variable_id, ~code_status,     ~code_id, ~code_score, ~code_type,
   "U1", "01a", "CODING_COMPLETE",   1,   1, "FULL_CREDIT",
@@ -151,107 +114,227 @@ coded <- tibble::tribble(
 ) %>%
   left_join(design, by = "unit_key", relationship = "many-to-one") %>%
   mutate(value = ifelse(code_type == "FULL_CREDIT", "A", NA_character_))
-
-only_completed <- complete_design(coded, units, design,
-                                  recode_omissions_to_not_reached = NULL)
-classified_false <- complete_design(coded, units, design)
-classified_true <- complete_design(coded, units, design,
-                                   recode_omissions_to_not_reached = TRUE)
 ```
 
-### `NULL`: nur vervollständigen
+</details>
 
-```{r output-null, echo=FALSE}
-show_codes <- function(data) {
-  data %>%
-    arrange(unit_booklet_no, match(variable_id, c("01a", "01b", "01", "02a", "02b", "02"))) %>%
-    select(unit_key, variable_id, code_status, code_id, code_type,
-           code_score, response_present) %>%
-    knitr::kable()
+```{r display-helpers, include=FALSE}
+at <- function(data, key, id) filter(data, unit_key == key, variable_id == id)
+label_type <- function(x) {
+  dplyr::recode(x,
+    MISSING_BY_OMISSION = "Auslassung",
+    MISSING_NOT_REACHED = "Nicht erreicht",
+    MISSING_INVALID_RESPONSE = "Ungültig",
+    RESIDUAL_AUTO = "Gültig, 0 Punkte",
+    .missing = "Noch ohne Einordnung")
 }
-show_codes(only_completed)
 ```
 
-`response_present = FALSE` markiert die ergänzte Zeile `U2/02a`; deren
-Kodierfelder bleiben vollständig `NA`. Vorhandene Positionen würden erhalten
-bleiben, neue Positionen werden bei `NULL` nicht berechnet.
-`id_used` kennzeichnet weiterhin Personen mit mindestens einem gespeicherten
-technischen `code_status`; es ist kein Indikator für beantwortete Items.
+## Auslassungen erhalten oder umkodieren
 
-### `FALSE`: bestehende Auslassungen erhalten
+```{r classify}
+# Standard: bestehende Auslassungen erhalten
+classified_false <- complete_design(coded, units, design)
 
-```{r output-false, echo=FALSE}
-show_codes(classified_false)
+# Zusätzlich Auslassungen nach der letzten Bearbeitung umkodieren
+classified_true <- complete_design(
+  coded, units, design,
+  recode_omissions_to_not_reached = TRUE
+)
 ```
 
-`U1/02a` wird analytisch zur Auslassung: `code_type` wird
-`MISSING_BY_OMISSION`, `code_id` wird `-99`, der Score wird `0`.
-Der technische Status bleibt `NOT_REACHED`. Die abschließende Auslassung
-`U2/01a` bleibt eine Auslassung; die abgeleiteten Invalids bleiben unverändert.
-Die ergänzte Basiszeile `U2/02a` erhält Not reached, aber keinen erfundenen
-technischen Status.
+Die wichtigsten Unterschiede:
 
-### `TRUE`: abschließende Auslassungen zu Not reached
-
-```{r output-true, echo=FALSE}
-show_codes(classified_true)
+```{r compare-results, echo=FALSE}
+tibble::tibble(
+  Unit = c("U1", "U2", "U2", "U2", "U2"),
+  Variable = c("02a", "01a", "02a", "01", "02")
+) %>%
+  left_join(select(coded, unit_key, variable_id, vorher = code_type),
+            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
+  left_join(select(classified_false, unit_key, variable_id, Standard = code_type),
+            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
+  left_join(select(classified_true, unit_key, variable_id, Mit_TRUE = code_type),
+            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
+  mutate(across(c(vorher, Standard, Mit_TRUE), label_type),
+         vorher = if_else(Unit == "U2" & Variable == "02a", "Zeile fehlt", vorher)) %>%
+  knitr::kable(col.names = c("Unit", "Variable", "Vorher", "Standard", "Mit TRUE"))
 ```
 
-`U1/01b` bleibt eine Auslassung, weil später noch Basisvariablen bearbeitet
-wurden. `U2/01a` wird zu `MISSING_NOT_REACHED`, Code `-96`, Score `NA`;
-sein Status bleibt `DISPLAYED`. `U1/02a` wird wie bei `FALSE` zur Auslassung
-korrigiert. Ein einzelnes Not reached bildet also keine unumkehrbare Grenze.
+`U1/02a` wird in beiden Fällen zur Auslassung, weil danach `02b` beantwortet
+wurde. Nur mit `TRUE` wird die abschließende Auslassung `U2/01a` zu nicht
+erreicht. Die fehlende Zeile `U2/02a` wird in beiden Fällen ergänzt.
 
-**Sonderfall `U2/01`:** Beide Basisquellen sind Auslassung oder Not reached
-und liegen im abschließenden Bereich. Deshalb darf bei `TRUE` auch ein
-abgeleitetes Invalid zu Not reached werden. Nur `code_type` und `code_score`
-ändern sich; `code_id = -98` und `code_status = INVALID` bleiben erhalten.
-Bei `FALSE` erfolgt diese Umklassifikation nicht. `U1/01` bleibt in beiden
-Fällen Invalid, weil eine seiner Basisquellen beantwortet wurde.
-Gültige Ableitungen wie `U2/02` werden in keinem Fall überschrieben.
+`U2/02` kommt mit einem gültigen Code und 0 Punkten aus der Kodierung. Ihre
+einzige Basisvariable `U2/02a` ist aber nachweislich nicht erreicht. Deshalb
+wird auch die Ableitung zu nicht erreicht: Code `-96`, Score `NA`. Sie
+verschiebt die Bearbeitungsgrenze nicht.
 
-### Was die Grenze bestimmt
+Diese Korrektur greift nur, wenn **alle** Basisquellen bekannt und nachweislich
+nicht erreicht sind, unabhängig vom bisherigen Score. Bei beantworteten
+Quellen oder unsicherer Reihenfolge bleibt ein gültiges Ergebnis erhalten.
+Dieselbe Regel gilt für ungültige Ableitungen wie `U2/01`, wie der nächste
+Abschnitt zu Ableitungen zeigt.
 
-Die Grenze wird pro Person, Testheft-Zuordnung und Testlet ausschließlich aus
-Basisvariablen bestimmt. Entscheidend ist die letzte Basisposition mit
-Bearbeitungsnachweis, nicht die erste Not-reached-Zeile.
+**Nur fehlende Zeilen ergänzen:** Mit `NULL` bleiben vorhandene Kodierfelder
+unverändert. Neue Kodierfelder bleiben `NA`; Positionen werden nicht neu berechnet.
 
-| Basis-Ergebnis | Bedeutung für die Grenze |
-|:--|:--|
-| Gültig kodiert, auch 0 Punkte | Bearbeitungsnachweis; bleibt erhalten. |
-| Invalid | Bearbeitungsnachweis; wird nicht wie eine Auslassung behandelt. |
-| Omission bei `FALSE` | Bleibt Auslassung und zählt als erreichte Position. |
-| Omission bei `TRUE` | Kein Bearbeitungsnachweis; kann im Schluss zu Not reached werden. |
-| Not reached | Kein Bearbeitungsnachweis; wird vor späterer Bearbeitung zur Auslassung. |
-| Kodierfehler, `NO_CODING` oder noch offene Kodierung | Nur mit gespeichertem Rohantwortwert Bearbeitungsnachweis; die Kategorie selbst wird erhalten. |
+```{r completion-only}
+only_completed <- complete_design(
+  coded, units, design,
+  recode_omissions_to_not_reached = NULL
+)
+```
 
-Abgeleitete Variablen verschieben diese Grenze nie. Für ihre
-Missing-Einordnung zählt die Position der letzten **transitiven Basisquelle**,
-nicht ihr künstlicher Index im Ableitungsblock. Die Invalid-Ausnahme erfordert
-eine vollständig bekannte, nicht leere Quellenmenge. Vorhandene gültige
-Ableitungen und Kodierfehler werden erhalten; die Klassifikation führt den
-Autocoder nicht erneut aus und erzeugt keine neuen Invalid-Ableitungen.
+`response_present = FALSE` kennzeichnet ergänzte Zeilen. Diese Kennzeichnung
+bleibt auch bei einem erneuten Aufruf erhalten.
 
-## Schritte separat ausführen
+## Darf die Funktion den Variablennamen vertrauen?
 
-```{r separate-steps}
+Bekannte Seiten und Elementpositionen bestimmen die Reihenfolge. Fehlen solche
+Angaben, helfen Namen beim Sortieren: etwa `2` vor `10`. Eine unbekannte Seite
+wird dabei nicht einfach ans Ende gestellt. Die Sortierung beachtet weiterhin
+die bekannten Positionen.
+
+**Sortiert bedeutet aber noch nicht sicher eingeordnet.** Ohne Bestätigung
+werden Namen allein nicht zum Umkodieren genutzt. Bekannte Beziehungen bleiben
+nutzbar, etwa die Reihenfolge zweier Units im Testheft.
+
+Im nächsten Beispiel entfernen wir die Seitenangabe von `U1/02a`:
+
+```{r uncertain-page}
+uncertain_units <- units
+uncertain_units$unit_codes[[1]] <- mutate(
+  uncertain_units$unit_codes[[1]],
+  variable_page = if_else(variable_id == "02a", NA_integer_, variable_page)
+)
+
+without_confirmation <- complete_design(
+  coded, uncertain_units, design,
+  recode_omissions_to_not_reached = TRUE
+)
+
+with_confirmation <- complete_design(
+  coded, uncertain_units, design,
+  recode_omissions_to_not_reached = TRUE,
+  use_variable_names_for_recoding = TRUE
+)
+```
+
+```{r compare-uncertain, echo=FALSE}
+tibble::tibble(
+  Variable = "U1/02a",
+  `Ohne Bestätigung` = label_type(at(without_confirmation, "U1", "02a")$code_type),
+  `Mit Bestätigung` = label_type(at(with_confirmation, "U1", "02a")$code_type)
+) %>% knitr::kable()
+```
+
+Ohne Bestätigung bleibt hier die bisherige Einordnung erhalten. Mit Bestätigung
+gilt `02a` als vor dem beantworteten `02b` liegend und wird zur Auslassung.
+`TRUE` passt also nur, wenn diese Namenskonvention fachlich zuverlässig ist.
+Widersprechen die Namen bekannten Positionen, bricht die Funktion mit einem
+Fehler ab. Eine geprüfte Reihenfolge lässt sich dann mit `order_overrides`
+vorgeben; ein Beispiel steht am Ende dieser Vignette.
+
+## Eine gemeinsame Regel für gültige und ungültige Ableitungen
+
+Eine Ableitung wird aus anderen Variablen berechnet, zum Beispiel eine Summe
+aus zwei Antworten. Sie wird automatisch zu nicht erreicht, wenn
+**alle zugrunde liegenden Basisvariablen bekannt und nachweislich nicht
+erreicht sind**. Das gilt auch über mehrere Ableitungsschritte hinweg.
+Ob der bisherige Code gültig oder ungültig war, spielt dabei keine Rolle.
+Eine Mischung aus Auslassungen und nicht erreichten Antworten reicht nicht;
+in diesem Fall bleibt das bisherige Ergebnis erhalten.
+
+Bei `U2/01` bleibt mit `FALSE` eine Basisquelle eine Auslassung. Deshalb
+bleibt die Ableitung ungültig. Mit `TRUE` wird diese abschließende Auslassung
+zu nicht erreicht; nun erfüllen beide Basisquellen die gemeinsame Regel.
+Im bereits berechneten Ergebnis `classified_true` ändern sich die Felder so:
+
+```{r compare-invalid, echo=FALSE}
+bind_rows(
+  mutate(at(coded, "U2", "01"), Schritt = "Vorher"),
+  mutate(at(classified_true, "U2", "01"), Schritt = "Nachher")
+) %>%
+  select(Schritt, code_status, code_type, code_id, code_score) %>%
+  knitr::kable()
+```
+
+**`code_status` bleibt `INVALID`.** Er dokumentiert das ursprüngliche Ergebnis.
+Für die Auswertung gelten jetzt `code_type = MISSING_NOT_REACHED`, Code `-96`
+und Score `NA`. Der alte Code `-98` bleibt bei dieser Umkodierung nicht stehen.
+Bei einem eigenen `missings`-Schema werden dessen IDs und Scores verwendet.
+Für die Auswahl einer Missing-Art deshalb nach `code_type` filtern.
+
+`U1/01` bleibt ungültig, weil eine seiner Basisvariablen beantwortet wurde.
+Die gemeinsame Regel gilt bei jeder Missing-Klassifikation (`FALSE` und
+`TRUE`). Nur bei `NULL` werden ausschließlich fehlende Zeilen ergänzt.
+
+## Den Änderungsbericht lesen
+
+Der Standardbericht zeigt, was **dieser Aufruf** ergänzt oder geändert hat:
+
+```{r report, message=TRUE}
+reported <- complete_design(
+  coded, units, design,
+  recode_omissions_to_not_reached = TRUE
+)
+```
+
+`Added` zählt neue Zeilen. `Existing rows` zählt Änderungen an bereits
+vorhandenen Zeilen. Die folgenden Zeilen zeigen, welche Missing-Arten
+umkodiert wurden. Eine Zeile mit mehreren geänderten Feldern zählt dabei
+insgesamt nur einmal als geändert.
+
+Mit denselben Einstellungen erneut aufgerufen, meldet die Funktion keine
+neuen Änderungen:
+
+```{r report-repeat, message=TRUE}
+repeated <- complete_design(
+  reported, units, design,
+  recode_omissions_to_not_reached = TRUE
+)
+```
+
+Für Details je Testheft, Testlet und Unit `diagnostics = "full"` ergänzen.
+Der vollständige Bericht nennt auch Änderungen einzelner Felder; diese
+Feldzahlen können sich überschneiden. `diagnostics = "none"` schaltet den
+Bericht aus. Der zurückgegebene Datensatz bleibt dabei derselbe.
+
+## Zusätzliche Möglichkeiten
+
+<details>
+<summary>Reihenfolge anzeigen oder die Schritte einzeln ausführen</summary>
+
+`get_design_order()` zeigt die erwarteten Positionen. `variable_order` zählt
+alle Variablen, `item_order` nur ausgewählte Items. Beide gelten je Testheft
+und sind für alle Personen mit diesem Testheft gleich. `order_source` nennt
+die Grundlage der Sortierung. Ein fortlaufender Index allein beweist keine
+sichere Bearbeitungsreihenfolge.
+
+```{r positions}
+positions <- get_design_order(design, units)
+knitr::kable(select(positions, unit_key, variable_id,
+                    variable_order, item_order, order_source))
+
 separate_result <- recode_missings(
   only_completed, units, positions = positions,
   recode_omissions_to_not_reached = TRUE
 )
-stopifnot(isTRUE(all.equal(classified_true, separate_result)))
 ```
 
-`recode_missings()` übernimmt die gelieferten Positionen. Es sortiert nicht
-noch einmal nach einer eigenen Namenskonvention. Vollständige Basisdaten
-sind Voraussetzung: Erst nach der Missing-Klassifikation auf Items filtern.
+`separate_result` entspricht `classified_true`. `recode_missings()` übernimmt
+die Positionen; es sortiert die Daten nicht neu. Die Bestätigung von Namen
+und die gemeinsame Regel für Ableitungen gelten hier genauso.
 
-### Bekannte Unit-Reihenfolge ersetzen
+</details>
 
-Ein Override gibt sämtliche aktiven Basisvariablen der Unit in lokaler
-Reihenfolge an. Ableitungen werden anschließend weiterhin nach ihren Quellen
-eingefügt. So lässt sich eine bekannte abweichende Reihenfolge gezielt
-berücksichtigen, ohne einzelne Personenzeilen zu bestätigen.
+<details>
+<summary>Eine geprüfte Reihenfolge von Hand vorgeben</summary>
+
+Ein `order_overrides` gibt **alle aktiven Basisvariablen** der betreffenden
+Unit in der gewünschten Reihenfolge an. Ableitungen fügt die Funktion danach
+entsprechend ihren Quellen ein. Hier soll `01b` vor `01a` stehen:
 
 ```{r override-order}
 order_overrides <- tibble::tibble(
@@ -259,68 +342,81 @@ order_overrides <- tibble::tibble(
   variable_id = c("01b", "01a", "02a", "02b"),
   local_order = 1:4
 )
-overridden_positions <- get_design_order(design, units,
-                                        order_overrides = order_overrides)
-knitr::kable(overridden_positions %>%
-               filter(unit_key == "U1") %>%
-               select(unit_key, variable_id, variable_order, order_source))
+with_override <- complete_design(
+  coded, units, design,
+  order_overrides = order_overrides
+)
 ```
 
-Ohne weitere Spalten gilt das Override für alle Vorkommen der Unit.
-`booklet_id`, `testlet_no` und `unit_booklet_no` können den Geltungsbereich
-einschränken; fehlende Werte in diesen Spalten gelten als Platzhalter für alle
-Vorkommen. Die geänderten Positionen lassen sich anschließend an
-`recode_missings()` übergeben.
+Die manuelle Reihenfolge gilt auch ohne Bestätigung der Namen. Ohne weitere
+Angaben gilt sie für jedes Vorkommen der Unit. Zusätzliche Spalten
+`booklet_id`, `testlet_no` und `unit_booklet_no` können sie auf bestimmte
+Vorkommen begrenzen. Fehlende Werte in diesen Spalten stehen für alle Vorkommen.
 
-### Optional nur bestimmte Items indexieren
+</details>
+
+<details>
+<summary>Nur bestimmte Items für die Auswertung auswählen</summary>
+
+Alle Basisvariablen werden zunächst für die Missing-Prüfung gebraucht.
+Deshalb **erst nach der Klassifikation auf Items filtern**:
 
 ```{r selected-items}
 item_selection <- tibble::tibble(
   unit_key = c("U1", "U2"), variable_id = c("02", "01")
 )
-selected_positions <- get_design_order(design, units,
-                                      item_selection = item_selection)
-knitr::kable(selected_positions %>%
-               filter(!is.na(item_order)) %>%
-               select(unit_key, variable_id, variable_order, item_id, item_order))
-stopifnot(identical(positions$variable_order, selected_positions$variable_order))
+selected <- complete_design(
+  coded, units, design,
+  item_selection = item_selection
+)
+item_data <- filter(selected, !is.na(item_order))
 ```
 
-Die Auswahl ändert nur die Itempositionen. Alle Basisvariablen bleiben für die
-Missing-Prüfung verfügbar, und ihre Absolutpositionen bleiben erhalten.
-Ohne explizite Auswahl werden alle Studio-verknüpften Items indexiert. Eine
-explizite Auswahl funktioniert auch ohne Studio-Item-ID; es wird dabei keine
-ID aus dem Variablennamen erfunden. Sind mehrere Variablen desselben
-Unit-Vorkommens mit demselben Item verknüpft, muss eine eindeutige Auswahl
-getroffen werden.
+`item_selection` bestimmt die Itempositionen, entfernt aber noch keine Zeilen.
+Ohne eigene Auswahl werden die Studio-verknüpften Items verwendet. Bei einer
+eigenen Auswahl nach `item_order` filtern: `item_id` kann auch an nicht
+ausgewählten Studio-Items stehen. Eine eigene Auswahl ist auch ohne
+Studio-Item-ID möglich.
 
-## Kodierfelder für die Auswertung verwenden
+</details>
 
-Für die analytische Missing-Art ist `code_type` maßgeblich; die Punktzahl
-steht in `code_score`. `code_status` und im Invalid-Sonderfall auch `code_id`
-dokumentieren weiterhin das technische Eingangsergebnis. Deshalb darf eine
-Prüfung auf Not reached nicht allein aus `code_id == -96` bestehen.
-
-Eigene Missing-Zuordnungen können über `missings` übergeben werden. Das
-Schema enthält `code_id`, `code_status`, `code_score` und `code_type`.
-Bei der Klassifikation wird `code_status` trotzdem nicht überschrieben;
-ein ausdrücklich hinterlegter Score `NA` wird als `NA` zugewiesen.
-
-```{r verify-example, include=FALSE}
-at <- function(data, key, id) filter(data, unit_key == key, variable_id == id)
+```{r verify-examples, include=FALSE}
 stopifnot(
   all(is.na(at(only_completed, "U2", "02a")$code_type)),
+  !at(only_completed, "U2", "02a")$response_present,
   at(classified_false, "U1", "02a")$code_id == -99,
+  at(classified_false, "U2", "01a")$code_type == "MISSING_BY_OMISSION",
+  at(classified_true, "U2", "01a")$code_type == "MISSING_NOT_REACHED",
   at(classified_true, "U1", "01b")$code_type == "MISSING_BY_OMISSION",
   at(classified_false, "U2", "01")$code_type == "MISSING_INVALID_RESPONSE",
+  at(classified_false, "U2", "01")$code_id == -98,
+  at(without_confirmation, "U1", "02a")$code_type == "MISSING_NOT_REACHED",
+  at(with_confirmation, "U1", "02a")$code_type == "MISSING_BY_OMISSION",
+  at(without_confirmation, "U1", "02a")$variable_order <
+    at(without_confirmation, "U1", "02b")$variable_order,
   at(classified_true, "U2", "01")$code_type == "MISSING_NOT_REACHED",
-  at(classified_true, "U2", "01")$code_id == -98,
+  at(classified_true, "U2", "01")$code_id == -96,
   is.na(at(classified_true, "U2", "01")$code_score),
-  at(classified_true, "U2", "02")$code_type == "RESIDUAL_AUTO",
-  is.na(at(classified_true, "U2", "02a")$code_status)
+  at(classified_true, "U2", "01")$code_status == "INVALID",
+  at(classified_true, "U1", "01")$code_type == "MISSING_INVALID_RESPONSE",
+  at(classified_false, "U2", "02")$code_type == "MISSING_NOT_REACHED",
+  at(classified_true, "U2", "02")$code_type == "MISSING_NOT_REACHED",
+  at(classified_true, "U2", "02")$code_id == -96,
+  is.na(at(classified_true, "U2", "02")$code_score),
+  at(classified_true, "U2", "02")$code_status == "CODING_COMPLETE",
+  is.na(at(classified_true, "U2", "02a")$code_status),
+  identical(reported, classified_true),
+  identical(repeated, reported),
+  isTRUE(all.equal(separate_result, classified_true)),
+  nrow(item_data) == 2L,
+  identical(selected$variable_order, classified_false$variable_order),
+  at(with_override, "U1", "01b")$variable_order <
+    at(with_override, "U1", "01a")$variable_order
 )
 original_status <- select(coded, unit_key, variable_id, original = code_status)
-for (result in list(only_completed, classified_false, classified_true)) {
+for (result in list(only_completed, classified_false, classified_true,
+                    without_confirmation, with_confirmation,
+                    with_override, selected)) {
   observed <- filter(result, response_present) %>%
     left_join(original_status, by = c("unit_key", "variable_id"))
   stopifnot(identical(observed$code_status, observed$original))

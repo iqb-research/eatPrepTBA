@@ -433,8 +433,12 @@ evaluate_psychometrics <- function(
 
   coded_domain_scores <-
     coded_domains %>%
-    dplyr::left_join(units_items, by = dplyr::join_by("unit_key", "variable_id")) %>%
-    dplyr::filter(!is.na(item_id)) %>%
+    # Membership comes from units; completed responses may already carry an
+    # item_id (or a caller's selection), which must not change domain scores.
+    dplyr::semi_join(
+      units_items %>% dplyr::filter(!is.na(item_id)),
+      by = dplyr::join_by("unit_key", "variable_id")
+    ) %>%
     dplyr::group_by(
       dplyr::across(dplyr::any_of(c("domain", identifiers)))
     ) %>%

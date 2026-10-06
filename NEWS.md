@@ -1,19 +1,29 @@
-# eatPrepTBA 0.9.8.9037 [2026-10-05]
+# eatPrepTBA 0.9.8.9037 [2026-10-06]
 
 ## new features
 
 * Added `get_design_order()` for static variable and item positions per booklet, using unit occurrences, page/element locations, natural naming fallback, source dependencies, and optional manual basis-variable orders. Studio item mappings are the default; explicit item selections leave variable positions unchanged.
 * Added independently callable `recode_missings()`. `complete_design()` uses the same ordering and classification functions; `recode_omissions_to_not_reached = NULL` now completes the design without assigning positions or changing coding fields.
 * Added `response_present` to distinguish original response rows with missing coding fields from rows newly added from the design.
+* Added `use_variable_names_for_recoding = FALSE`: natural variable-name order remains available for display, but names alone do not establish analytical reachability unless explicitly enabled. Known unit/page/element relations and manual overrides remain usable by default.
+* Added `diagnostics = "compact"` for a current-call summary; `"full"` adds grouped details and `"none"` suppresses classification diagnostics. Newly completed rows are reported separately from changes to existing rows; repeating unchanged input reports no new changes.
 
 ## bug fixes
 
+* Apply the same automatic rule to valid and invalid derived results: classify them as not reached when all transitive basis sources are known and demonstrably not reached. This includes zero-score fallback codes, applies whenever missing classification is enabled, and does not let derived results move the reached boundary.
 * Classify not-reached values within units rather than treating every missing in the last partly worked unit as trailing. Only basis variables determine the boundary per person and testlet; derived results cannot count as evidence of later work.
-* Preserve technical `code_status` values, including `NA`, in all completion/classification modes. With omission recoding enabled, eligible invalid derived results can become analytically not reached while retaining their original code ID and technical status. With `FALSE`, derived invalid results remain unchanged.
+* Preserve technical `code_status` values, including `NA`, and response values in all completion/classification modes. Source-supported recoding updates analytical type, ID, and score together. A mixture of omitted and not-reached basis sources is insufficient to replace a valid or invalid derived result.
+* Fixed `evaluate_psychometrics()` accepting completed data with an existing `item_id` column. Domain-score item membership continues to come from `units`, independently of IDs supplied on the response table.
+
+## migration
+
+* `complete_design()` now includes `item_id` during classification, including an all-`NA` column when Studio links are unavailable. Remove a following `add_item_id()` call, or use its `overwrite = TRUE` argument when intentionally replacing that mapping.
+* Every supplied unit occurrence is expanded to all active coding variables, including when the input design lists only selected items. Filter after missing classification. To retain an explicit `item_selection`, filter on nonmissing `item_order`, not `item_id`.
+* `variable_order` is a deterministic display order, not proof of physical reachability. Review fallback orders before enabling `use_variable_names_for_recoding = TRUE`; resolve conflicts with known physical order using `order_overrides`.
 
 ## tests and documentation
 
-* Added regression coverage for within-unit boundaries, all three modes, source trees, static ranks, repeated occurrences, overrides, item selections, coding-result preservation, and separate versus integrated calls. Updated the standard workflow and function help.
+* Added regression coverage for within-unit boundaries, all three modes, source trees, static ranks, repeated occurrences, overrides, item selections, coding-result preservation, and separate versus integrated calls, including the completion-to-psychometrics workflow. Updated the standard workflow and function help.
 
 # eatPrepTBA 0.9.8.9036 [2026-09-24]
 

@@ -21,10 +21,16 @@
 #' with natural variable-name order as a deterministic fallback. Derived
 #' variables follow their latest source in dependency order. Unknown or cyclic
 #' dependencies are placed in a diagnostic unresolved block.
+#' Variables with unknown pages are inserted using names while respecting known
+#' physical relationships, rather than being placed at the end of the unit.
 #'
 #' `variable_order` is a unique, consecutive integer within each booklet.
-#' `order_group` retains equal physical positions; it is not a second unique
-#' variable index. `order_source` records the ordering information used.
+#' It is a display order, not evidence that every relationship is known.
+#' `order_group` retains equal or incomplete physical positions; it can be
+#' nonmonotone when unknown-page variables are inserted among known positions.
+#' `order_source` records the ordering information used. [recode_missings()]
+#' uses names analytically only with `use_variable_names_for_recoding = TRUE`;
+#' otherwise it uses known physical relationships and explicit overrides.
 #' Item positions use Studio metadata and are consecutive within each booklet.
 #' No item identifiers are inferred from variable names.
 #'
@@ -283,6 +289,85 @@ design_order_path <- function(path) {
   paste(sprintf("%020.0f", path), collapse = "/")
 }
 
+# Compare basis variables within one unit occurrence. A display rank alone is
+# not evidence of physical order; only a complete explicit override makes it so.
+design_order_precedence <- function(metadata, variable_order, order_source = NULL,
+                                     use_variable_names_for_recoding = FALSE) {
+  checkmate::assert_flag(use_variable_names_for_recoding)
+  assert_cols(metadata, c("unit_key", "variable_id"), "metadata")
+  n <- nrow(metadata)
+  if (!is.null(order_source)) {
+    checkmate::assert_character(order_source, len = n, any.missing = TRUE)
+  }
+  if (any(order_source %in% "override")) {
+    if (!all(order_source %in% "override")) {
+      cli::cli_abort("An explicit order override must cover every basis variable of a unit occurrence. Supply a complete {.arg order_overrides} table.")
+    }
+    checkmate::assert_integerish(variable_order, len = n, any.missing = FALSE,
+                                 lower = 1)
+    if (anyDuplicated(variable_order)) {
+      cli::cli_abort("An explicit order override must give each basis variable a unique position.")
+    }
+    return(outer(variable_order, variable_order, `<`))
+  }
+
+  page <- if ("variable_page" %in% names(metadata)) metadata$variable_page else rep(NA_real_, n)
+  page[!is.finite(page) | page < 0] <- NA_real_
+  path_rank <- function(column) {
+    paths <- if (column %in% names(metadata)) {
+      vapply(metadata[[column]], design_order_path, character(1))
+    } else {
+      rep(NA_character_, n)
+    }
+    match(paths, sort(unique(paths[!is.na(paths)]), method = "radix"))
+  }
+  section <- path_rank("variable_section")
+  element <- path_rank("variable_element")
+  same_page <- outer(page, page, `==`)
+  same_section <- outer(section, section, `==`)
+  before <- outer(page, page, `<`) |
+    (same_page & outer(section, section, `<`)) |
+    (same_page & same_section & outer(element, element, `<`))
+  before[is.na(before)] <- FALSE
+
+  if (use_variable_names_for_recoding) {
+    naming <- design_order_natural_rank(metadata$variable_id)
+    named_before <- outer(naming, naming, `<`)
+    conflict <- which(before & !named_before, arr.ind = TRUE)
+    if (nrow(conflict)) {
+      first <- conflict[1L, 1L]
+      second <- conflict[1L, 2L]
+      cli::cli_abort(c(
+        "Variable-name order conflicts with physical metadata in unit {.val {metadata$unit_key[[first]]}}: {.val {metadata$variable_id[[first]]}} precedes {.val {metadata$variable_id[[second]]}} physically but follows it by name.",
+        "i" = "Resolve the conflict with a complete {.arg order_overrides} table instead of confirming variable-name order."
+      ))
+    }
+    return(named_before)
+  }
+  before
+}
+
+# Preserve every known physical relation while using names only to choose among
+# the currently available variables. Unknown pages therefore need not come last.
+design_order_display_order <- function(metadata) {
+  before <- design_order_precedence(metadata, seq_len(nrow(metadata)))
+  naming <- design_order_natural_rank(metadata$variable_id)
+  pending <- seq_len(nrow(metadata))
+  predecessors <- colSums(before)
+  emitted <- integer()
+  while (length(pending)) {
+    available <- pending[predecessors[pending] == 0L]
+    if (!length(available)) {
+      cli::cli_abort("Conflicting physical ordering metadata in a unit.")
+    }
+    next_variable <- available[which.min(naming[available])]
+    emitted <- c(emitted, next_variable)
+    predecessors <- predecessors - before[next_variable, ]
+    pending <- pending[pending != next_variable]
+  }
+  emitted
+}
+
 design_order_unit <- function(metadata, override = NULL) {
   base <- which(design_order_is_base(metadata))
   derived <- setdiff(seq_len(nrow(metadata)), base)
@@ -308,7 +393,7 @@ design_order_unit <- function(metadata, override = NULL) {
     element[is.na(section)] <- NA_character_
     provenance <- ifelse(is.na(page), "naming", ifelse(is.na(section), "page_naming",
                           ifelse(is.na(element), "page_section_naming", "page_section_element")))
-    local <- order(page, section, element, design_order_natural_rank(basis$variable_id), na.last = TRUE)
+    local <- design_order_display_order(basis)
     physical <- paste(page, section, element, sep = "|")
     groups <- match(physical[local], unique(physical[local]))
     provenance <- provenance[local]
