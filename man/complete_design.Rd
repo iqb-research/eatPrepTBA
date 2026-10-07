@@ -30,7 +30,8 @@ with \code{prepare = TRUE}.}
 
 \item{units}{Tibble of Studio units. Prepared \code{unit_codes} can be reused.
 Retrieve unit definitions to use page and element locations for ordering,
-and metadata to obtain the Studio item mapping.}
+and metadata to obtain the Studio item mapping. Only units referenced by
+\code{design} are prepared and checked; unused units are ignored.}
 
 \item{design}{Tibble returned by \code{\link[=get_design]{get_design()}}, or an equivalent design.
 Both unit-level and variable-level designs are supported. All active coding

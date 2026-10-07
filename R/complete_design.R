@@ -4,7 +4,8 @@
 #'   with `prepare = TRUE`.
 #' @param units Tibble of Studio units. Prepared `unit_codes` can be reused.
 #'   Retrieve unit definitions to use page and element locations for ordering,
-#'   and metadata to obtain the Studio item mapping.
+#'   and metadata to obtain the Studio item mapping. Only units referenced by
+#'   `design` are prepared and checked; unused units are ignored.
 #' @param design Tibble returned by [get_design()], or an equivalent design.
 #'   Both unit-level and variable-level designs are supported. All active coding
 #'   variables of every supplied unit occurrence are completed, even when the
@@ -133,6 +134,7 @@ complete_design <- function(coded,
   occurrence_keys <- c(identifiers, "booklet_id", "booklet_no", "testlet_no",
                        "unit_booklet_no", "unit_key", "unit_alias")
   assert_cols(design, occurrence_keys, "design")
+  design_order_assert_keys(design, "unit_key", "design")
   coded_keys <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id")
   code_fields <- c("code_status", "value", "code_id", "code_type", "code_score")
   assert_cols(coded, c(coded_keys, code_fields), "coded")
@@ -145,8 +147,11 @@ complete_design <- function(coded,
   }
 
   cli_setting()
-  prepared_units <- suppressMessages(add_coding_scheme(
-    units, overwrite = overwrite, filter_has_codes = TRUE))
+  units <- design_order_units_for_keys(units, design$unit_key)
+  prepared_units <- if (nrow(units)) {
+    suppressMessages(add_coding_scheme(
+      units, overwrite = overwrite, filter_has_codes = TRUE))
+  } else units
   metadata <- design_order_metadata(prepared_units)
   # The dependency graph stays on the unit table, rather than being copied to
   # every person's response rows.

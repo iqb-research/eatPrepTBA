@@ -141,6 +141,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   if (anyDuplicated(keys)) cli::cli_abort("data contains duplicate person/variable occurrences.")
   required_keys <- c("booklet_id", "unit_booklet_no", "unit_key", "variable_id")
   if (any(vapply(keys[required_keys], anyNA, logical(1)))) cli::cli_abort("Booklet, unit position, unit, and variable keys in data must not be missing.")
+  units <- design_order_units_for_keys(units, keys$unit_key)
   if (is.null(positions)) {
     positions <- get_design_order(data, units, order_method = settings$order_method,
       use_variable_names_for_recoding = use_variable_names_for_recoding)

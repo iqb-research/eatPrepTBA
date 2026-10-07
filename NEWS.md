@@ -1,3 +1,11 @@
+# eatPrepTBA 0.9.8.9040 [2026-10-07]
+
+* Limit `complete_design()` unit preparation and metadata validation to units
+  referenced by the supplied design. Malformed unused coding schemes and VOMD
+  mappings no longer block completion or classification, including empty
+  designs. All active variables and sources of used units remain included;
+  missing or conflicting metadata for these units still raises an error.
+
 # eatPrepTBA 0.9.8.9039 [2026-10-07]
 
 ## missing classification

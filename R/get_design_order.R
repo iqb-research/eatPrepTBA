@@ -70,6 +70,7 @@ get_design_order <- function(design, units, overwrite = FALSE,
   }
   occurrences <- dplyr::arrange(occurrences, .data$booklet_id, .data$testlet_no,
                                 .data$unit_booklet_no, .data$unit_key, .data$unit_alias)
+  units <- design_order_units_for_keys(units, occurrences$unit_key)
   metadata <- design_order_metadata(units, overwrite = overwrite)
   metadata <- design_order_vomd_metadata(metadata, units)
   unresolved_items <- attr(metadata, "vomd_unresolved")
@@ -135,11 +136,20 @@ get_design_order <- function(design, units, overwrite = FALSE,
   out
 }
 
+# Scope preparation to complete units, including every active variable and
+# source. An unrelated workspace unit must not affect this design's metadata.
+design_order_units_for_keys <- function(units, unit_keys) {
+  assert_cols(units, "unit_key", "units")
+  used <- as.character(units$unit_key) %in% unique(as.character(unit_keys))
+  units[used, , drop = FALSE]
+}
+
 # Prepare one row per active variable, preserving original source references.
 # This helper also accepts its own prepared result to avoid repeated work.
 design_order_metadata <- function(units, overwrite = FALSE) {
   checkmate::assert_flag(overwrite)
   assert_cols(units, "unit_key", "units")
+  if (!nrow(units)) return(design_order_empty_metadata())
   prepared_columns <- c("unit_key", "variable_id", "variable_ref", "variable_source_type",
                         "variable_level", "variable_page", "variable_section",
                         "variable_element", "variable_page_always_visible",

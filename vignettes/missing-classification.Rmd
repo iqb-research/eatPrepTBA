@@ -19,6 +19,11 @@ eine Zeile je Person, Unit-Vorkommen und Variable. Die Funktion verändert
 niemals den technischen `code_status` oder den ursprünglichen Antwortwert `value`.
 Analytische Umklassifikationen betreffen `code_type`, `code_id` und `code_score`.
 
+`units` darf zusätzliche Workspace-Units enthalten. `complete_design()` bereitet
+nur die Units des vollständig übergebenen `design` auf und prüft deren Metadaten.
+Alle aktiven Variablen und benötigten Quellen dieser Units bleiben einbezogen;
+widersprüchliche Metadaten verwendeter Units werden weiterhin zurückgewiesen.
+
 Zwei Regelwerke stehen zur Verfügung. Der Standard `missing_policy = "eatPrepTBA"`
 prüft vorhandene Ableitungen anhand ihrer Quellen. `missing_policy = "coding_box"`
 bildet die Missing-Logik des Itemmatrix-Exports der Kodierbox nach; es erstellt

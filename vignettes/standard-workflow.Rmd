@@ -60,6 +60,11 @@ units <- get_units(studio, metadata = TRUE, unit_definition = TRUE)
 units <- add_coding_scheme(units)
 ```
 
+Für den späteren Aufruf von `complete_design()` darf `units` auch zusätzliche
+Workspace-Units enthalten, die in keinem Testheft des übergebenen `design`
+vorkommen. Die Funktion bereitet nur die im Design verwendeten Units auf und
+prüft deren Metadaten.
+
 ## 2. Testcenter: Antworten und Design bereitstellen
 
 ### Testcenter-Verbindung herstellen
@@ -222,6 +227,11 @@ und unterscheidet zwei Fälle:
 Die Funktion prüft das getrennt je Person und Testlet, auch innerhalb einer
 Unit. Ein Testlet ist ein Abschnitt des Testhefts. Es gilt die Reihenfolge
 im Testdesign; Zeitstempel werden dafür nicht ausgewertet.
+
+Für jede verwendete Unit bleiben alle aktiven Variablen und benötigten Quellen
+Teil der Prüfung, auch bei einer späteren Itemauswahl. Widersprüchliche oder
+ungültige Metadaten verwendeter Units müssen weiterhin geklärt werden;
+ungenutzte Workspace-Units beeinflussen diesen Schritt nicht.
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design)
