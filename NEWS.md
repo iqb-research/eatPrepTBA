@@ -1,108 +1,63 @@
-# eatPrepTBA 0.9.8.9040 [2026-10-07]
-
-* Limit `complete_design()` unit preparation and metadata validation to units
-  referenced by the supplied design. Malformed unused coding schemes and VOMD
-  mappings no longer block completion or classification, including empty
-  designs. All active variables and sources of used units remain included;
-  missing or conflicting metadata for these units still raises an error.
-
-# eatPrepTBA 0.9.8.9039 [2026-10-07]
-
-## missing classification
-
-* Use consistent VOMD item sequence, dependency closure, and page/element
-  relationships by default in eatPrepTBA (`order_method = "hybrid"`). Coding Box
-  retains VOMD order. Explicit VOMD-only and structure-only methods, overrides,
-  and trusted names remain available.
-* Exclude physical before/after relations involving always-visible pages.
-  VOMD item positions and explicit overrides remain usable for these variables;
-  an unspecified always-visible flag does not exclude ordinary page metadata.
-
-## documentation
-
-* Make the detailed rule-set options collapsible in the standard workflow.
-  Update the workflow, missing-classification, and Studio vignettes for the
-  hybrid default and distinguish VOMD groups from additional order relations.
-
-# eatPrepTBA 0.9.8.9038 [2026-10-07]
-
-## missing classification
-
-* Keep `complete_design()` as the single public entry point for completion,
-  position annotation, and missing classification. Ordering and classification
-  helpers are internal; `recode_omissions_to_not_reached = NULL` still only
-  completes expected rows without calculating new positions.
-* Add `missing_policy = "eatPrepTBA"` and `"coding_box"`. The latter follows the
-  coding-box item-dataset rules pinned to commit `39468e5`, including numeric
-  derived-result preservation, source aggregation, equal-position groups, and
-  scope restrictions. Both policies retain `code_status` and response `value`.
-* Use VOMD item sequence plus dependency closure by default. Optional hybrid
-  and structure methods use page/element relationships; explicit overrides
-  and trusted names can establish further ordering. Dense variable indices
-  remain separate from evidence of presentation order.
-* Let items, derived results, and required sources provide work evidence.
-  eatPrepTBA gives source-supported trailing classification priority over
-  derived fallback results. Valid and invalid derived results become NR only
-  when every known transitive basis source is NR in the proven trailing region;
-  `derived_not_reached = "preserve"` retains existing numeric results.
-* Protect existing numeric NR by default. Optional
-  `recode_existing_not_reached = TRUE` permits source-supported correction to
-  omission. The default scope is testlet for eatPrepTBA and unit for coding-box;
-  unit, testlet, and booklet scopes are available.
-* Keep unlinked basis variables in the response data and deterministic index.
-  Without within-unit location they supply only unit-level work evidence in
-  eatPrepTBA; the box policy excludes variables outside its item/source universe
-  from boundary classification.
-* Preserve `code_id_input`, `code_score_input`, and `code_type_input` for
-  comparisons and repeated calls. Distinguish optional `input_missings` from
-  the output `missings` profile, retaining noncolliding standard input codes
-  when custom output IDs are used.
-* Remain in long format and do not create additional missing-by-design rows.
-  Item selection affects item positions for subsequent filtering, never the
-  complete missing-classification universe.
-
-## documentation
-
-* Rewrite the executable missing-classification vignette for both rule sets,
-  input preservation, VOMD groups, optional structural ordering, and custom
-  profiles. Update the standard workflow and Studio introduction to use only
-  `complete_design()` as the public completion/classification API.
-
-## bug fixes
-
-* Retain numeric `code_id` and `code_score` columns when the autocoder omits
-  these entirely for an unclassified batch, including prepared output consumed
-  by `complete_design()`.
-* Supplement partial manual missing-code profiles with omitted standard IDs
-  in `code_responses()`. Explicit profile entries replace matching IDs without
-  discarding the other standard manual-code mappings.
-
-# eatPrepTBA 0.9.8.9037 [2026-10-06]
+# eatPrepTBA 0.9.8.9037 [2026-10-07]
 
 ## new features
 
-* Added `get_design_order()` for static variable and item positions per booklet, using unit occurrences, page/element locations, natural naming fallback, source dependencies, and optional manual basis-variable orders. Studio item mappings are the default; explicit item selections leave variable positions unchanged.
-* Added independently callable `recode_missings()`. `complete_design()` uses the same ordering and classification functions; `recode_omissions_to_not_reached = NULL` now completes the design without assigning positions or changing coding fields.
-* Added `response_present` to distinguish original response rows with missing coding fields from rows newly added from the design.
-* Added `use_variable_names_for_recoding = FALSE`: natural variable-name order remains available for display, but names alone do not establish analytical reachability unless explicitly enabled. Known unit/page/element relations and manual overrides remain usable by default.
-* Added `diagnostics = "compact"` for a current-call summary; `"full"` adds grouped details and `"none"` suppresses classification diagnostics. Newly completed rows are reported separately from changes to existing rows; repeating unchanged input reports no new changes.
+* Extend `complete_design()` with expected variable and item positions per
+  booklet and within-unit missing classification. The eatPrepTBA default
+  combines VOMD item order, source dependencies, and compatible page/element
+  relationships (`order_method = "hybrid"`). VOMD-only and structure-only
+  ordering, manual overrides, and explicitly trusted variable names are
+  available. Always-visible pages do not establish physical order relations.
+* Add `missing_policy = "coding_box"` to reproduce the Coding Box item resolver
+  at commit `39468e5`. Both policies preserve technical `code_status`, including
+  `NA`, and response values. Classification runs per person; its default scope
+  is testlet for eatPrepTBA and unit for Coding Box.
+* Preserve omissions with `recode_omissions_to_not_reached = FALSE`;
+  `TRUE` also recodes proven trailing omissions in supported scopes, while
+  `NULL` only completes expected rows without classifying missings or
+  calculating positions. Existing numerical not-reached codes are retained
+  by default; optional `recode_existing_not_reached = TRUE` enables correction
+  to omission before proven later work in eatPrepTBA.
+* Use items, existing derived results, and required sources as work evidence.
+  In eatPrepTBA, source-supported trailing classification takes priority:
+  valid or invalid derived results become not reached when all known transitive
+  basis sources are demonstrably not reached in the trailing region. Optional
+  `derived_not_reached = "preserve"` retains numerical derived results, as in
+  Coding Box. Uncertain ordering or incomplete sources retain existing results.
+* Add `response_present`, preserved original analytical input fields,
+  configurable input and output missing profiles, and compact or detailed
+  change diagnostics. Reclassification starts from `code_id_input`,
+  `code_score_input`, and `code_type_input`.
 
 ## bug fixes
 
-* Apply the same automatic rule to valid and invalid derived results: classify them as not reached when all transitive basis sources are known and demonstrably not reached. This includes zero-score fallback codes, applies whenever missing classification is enabled, and does not let derived results move the reached boundary.
-* Classify not-reached values within units rather than treating every missing in the last partly worked unit as trailing. Only basis variables determine the boundary per person and testlet; derived results cannot count as evidence of later work.
-* Preserve technical `code_status` values, including `NA`, and response values in all completion/classification modes. Source-supported recoding updates analytical type, ID, and score together. A mixture of omitted and not-reached basis sources is insufficient to replace a valid or invalid derived result.
-* Fixed `evaluate_psychometrics()` accepting completed data with an existing `item_id` column. Domain-score item membership continues to come from `units`, independently of IDs supplied on the response table.
+* Prepare and validate only units referenced by the supplied design, including
+  empty designs. Malformed unused units no longer block completion; used units
+  retain all active variables and required sources, and conflicting metadata
+  for these units still raises an error.
+* Retain numerical `code_id` and `code_score` columns when the autocoder omits
+  them for an unclassified batch. Partial manual missing profiles retain
+  unspecified standard mappings in `code_responses()`.
+* Allow `evaluate_psychometrics()` to consume completed responses with an
+  existing `item_id`, keeping domain-score membership defined by `units`.
 
 ## migration
 
-* `complete_design()` now includes `item_id` during classification, including an all-`NA` column when Studio links are unavailable. Remove a following `add_item_id()` call, or use its `overwrite = TRUE` argument when intentionally replacing that mapping.
-* Every supplied unit occurrence is expanded to all active coding variables, including when the input design lists only selected items. Filter after missing classification. To retain an explicit `item_selection`, filter on nonmissing `item_order`, not `item_id`.
-* `variable_order` is a deterministic display order, not proof of physical reachability. Review fallback orders before enabling `use_variable_names_for_recoding = TRUE`; resolve conflicts with known physical order using `order_overrides`.
+* Completion expands each supplied unit occurrence to all active coding
+  variables. Classification remains in long format and precedes item
+  selection; filter selected items afterwards using nonmissing `item_order`.
+* Classification includes `item_id`; a subsequent `add_item_id()` call is
+  generally unnecessary. Use `overwrite = TRUE` to deliberately replace
+  that mapping. Dense display indices do not establish otherwise unknown
+  presentation relationships; variable names only establish analytical order
+  when `use_variable_names_for_recoding = TRUE`.
 
 ## tests and documentation
 
-* Added regression coverage for within-unit boundaries, all three modes, source trees, static ranks, repeated occurrences, overrides, item selections, coding-result preservation, and separate versus integrated calls, including the completion-to-psychometrics workflow. Updated the standard workflow and function help.
+* Add an executable missing-classification vignette and regression coverage
+  for both policies, ordering, source trees, repeated calls, custom profiles,
+  and design-scoped unit validation. Update the workflow and related guides,
+  with collapsible rule-set details in the standard workflow.
 
 # eatPrepTBA 0.9.8.9036 [2026-09-24]
 

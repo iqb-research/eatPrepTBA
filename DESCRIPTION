@@ -1,6 +1,6 @@
 Package: eatPrepTBA
 Title: Prepare IQB Technology Based Assessment (TBA)
-Version: 0.9.8.9040
+Version: 0.9.8.9037
 Date: 2026-10-07
 Authors@R: 
     c(person("Philipp", "Franikowski", , "philipp.franikowski@iqb.hu-berlin.de", role = c("aut"),
