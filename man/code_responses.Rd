@@ -24,7 +24,10 @@ code_responses(
 
 \item{codes_manual}{Data frame (optional). Data frame holding the manual codes. Defaults to \code{NULL} and does only automatic coding.}
 
-\item{missings}{Data frame (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.}
+\item{missings}{Data frame (optional). Provide missing meta data with
+\code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type} for inserting manual
+codes. Entries replace defaults with the same \code{code_id}; omitted default
+codes remain available. Defaults to \code{NULL} and uses the default scheme.}
 }
 \value{
 A tibble.

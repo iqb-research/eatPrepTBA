@@ -13,50 +13,50 @@ library(eatPrepTBA)
 library(dplyr)
 ```
 
-`complete_design()` ergänzt fehlende Antwortzeilen und ordnet fehlende
-Antworten ein. Dabei unterscheidet die Funktion insbesondere:
+`complete_design()` ergänzt alle laut Testheft erwarteten aktiven Variablen
+und klassifiziert fehlende Antworten. Die Ausgabe bleibt im **Long-Format**:
+eine Zeile je Person, Unit-Vorkommen und Variable. Die Funktion verändert
+niemals den technischen `code_status` oder den ursprünglichen Antwortwert `value`.
+Analytische Umklassifikationen betreffen `code_type`, `code_id` und `code_score`.
 
-- **Auslassung:** Eine Antwort fehlt, obwohl später noch etwas bearbeitet wurde.
-- **Nicht erreicht (Not reached):** Eine Antwort fehlt nach der letzten Bearbeitung.
+Zwei Regelwerke stehen zur Verfügung. Der Standard `missing_policy = "eatPrepTBA"`
+prüft vorhandene Ableitungen anhand ihrer Quellen. `missing_policy = "coding_box"`
+bildet die Missing-Logik des Itemmatrix-Exports der Kodierbox nach; es erstellt
+selbst keine Itemmatrix. Referenz ist der festgelegte
+[Entwicklungsstand `39468e5`](https://github.com/iqb-berlin/coding-box/tree/39468e5a28a24dc9ec860aee46daf8d4ed5c8682).
 
-Entscheidend ist die erwartete Reihenfolge im Testdesign. Ist sie nicht sicher
-bekannt, bleibt die bisherige Einordnung erhalten. Neu ergänzte Antworten
-können dann zunächst ohne Einordnung bleiben (`NA`).
+Die Beispiele benötigen keinen Serverzugang. Wie echte Exportdaten vorbereitet
+werden, zeigt der [Standard-Workflow](standard-workflow.html).
 
-Dieses Beispiel läuft ohne Serverzugang. Den Weg von echten Exporten zu den
-benötigten Daten zeigt der [Standard-Workflow](standard-workflow.html).
+## Die Einstellungen wählen
 
-## Welche Einstellung brauche ich?
-
-Mit `complete_design(coded, units, design)` gelten die Standardwerte:
-
-| Argument | Standard | Wann ändern? |
+| Argument | Standard im eatPrepTBA-Regelwerk | Bedeutung |
 |:--|:--|:--|
-| `recode_omissions_to_not_reached` | `FALSE`: bestehende Auslassungen erhalten | `TRUE`, wenn auch Auslassungen am Ende als nicht erreicht gelten sollen. `NULL` ergänzt nur fehlende Zeilen. |
-| `use_variable_names_for_recoding` | `FALSE`: Namen nur zur Sortierung nutzen | `TRUE`, wenn die Namen zuverlässig die Bearbeitungsreihenfolge angeben. |
-| `diagnostics` | `"compact"`: kurzen Änderungsbericht zeigen | `"full"` für Details, `"none"` für keine Ausgabe. |
+| `recode_omissions_to_not_reached` | `FALSE` | Bestehende Auslassungen erhalten; `TRUE` klassifiziert zusätzlich abschließende Auslassungen als NR. `NULL` ergänzt ausschließlich fehlende Zeilen. |
+| `order_method` | `NULL`, effektiv `"vomd"` | Itemfolge aus Studio/VOMD plus Ableitungsbaum. `"hybrid"` ergänzt sie durch Unitstruktur; `"structure"` verwendet die Unitstruktur. |
+| `not_reached_scope` | `NULL`, effektiv `"testlet"` | Grenze innerhalb eines Testlets bestimmen. Alternativen: `"unit"` und `"booklet"`. |
+| `recode_existing_not_reached` | `FALSE` | Vorhandene numerisch kodierte NR erhalten. `TRUE` erlaubt bei belegter späterer Bearbeitung die Rückklassifikation zu Omission. |
+| `derived_not_reached` | `NULL`, effektiv `"recode"` | Vorhandene gültige und Invalid-Ableitungen bei ausschließlich belegten NR-Quellen im Schlussbereich zu NR machen. `"preserve"` erhält diese Ergebnisse. |
+| `use_variable_names_for_recoding` | `FALSE` | Namen stabilisieren den eindeutigen Index; erst `TRUE` erlaubt sie als Beleg für die Reihenfolge. |
+| `diagnostics` | `"compact"` | Änderungsbericht; `"full"` zeigt Details, `"none"` unterdrückt die Ausgabe. |
 
-Die Entscheidungen zur Umkodierung sind unabhängig voneinander.
-**Beim Vergleich der Einstellungen immer mit den ursprünglichen Daten `coded`
-beginnen:** Geänderte Optionen stellen überschriebene Codes nicht wieder her.
+`missing_policy = "coding_box"` wählt VOMD-Reihenfolge, Unit-Scope und den Erhalt
+vorhandener numerischer Ableitungsergebnisse. Es ist ein vollständiges Regelwerk,
+nicht nur ein anderes Missing-Code-Schema. Für zusätzliche Trailing-Omission-
+Rekodierung verlangt die Kodierbox einen Testlet- oder Testheft-Scope:
+`TRUE` zusammen mit `not_reached_scope = "unit"` ist dort nicht erlaubt.
+Optionen, die dem Box-Regelwerk widersprechen, werden nicht still übernommen.
 
-## Kleine Beispieldaten
+## Beispieldaten
 
-Eine Person bearbeitet ein Testheft mit zwei Aufgaben, hier **Units** genannt:
-`U1` und `U2`. Jede Unit enthält direkte Antworten (**Basisvariablen** wie
-`01a` und `01b`) und daraus berechnete Ergebnisse (**Ableitungen** wie `01`).
-Nur Basisvariablen zeigen, wie weit die Person gearbeitet hat.
-
-In `U1` wurde `02b` beantwortet. Das davorliegende `02a` ist trotzdem als
-nicht erreicht gespeichert. In `U2` gibt es nur noch fehlende Basisantworten;
-die Zeile für `02a` fehlt ganz.
+Eine Person bearbeitet zwei Units im selben Testlet. Jede Unit besitzt zwei
+VOMD-Items. Das erste Item `01` wird aus `01a` und `01b` abgeleitet; das zweite
+Item `02` besitzt je nach Unit eine oder zwei Quellen. Die Itemfolge steht in
+`items_list`. Seiten und Elementpositionen sind ebenfalls vorhanden, spielen
+aber bei der voreingestellten VOMD-Reihenfolge zunächst keine Rolle.
 
 <details>
-<summary>Beispieldaten anlegen – zum Ausführen aufklappen</summary>
-
-Der Block erzeugt drei Tabellen: `units` beschreibt die Variablen, `design`
-ihre Zuordnung zur Person und `coded` die kodierten Antworten. Seiten und
-Elementpositionen sind in diesem ersten Beispiel bekannt.
+<summary>Beispieldaten anlegen</summary>
 
 ```{r example-data}
 example_unit <- function(key, second_basis = c("02a", "02b")) {
@@ -73,7 +73,7 @@ example_unit <- function(key, second_basis = c("02a", "02b")) {
   codes <- tibble::tibble(
     variable_id = ids,
     variable_ref = paste0("ref_", ids),
-    variable_source_type = ifelse(derived, "SUM", "BASE"),
+    variable_source_type = ifelse(derived, "SUM_CODE", "BASE"),
     variable_level = ifelse(derived, 1L, 0L),
     variable_page = ifelse(startsWith(ids, "01"), 1L, 2L),
     variable_section = 0L,
@@ -86,7 +86,8 @@ example_unit <- function(key, second_basis = c("02a", "02b")) {
     unit_key = key, unit_codes = list(codes),
     items_list = list(tibble::tibble(
       variable_id = c("01", "02"),
-      item_id = paste0(key, "_I", c("01", "02"))
+      item_id = paste0(key, "_I", c("01", "02")),
+      item_no = 1:2
     ))
   )
 }
@@ -100,17 +101,17 @@ design <- tibble::tibble(
 )
 
 coded <- tibble::tribble(
-  ~unit_key, ~variable_id, ~code_status,     ~code_id, ~code_score, ~code_type,
-  "U1", "01a", "CODING_COMPLETE",   1,   1, "FULL_CREDIT",
-  "U1", "01b", "DISPLAYED",       -99,   0, "MISSING_BY_OMISSION",
-  "U1", "01",  "INVALID",         -98,   0, "MISSING_INVALID_RESPONSE",
-  "U1", "02a", "NOT_REACHED",     -96,  NA, "MISSING_NOT_REACHED",
-  "U1", "02b", "CODING_COMPLETE",   1,   1, "FULL_CREDIT",
-  "U1", "02",  "CODING_COMPLETE",   1,   1, "FULL_CREDIT",
-  "U2", "01a", "DISPLAYED",       -99,   0, "MISSING_BY_OMISSION",
-  "U2", "01b", "NOT_REACHED",     -96,  NA, "MISSING_NOT_REACHED",
-  "U2", "01",  "INVALID",         -98,   0, "MISSING_INVALID_RESPONSE",
-  "U2", "02",  "CODING_COMPLETE",   0,   0, "RESIDUAL_AUTO"
+  ~unit_key, ~variable_id, ~code_status,       ~code_id, ~code_score, ~code_type,
+  "U1", "01a", "CODING_COMPLETE",              1,   1, "FULL_CREDIT",
+  "U1", "01b", "DISPLAYED",                  -99,   0, "MISSING_BY_OMISSION",
+  "U1", "01",  "INVALID",                    -98,   0, "MISSING_INVALID_RESPONSE",
+  "U1", "02a", "NOT_REACHED",                -96,  NA, "MISSING_NOT_REACHED",
+  "U1", "02b", "CODING_COMPLETE",              1,   1, "FULL_CREDIT",
+  "U1", "02",  "CODING_COMPLETE",              1,   1, "FULL_CREDIT",
+  "U2", "01a", "DISPLAYED",                  -99,   0, "MISSING_BY_OMISSION",
+  "U2", "01b", "NOT_REACHED",                -96,  NA, "MISSING_NOT_REACHED",
+  "U2", "01",  "INVALID",                    -98,   0, "MISSING_INVALID_RESPONSE",
+  "U2", "02",  "CODING_COMPLETE",              0,   0, "RESIDUAL_AUTO"
 ) %>%
   left_join(design, by = "unit_key", relationship = "many-to-one") %>%
   mutate(value = ifelse(code_type == "FULL_CREDIT", "A", NA_character_))
@@ -120,221 +121,174 @@ coded <- tibble::tribble(
 
 ```{r display-helpers, include=FALSE}
 at <- function(data, key, id) filter(data, unit_key == key, variable_id == id)
-label_type <- function(x) {
-  dplyr::recode(x,
-    MISSING_BY_OMISSION = "Auslassung",
-    MISSING_NOT_REACHED = "Nicht erreicht",
-    MISSING_INVALID_RESPONSE = "Ungültig",
-    RESIDUAL_AUTO = "Gültig, 0 Punkte",
-    .missing = "Noch ohne Einordnung")
-}
 ```
 
-## Auslassungen erhalten oder umkodieren
+## Drei Varianten der Vervollständigung
 
 ```{r classify}
-# Standard: bestehende Auslassungen erhalten
+# Standard: klassifizieren, bestehende Auslassungen erhalten
 classified_false <- complete_design(coded, units, design)
 
-# Zusätzlich Auslassungen nach der letzten Bearbeitung umkodieren
+# Zusätzlich abschließende Auslassungen zu NR machen
 classified_true <- complete_design(
   coded, units, design,
   recode_omissions_to_not_reached = TRUE
 )
-```
 
-Die wichtigsten Unterschiede:
-
-```{r compare-results, echo=FALSE}
-tibble::tibble(
-  Unit = c("U1", "U2", "U2", "U2", "U2"),
-  Variable = c("02a", "01a", "02a", "01", "02")
-) %>%
-  left_join(select(coded, unit_key, variable_id, vorher = code_type),
-            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
-  left_join(select(classified_false, unit_key, variable_id, Standard = code_type),
-            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
-  left_join(select(classified_true, unit_key, variable_id, Mit_TRUE = code_type),
-            by = c("Unit" = "unit_key", "Variable" = "variable_id")) %>%
-  mutate(across(c(vorher, Standard, Mit_TRUE), label_type),
-         vorher = if_else(Unit == "U2" & Variable == "02a", "Zeile fehlt", vorher)) %>%
-  knitr::kable(col.names = c("Unit", "Variable", "Vorher", "Standard", "Mit TRUE"))
-```
-
-`U1/02a` wird in beiden Fällen zur Auslassung, weil danach `02b` beantwortet
-wurde. Nur mit `TRUE` wird die abschließende Auslassung `U2/01a` zu nicht
-erreicht. Die fehlende Zeile `U2/02a` wird in beiden Fällen ergänzt.
-
-`U2/02` kommt mit einem gültigen Code und 0 Punkten aus der Kodierung. Ihre
-einzige Basisvariable `U2/02a` ist aber nachweislich nicht erreicht. Deshalb
-wird auch die Ableitung zu nicht erreicht: Code `-96`, Score `NA`. Sie
-verschiebt die Bearbeitungsgrenze nicht.
-
-Diese Korrektur greift nur, wenn **alle** Basisquellen bekannt und nachweislich
-nicht erreicht sind, unabhängig vom bisherigen Score. Bei beantworteten
-Quellen oder unsicherer Reihenfolge bleibt ein gültiges Ergebnis erhalten.
-Dieselbe Regel gilt für ungültige Ableitungen wie `U2/01`, wie der nächste
-Abschnitt zu Ableitungen zeigt.
-
-**Nur fehlende Zeilen ergänzen:** Mit `NULL` bleiben vorhandene Kodierfelder
-unverändert. Neue Kodierfelder bleiben `NA`; Positionen werden nicht neu berechnet.
-
-```{r completion-only}
+# Ausschließlich erwartete Zeilen ergänzen
 only_completed <- complete_design(
   coded, units, design,
   recode_omissions_to_not_reached = NULL
 )
 ```
 
-`response_present = FALSE` kennzeichnet ergänzte Zeilen. Diese Kennzeichnung
-bleibt auch bei einem erneuten Aufruf erhalten.
+Mit `NULL` bleiben vorhandene Kodierfelder unverändert. Neu ergänzte Kodierfelder
+bleiben `NA`; die Funktion berechnet keine neuen Positionen. Die fehlende Zeile
+`U2/02a` trägt `response_present = FALSE`. Der Marker bleibt beim erneuten
+Vervollständigen erhalten. `id_used` bedeutet weiterhin, dass mindestens ein
+technischer Kodierstatus der Person vorhanden ist; es bedeutet nicht, dass
+sämtliche Antworten bereits auswertbar sind.
 
-## Darf die Funktion den Variablennamen vertrauen?
-
-Bekannte Seiten und Elementpositionen bestimmen die Reihenfolge. Fehlen solche
-Angaben, helfen Namen beim Sortieren: etwa `2` vor `10`. Eine unbekannte Seite
-wird dabei nicht einfach ans Ende gestellt. Die Sortierung beachtet weiterhin
-die bekannten Positionen.
-
-**Sortiert bedeutet aber noch nicht sicher eingeordnet.** Ohne Bestätigung
-werden Namen allein nicht zum Umkodieren genutzt. Bekannte Beziehungen bleiben
-nutzbar, etwa die Reihenfolge zweier Units im Testheft.
-
-Im nächsten Beispiel entfernen wir die Seitenangabe von `U1/02a`:
-
-```{r uncertain-page}
-uncertain_units <- units
-uncertain_units$unit_codes[[1]] <- mutate(
-  uncertain_units$unit_codes[[1]],
-  variable_page = if_else(variable_id == "02a", NA_integer_, variable_page)
-)
-
-without_confirmation <- complete_design(
-  coded, uncertain_units, design,
-  recode_omissions_to_not_reached = TRUE
-)
-
-with_confirmation <- complete_design(
-  coded, uncertain_units, design,
-  recode_omissions_to_not_reached = TRUE,
-  use_variable_names_for_recoding = TRUE
-)
-```
-
-```{r compare-uncertain, echo=FALSE}
-tibble::tibble(
-  Variable = "U1/02a",
-  `Ohne Bestätigung` = label_type(at(without_confirmation, "U1", "02a")$code_type),
-  `Mit Bestätigung` = label_type(at(with_confirmation, "U1", "02a")$code_type)
-) %>% knitr::kable()
-```
-
-Ohne Bestätigung bleibt hier die bisherige Einordnung erhalten. Mit Bestätigung
-gilt `02a` als vor dem beantworteten `02b` liegend und wird zur Auslassung.
-`TRUE` passt also nur, wenn diese Namenskonvention fachlich zuverlässig ist.
-Widersprechen die Namen bekannten Positionen, bricht die Funktion mit einem
-Fehler ab. Eine geprüfte Reihenfolge lässt sich dann mit `order_overrides`
-vorgeben; ein Beispiel steht am Ende dieser Vignette.
-
-## Eine gemeinsame Regel für gültige und ungültige Ableitungen
-
-Eine Ableitung wird aus anderen Variablen berechnet, zum Beispiel eine Summe
-aus zwei Antworten. Sie wird automatisch zu nicht erreicht, wenn
-**alle zugrunde liegenden Basisvariablen bekannt und nachweislich nicht
-erreicht sind**. Das gilt auch über mehrere Ableitungsschritte hinweg.
-Ob der bisherige Code gültig oder ungültig war, spielt dabei keine Rolle.
-Eine Mischung aus Auslassungen und nicht erreichten Antworten reicht nicht;
-in diesem Fall bleibt das bisherige Ergebnis erhalten.
-
-Bei `U2/01` bleibt mit `FALSE` eine Basisquelle eine Auslassung. Deshalb
-bleibt die Ableitung ungültig. Mit `TRUE` wird diese abschließende Auslassung
-zu nicht erreicht; nun erfüllen beide Basisquellen die gemeinsame Regel.
-Im bereits berechneten Ergebnis `classified_true` ändern sich die Felder so:
-
-```{r compare-invalid, echo=FALSE}
+```{r compare-results, echo=FALSE}
 bind_rows(
-  mutate(at(coded, "U2", "01"), Schritt = "Vorher"),
-  mutate(at(classified_true, "U2", "01"), Schritt = "Nachher")
+  mutate(coded, Variante = "Eingang"),
+  mutate(classified_false, Variante = "FALSE"),
+  mutate(classified_true, Variante = "TRUE")
 ) %>%
-  select(Schritt, code_status, code_type, code_id, code_score) %>%
+  filter((unit_key == "U1" & variable_id == "02a") |
+           (unit_key == "U2" & variable_id %in% c("01a", "01", "02"))) %>%
+  select(Variante, unit_key, variable_id, code_status, code_type, code_id, code_score) %>%
   knitr::kable()
 ```
 
-**`code_status` bleibt `INVALID`.** Er dokumentiert das ursprüngliche Ergebnis.
-Für die Auswertung gelten jetzt `code_type = MISSING_NOT_REACHED`, Code `-96`
-und Score `NA`. Der alte Code `-98` bleibt bei dieser Umkodierung nicht stehen.
-Bei einem eigenen `missings`-Schema werden dessen IDs und Scores verwendet.
-Für die Auswahl einer Missing-Art deshalb nach `code_type` filtern.
+`U1/02a` bleibt standardmäßig NR, obwohl später bearbeitet wurde: Der numerische
+Missing-Code war bereits im Eingang vorhanden. Ein technisches `NOT_REACHED`
+ohne numerisches Ergebnis oder eine neu ergänzte Zeile wird dagegen anhand
+der späteren Bearbeitung klassifiziert.
 
-`U1/01` bleibt ungültig, weil eine seiner Basisvariablen beantwortet wurde.
-Die gemeinsame Regel gilt bei jeder Missing-Klassifikation (`FALSE` und
-`TRUE`). Nur bei `NULL` werden ausschließlich fehlende Zeilen ergänzt.
+`U2/02` kommt mit einem gültigen Code und Score `0` aus der Kodierung. Seine
+einzige Basisquelle `U2/02a` ist vollständig bekannt und nachweislich NR
+im Schlussbereich. Der eatPrepTBA-Standard klassifiziert deshalb auch das
+Ableitungsergebnis zu NR: `code_id = -96`, `code_score = NA`.
+Diese Regel gilt ebenso für positive Scores und vorhandene Invalid-Ergebnisse.
+Mit `FALSE` reicht eine Mischung aus Omission und NR dafür nicht aus.
 
-## Den Änderungsbericht lesen
+## Die vollständige Kodierbox-Alternative
 
-Der Standardbericht zeigt, was **dieser Aufruf** ergänzt oder geändert hat:
-
-```{r report, message=TRUE}
-reported <- complete_design(
+```{r box-policy}
+box_false <- complete_design(
   coded, units, design,
+  missing_policy = "coding_box"
+)
+box_true <- complete_design(
+  coded, units, design,
+  missing_policy = "coding_box",
+  not_reached_scope = "testlet",
   recode_omissions_to_not_reached = TRUE
 )
 ```
 
-`Added` zählt neue Zeilen. `Existing rows` zählt Änderungen an bereits
-vorhandenen Zeilen. Die folgenden Zeilen zeigen, welche Missing-Arten
-umkodiert wurden. Eine Zeile mit mehreren geänderten Feldern zählt dabei
-insgesamt nur einmal als geändert.
+Die Kodierbox erhält bereits vorhandene numerische Ableitungsergebnisse,
+einschließlich gültiger `0`-Codes und Invalid-Codes. Diese Ergebnisse können
+Bearbeitung nachweisen. Daher kann nicht nur die Ableitung selbst, sondern auch
+die Klassifikation vorheriger Auslassungen vom eatPrepTBA-Standard abweichen.
 
-Mit denselben Einstellungen erneut aufgerufen, meldet die Funktion keine
-neuen Änderungen:
-
-```{r report-repeat, message=TRUE}
-repeated <- complete_design(
-  reported, units, design,
-  recode_omissions_to_not_reached = TRUE
-)
+```{r compare-policies, echo=FALSE}
+bind_rows(
+  mutate(classified_true, Regelwerk = "eatPrepTBA, TRUE"),
+  mutate(box_true, Regelwerk = "coding_box, TRUE, Testlet")
+) %>%
+  filter(unit_key == "U2", variable_id %in% c("01a", "01", "02")) %>%
+  select(Regelwerk, variable_id, code_status, code_type, code_id, code_score) %>%
+  knitr::kable()
 ```
 
-Für Details je Testheft, Testlet und Unit `diagnostics = "full"` ergänzen.
-Der vollständige Bericht nennt auch Änderungen einzelner Felder; diese
-Feldzahlen können sich überschneiden. `diagnostics = "none"` schaltet den
-Bericht aus. Der zurückgegebene Datensatz bleibt dabei derselbe.
+Fehlt einer Ableitung sowohl `code_id` als auch `code_score`, verwendet die Box
+ihre Quellen. Einige wichtige Fälle nach der positionsbezogenen Klassifikation:
 
-## Zusätzliche Möglichkeiten
+| Quellen einer Ableitung ohne numerisches Ergebnis | Kodierbox-Ergebnis |
+|:--|:--|
+| Ausschließlich NR | NR |
+| Ausschließlich Omission | Omission |
+| Omission und NR | NR, auch bei `FALSE` |
+| Invalid und NR | Invalid |
+| Coding error und weitere Quellen | Coding error |
+| Beantwortet und Omission/NR/Invalid bei `SUM_CODE`, `SUM_SCORE` oder `CONCAT_CODE` | Invalid, sofern keine zusätzlichen Quellenfehler vorliegen |
+| Alle Quellen beantwortet, aber das Ableitungsergebnis fehlt | Unaufgelöst; es wird kein gültiger Zielcode erfunden |
+| Ausschließlich Missing by design | Missing by design |
+| Missing by design zusammen mit einer anderen Quellenart | Unaufgelöst; widersprüchliche Designzuordnung |
 
-<details>
-<summary>Reihenfolge anzeigen oder die Schritte einzeln ausführen</summary>
+Die Tabelle setzt vollständig bekannte Quellen voraus. Fehlende Referenzen,
+Zyklen und bereits unaufgelöste Quellen werden nicht durch eine dominierende
+Missing-Art verdeckt. Insbesondere `DERIVE_PENDING` ist ein Prozesszustand,
+keine fachliche Missing-Art. Ein fehlendes Ableitungsergebnis muss aus den
+Quellen aufgelöst werden oder unaufgelöst bleiben. `NO_CODING` und ausstehende
+Kodierungen werden ebenfalls nicht pauschal in einen gültigen 0-Punkte-Code
+übersetzt.
 
-`get_design_order()` zeigt die erwarteten Positionen. `variable_order` zählt
-alle Variablen, `item_order` nur ausgewählte Items. Beide gelten je Testheft
-und sind für alle Personen mit diesem Testheft gleich. `order_source` nennt
-die Grundlage der Sortierung. Ein fortlaufender Index allein beweist keine
-sichere Bearbeitungsreihenfolge.
+Die Teilantwortregel unterscheidet den gewählten Entwicklungsstand vom Release
+1.17.4. Die Regeln stehen im
+[Itemmatrix-Resolver](https://github.com/iqb-berlin/coding-box/blob/39468e5a28a24dc9ec860aee46daf8d4ed5c8682/apps/backend/src/app/database/services/coding/item-dataset-cell-resolver.ts)
+und in der
+[Missing-Aggregation](https://github.com/iqb-berlin/coding-box/blob/39468e5a28a24dc9ec860aee46daf8d4ed5c8682/apps/backend/src/app/database/services/coding/item-dataset-missing-aggregation.util.ts).
+
+## Positionen sind nicht alle gleich sicher
+
+`variable_order` ist ein eindeutiger fortlaufender Index je Testheft;
+`item_order` bezeichnet die Position ausgewählter Items innerhalb der
+vollständigen Itemfolge; eine Auswahl nummeriert diese Positionen nicht neu.
+Personen mit demselben Testheft
+erhalten dieselben Positionen. Mehrfach eingesetzte Units haben je Vorkommen
+eigene Positionen. Zeitstempel spielen dabei keine Rolle.
 
 ```{r positions}
-positions <- get_design_order(design, units)
-knitr::kable(select(positions, unit_key, variable_id,
-                    variable_order, item_order, order_source))
+classified_false %>%
+  arrange(variable_order) %>%
+  select(unit_key, variable_id, variable_order, item_order,
+         position_group, position_source, order_source) %>%
+  knitr::kable()
+```
 
-separate_result <- recode_missings(
-  only_completed, units, positions = positions,
-  recode_omissions_to_not_reached = TRUE
+Basisquellen werden vor ihren Ableitungen in den Index eingeordnet.
+Mehrere Ableitungen nach derselben letzten Quelle erhalten eindeutige Indizes.
+Ein eindeutiger Index beweist aber keine physische Reihenfolge: Ohne weitere
+Information gehören etwa `01a` und `01b` zur selben VOMD-Positionsgruppe
+(`position_group`); `position_source` nennt deren Grundlage.
+
+Im eatPrepTBA-Standard bleibt eine Omission in einer ungeordneten Gruppe
+mit beantworteten Variablen erhalten. Eine vollständig fehlende Schlussgruppe
+kann mit `TRUE` NR werden. Die Box verarbeitet gleiche Positionen entsprechend
+ihrem eigenen Verfahren; die Regeln dürfen deshalb nicht vermischt werden.
+
+Auch Basisvariablen ohne Itemzuordnung, Ableitungsbezug oder Seite bleiben
+im Datensatz und erhalten einen reproduzierbaren Index. Für sie ist nur die
+Unit-Position bekannt. Eine Antwort in Unit 2 kann Bearbeitung nach Unit 1
+belegen, aber keine Reihenfolge innerhalb von Unit 2. Solche Variablen begrenzen
+unbelegte NR-Umklassifikationen innerhalb ihrer Unit. Im Box-Regelwerk werden
+Variablen außerhalb der VOMD-/Quellenmenge nicht für die Grenze verwendet.
+
+### Strukturinformationen oder Namen zusätzlich verwenden
+
+```{r hybrid-order}
+hybrid <- complete_design(
+  coded, units, design,
+  order_method = "hybrid",
+  recode_existing_not_reached = TRUE
 )
 ```
 
-`separate_result` entspricht `classified_true`. `recode_missings()` übernimmt
-die Positionen; es sortiert die Daten nicht neu. Die Bestätigung von Namen
-und die gemeinsame Regel für Ableitungen gelten hier genauso.
+Die Hybridvariante nutzt VOMD und Ableitungsbaum und ergänzt fehlende
+Ordnungsbeziehungen durch Unitstruktur, Seiten und Elemente. Hier kann die
+bekannte Elementfolge belegen, dass `U1/02a` vor `U1/02b` liegt. Die optionale
+Rückklassifikation vorhandener NR kann dann `U1/02a` zur Omission machen.
 
-</details>
+`order_method = "structure"` verwendet stattdessen die Unitstruktur.
+Mit `use_variable_names_for_recoding = TRUE` dürfen vertrauenswürdige Namen
+zusätzliche Beziehungen belegen. Ohne diese Einstellung helfen Namen nur beim
+reproduzierbaren Index. Widersprüche dürfen nicht durch unbemerkte
+Namenssortierung verschwinden.
 
-<details>
-<summary>Eine geprüfte Reihenfolge von Hand vorgeben</summary>
-
-Ein `order_overrides` gibt **alle aktiven Basisvariablen** der betreffenden
-Unit in der gewünschten Reihenfolge an. Ableitungen fügt die Funktion danach
-entsprechend ihren Quellen ein. Hier soll `01b` vor `01a` stehen:
+Eine geprüfte Reihenfolge kann explizit angegeben werden:
 
 ```{r override-order}
 order_overrides <- tibble::tibble(
@@ -348,18 +302,112 @@ with_override <- complete_design(
 )
 ```
 
-Die manuelle Reihenfolge gilt auch ohne Bestätigung der Namen. Ohne weitere
-Angaben gilt sie für jedes Vorkommen der Unit. Zusätzliche Spalten
-`booklet_id`, `testlet_no` und `unit_booklet_no` können sie auf bestimmte
-Vorkommen begrenzen. Fehlende Werte in diesen Spalten stehen für alle Vorkommen.
+Der Override umfasst alle aktiven Basisvariablen der Unit. Ableitungen werden
+danach entsprechend ihren Quellen eingeordnet. Zusätzliche Spalten
+`booklet_id`, `testlet_no` und `unit_booklet_no` begrenzen ihn auf einzelne
+Vorkommen; fehlende Werte in diesen Spalten stehen für alle Vorkommen.
 
-</details>
+## Ableitungen und Bearbeitungsnachweise
 
-<details>
-<summary>Nur bestimmte Items für die Auswertung auswählen</summary>
+Items einschließlich vorhandener Ableitungsergebnisse und benötigter Quellen
+können Bearbeitung nachweisen. Beim eatPrepTBA-Standard hat die belegte
+Quellenklassifikation Vorrang: Eine Ableitung aus vollständig fehlenden Quellen
+darf nicht durch ihren Fallback-Code verhindern, dass diese Quellen als
+Schlussbereich erkannt werden. Erst wenn ihre Umklassifikation nicht begründet
+werden kann, wird ihr erhaltenes Ergebnis als Bearbeitungsnachweis verwendet.
+Unbekannte oder beantwortete Quellen reichen nicht für eine Umklassifikation.
+Das Ergebnis soll bei wiederholten Aufrufen stabil bleiben.
 
-Alle Basisvariablen werden zunächst für die Missing-Prüfung gebraucht.
-Deshalb **erst nach der Klassifikation auf Items filtern**:
+```{r preserve-derived}
+preserved <- complete_design(
+  coded, units, design,
+  derived_not_reached = "preserve"
+)
+```
+
+Dies erhält vorhandene numerische Ableitungen innerhalb des eatPrepTBA-
+Regelwerks. Es ist noch kein Kodierbox-Modus: Gruppengrenzen, ungeordnete Gruppen
+und unzugeordnete Variablen folgen weiterhin den eatPrepTBA-Regeln.
+
+## Ursprüngliche Codes und eigene Missing-Profile
+
+Bei eingeschalteter Klassifikation sichern `code_id_input`, `code_score_input`
+und `code_type_input` den ursprünglichen analytischen Kodierstand.
+Sie bleiben bei erneuten Aufrufen erhalten. So können andere Regeln auf
+derselben Grundlage angewendet werden; ein früher zugewiesenes NR wird nicht
+versehentlich als ursprünglich gespeicherter Missing-Code interpretiert.
+`response_present` allein könnte diesen Unterschied nicht ausdrücken.
+
+`missings` legt die **Ausgabe** fest. Im eatPrepTBA-Regelwerk deklariert
+`input_missings` bei Bedarf ein abweichendes Schema der eingehenden
+Missing-Codes. Ein neues Ausgabeschema darf
+bekannte Eingangscodes nicht vergessen: Die Standard-Omission `-99` bleibt
+interpretierbar, auch wenn die Ausgabe `-199` verwenden soll.
+Mehrdeutige ID-Belegungen brauchen eine ausdrückliche Eingangszuordnung.
+
+Im strikten Kodierbox-Modus ist `input_missings` nicht verfügbar. Dort erkennt
+das ausgewählte Missing-Profil einen vorhandenen numerischen Missing nur dann,
+wenn **Code und Score** mit seinem Eintrag übereinstimmen. Ein vorhandener Code
+`-96` mit Score `0` ist daher nicht automatisch ein erkannter NR, wenn das
+Profil für `-96` den Score `NA` vorsieht. Ein Profilwechsel wirkt im Box-Modus
+nicht als Übersetzung bereits gespeicherter numerischer Ergebnisse.
+
+Wer die gesicherten Eingabefelder absichtlich verändert, muss die betreffenden
+`*_input`-Spalten ebenfalls aktualisieren oder alle drei entfernen. Nur dann
+werden die geänderten analytischen Felder als neuer Ausgangsstand übernommen.
+
+```{r output-profile}
+output_missings <- tibble::tribble(
+  ~code_id, ~code_status, ~code_score, ~code_type,
+  -199, "DISPLAYED", 0, "MISSING_BY_OMISSION"
+)
+custom_output <- complete_design(
+  coded, units, design,
+  missings = output_missings
+)
+```
+
+Auch hier füllt die Spalte `code_status` des Profils den technischen Status
+nicht auf. Für die Auswertung nach `code_type` filtern: Nach einer
+Umklassifikation kann ursprüngliches `INVALID` oder `CODING_COMPLETE`
+zusammen mit analytischem NR stehen.
+
+## Bericht und anschließende Itemauswahl
+
+```{r report, message=TRUE}
+reported <- complete_design(
+  coded, units, design,
+  recode_omissions_to_not_reached = TRUE,
+  diagnostics = "full"
+)
+```
+
+Der Bericht zählt Ergänzungen und Änderungen vorhandener Zeilen für diesen
+Aufruf getrennt. Unaufgelöste Quellen oder fehlende Ordnungsbeziehungen werden
+nicht durch erfundene Codes verdeckt. Ein unveränderter erneuter Aufruf sollte
+keine neuen Änderungen melden. Vor psychometrischen Auswertungen die weiterhin
+unaufgelösten Fälle prüfen.
+
+```{r repeat-classification}
+repeated <- complete_design(
+  reported, units, design,
+  recode_omissions_to_not_reached = TRUE,
+  diagnostics = "none"
+)
+
+# Gesicherte Eingabefelder erlauben auch den Wechsel des Regelwerks
+box_from_recoded <- complete_design(
+  classified_true, units, design,
+  missing_policy = "coding_box",
+  not_reached_scope = "testlet",
+  recode_omissions_to_not_reached = TRUE,
+  diagnostics = "none"
+)
+```
+
+`item_selection` verändert die Itempositionen für die spätere Auswahl;
+die vollständige Klassifikationsgrundlage bleibt erhalten. Deshalb erst nach
+`complete_design()` auf die gewünschten Items filtern:
 
 ```{r selected-items}
 item_selection <- tibble::tibble(
@@ -372,51 +420,45 @@ selected <- complete_design(
 item_data <- filter(selected, !is.na(item_order))
 ```
 
-`item_selection` bestimmt die Itempositionen, entfernt aber noch keine Zeilen.
-Ohne eigene Auswahl werden die Studio-verknüpften Items verwendet. Bei einer
-eigenen Auswahl nach `item_order` filtern: `item_id` kann auch an nicht
-ausgewählten Studio-Items stehen. Eine eigene Auswahl ist auch ohne
-Studio-Item-ID möglich.
+Ohne Auswahl werden die Studio-verknüpften Items verwendet. Bei eigener
+Auswahl nach `item_order` filtern; `item_id` kann auch an nicht ausgewählten
+Studio-Items stehen. Die Itemauswahl verändert keine Missing-Entscheidung.
 
-</details>
+## Missing by design im Long-Format
+
+Eine fehlende Response zu einer erwarteten Variable ist **kein** Missing by
+design. MBD betrifft Variablen, die laut Design gar nicht vorgelegt werden
+sollten. `complete_design()` ergänzt nur erwartete Variablen; es erzeugt weder
+ein vollständiges Itemuniversum noch zusätzliche MBD-Zeilen und kein Wide-Format.
+Bereits vorhandene MBD-Kennzeichnungen werden als eigene Kategorie behandelt.
+Beim späteren Aufbau einer Personen-×-Items-Tabelle können außerhalb des
+Testhefts liegende Items leer bleiben. Die Missing-Arten bleiben im
+Long-Datensatz nachvollziehbar. Siehe auch die
+[IQB-Missingdefinitionen](https://iqb-berlin.github.io/tba-info/coding/missings.html).
 
 ```{r verify-examples, include=FALSE}
 stopifnot(
   all(is.na(at(only_completed, "U2", "02a")$code_type)),
   !at(only_completed, "U2", "02a")$response_present,
-  at(classified_false, "U1", "02a")$code_id == -99,
+  at(classified_false, "U1", "02a")$code_type == "MISSING_NOT_REACHED",
   at(classified_false, "U2", "01a")$code_type == "MISSING_BY_OMISSION",
-  at(classified_true, "U2", "01a")$code_type == "MISSING_NOT_REACHED",
-  at(classified_true, "U1", "01b")$code_type == "MISSING_BY_OMISSION",
-  at(classified_false, "U2", "01")$code_type == "MISSING_INVALID_RESPONSE",
-  at(classified_false, "U2", "01")$code_id == -98,
-  at(without_confirmation, "U1", "02a")$code_type == "MISSING_NOT_REACHED",
-  at(with_confirmation, "U1", "02a")$code_type == "MISSING_BY_OMISSION",
-  at(without_confirmation, "U1", "02a")$variable_order <
-    at(without_confirmation, "U1", "02b")$variable_order,
-  at(classified_true, "U2", "01")$code_type == "MISSING_NOT_REACHED",
+  at(classified_false, "U2", "02")$code_id == -96,
   at(classified_true, "U2", "01")$code_id == -96,
   is.na(at(classified_true, "U2", "01")$code_score),
-  at(classified_true, "U2", "01")$code_status == "INVALID",
-  at(classified_true, "U1", "01")$code_type == "MISSING_INVALID_RESPONSE",
-  at(classified_false, "U2", "02")$code_type == "MISSING_NOT_REACHED",
-  at(classified_true, "U2", "02")$code_type == "MISSING_NOT_REACHED",
-  at(classified_true, "U2", "02")$code_id == -96,
-  is.na(at(classified_true, "U2", "02")$code_score),
-  at(classified_true, "U2", "02")$code_status == "CODING_COMPLETE",
-  is.na(at(classified_true, "U2", "02a")$code_status),
-  identical(reported, classified_true),
-  identical(repeated, reported),
-  isTRUE(all.equal(separate_result, classified_true)),
+  at(classified_true, "U1", "01b")$code_type == "MISSING_BY_OMISSION",
+  at(box_false, "U2", "02")$code_id == 0,
+  at(box_false, "U2", "02")$code_score == 0,
+  at(preserved, "U2", "02")$code_id == 0,
   nrow(item_data) == 2L,
   identical(selected$variable_order, classified_false$variable_order),
-  at(with_override, "U1", "01b")$variable_order <
-    at(with_override, "U1", "01a")$variable_order
+  identical(select(repeated, code_type, code_id, code_score),
+            select(reported, code_type, code_id, code_score)),
+  identical(select(box_from_recoded, code_type, code_id, code_score),
+            select(box_true, code_type, code_id, code_score))
 )
 original_status <- select(coded, unit_key, variable_id, original = code_status)
 for (result in list(only_completed, classified_false, classified_true,
-                    without_confirmation, with_confirmation,
-                    with_override, selected)) {
+                    box_false, box_true, hybrid, with_override, preserved, selected)) {
   observed <- filter(result, response_present) %>%
     left_join(original_status, by = c("unit_key", "variable_id"))
   stopifnot(identical(observed$code_status, observed$original))

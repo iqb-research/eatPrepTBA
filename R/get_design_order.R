@@ -12,35 +12,44 @@
 #' @param item_selection Optional data frame with `unit_key`, `variable_id`,
 #'   and optionally `item_id`. Only selected variables receive an `item_order`;
 #'   variable positions remain those of the complete design.
+#' @param order_method Internal ordering policy: `"vomd"` uses Studio item
+#'   list positions and source dependencies, `"structure"` uses unit positions,
+#'   and `"hybrid"` supplements VOMD with compatible structural relationships.
+#' @param use_variable_names_for_recoding Whether names may resolve otherwise
+#'   unknown relationships. Names always provide deterministic display ranks.
 #'
 #' @details
 #' Positions are computed once per booklet, not from participants' responses.
 #' All active coding variables are included, even when `design` contains only
 #' a variable subset. Booklet identifiers are normalized to uppercase.
-#' Basis variables follow page and available numeric section/element paths,
-#' with natural variable-name order as a deterministic fallback. Derived
-#' variables follow their latest source in dependency order. Unknown or cyclic
-#' dependencies are placed in a diagnostic unresolved block.
-#' Variables with unknown pages are inserted using names while respecting known
-#' physical relationships, rather than being placed at the end of the unit.
+#' VOMD uses `item_no`, the original item-list position, rather than an optional
+#' Studio `item_order` property. Unique hidden sources share their owning item's
+#' group; shared or unassigned sources remain unlocated within the unit.
+#' Structure mode uses pages and numeric section/element paths. Hybrid mode
+#' supplements VOMD relations and reports contradictory structural metadata.
+#' Derived variables follow their sources in the deterministic display order.
 #'
 #' `variable_order` is a unique, consecutive integer within each booklet.
 #' It is a display order, not evidence that every relationship is known.
-#' `order_group` retains equal or incomplete physical positions; it can be
-#' nonmonotone when unknown-page variables are inserted among known positions.
-#' `order_source` records the ordering information used. [recode_missings()]
-#' uses names analytically only with `use_variable_names_for_recoding = TRUE`;
-#' otherwise it uses known physical relationships and explicit overrides.
-#' Item positions use Studio metadata and are consecutive within each booklet.
+#' `position_group` records local groups where known, and the static
+#' `design_precedence` attribute preserves partial relationships per occurrence.
+#' Names supply analytical relationships only when explicitly enabled.
+#' Item indices use the complete Studio item universe within each booklet;
+#' selecting items masks their indices without renumbering the others.
 #' No item identifiers are inferred from variable names.
 #'
 #' @return A static tibble keyed by `booklet_id`, `testlet_no`,
 #'   `unit_booklet_no`, `unit_key`, `unit_alias`, and `variable_id`, with
 #'   variable metadata, `variable_order`, `order_group`, `order_source`,
 #'   `item_id`, `item_order`, and `item_order_source`.
-#' @export
+#' @keywords internal
+#' @noRd
 get_design_order <- function(design, units, overwrite = FALSE,
-                             order_overrides = NULL, item_selection = NULL) {
+                             order_overrides = NULL, item_selection = NULL,
+                             order_method = c("vomd", "structure", "hybrid"),
+                             use_variable_names_for_recoding = FALSE) {
+  order_method <- match.arg(order_method)
+  checkmate::assert_flag(use_variable_names_for_recoding)
   occurrence_keys <- c("booklet_id", "testlet_no", "unit_booklet_no",
                        "unit_key", "unit_alias")
   assert_cols(design, occurrence_keys, "design")
@@ -62,6 +71,8 @@ get_design_order <- function(design, units, overwrite = FALSE,
   occurrences <- dplyr::arrange(occurrences, .data$booklet_id, .data$testlet_no,
                                 .data$unit_booklet_no, .data$unit_key, .data$unit_alias)
   metadata <- design_order_metadata(units, overwrite = overwrite)
+  metadata <- design_order_vomd_metadata(metadata, units)
+  unresolved_items <- attr(metadata, "vomd_unresolved")
   unknown_units <- setdiff(occurrences$unit_key, metadata$unit_key)
   if (length(unknown_units)) {
     cli::cli_abort("Unknown or empty units in {.arg design}: {unknown_units}.")
@@ -76,10 +87,15 @@ get_design_order <- function(design, units, overwrite = FALSE,
   }
   overrides <- design_order_validate_overrides(order_overrides, occurrences, metadata)
   tables <- vector("list", nrow(occurrences))
+  precedence <- vector("list", nrow(occurrences))
   for (i in seq_len(nrow(occurrences))) {
     occurrence <- occurrences[i, , drop = FALSE]
     current <- metadata[metadata$unit_key == occurrence$unit_key, , drop = FALSE]
-    current <- design_order_unit(current, overrides[[i]])
+    current <- design_order_position_unit(current, overrides[[i]], order_method,
+                                          use_variable_names_for_recoding)
+    precedence[[i]] <- list(keys = occurrence,
+                            variable_ids = current$variable_id,
+                            before = attr(current, "before"))
     keys <- occurrence[rep(1L, nrow(current)), , drop = FALSE]
     tables[[i]] <- dplyr::bind_cols(keys, current[setdiff(names(current), "unit_key")])
   }
@@ -88,6 +104,12 @@ get_design_order <- function(design, units, overwrite = FALSE,
     out$variable_order <- integer()
     out$order_group <- integer()
     out$order_source <- character()
+    out$position_group <- numeric()
+    out$position_source <- character()
+    out$analysis_included <- logical()
+    out$box_position <- numeric()
+    out$box_included <- logical()
+    out$box_is_item <- logical()
   } else {
     out <- dplyr::bind_rows(tables)
     # Local ranks include derivations; occurrence offsets are static per booklet.
@@ -102,17 +124,15 @@ get_design_order <- function(design, units, overwrite = FALSE,
       if (!identical(previous, current$booklet_id[[1L]])) offsets <- 0L
       index <- seq.int(cursor, length.out = nrow(current))
       out$order_group[index] <- current$order_group + offsets
-      offsets <- max(out$order_group[index])
+      offsets <- max(c(offsets, out$order_group[index]), na.rm = TRUE)
       previous <- current$booklet_id[[1L]]
       cursor <- cursor + nrow(current)
     }
   }
-  if (any(c("items_list", "item_metadata") %in% names(units))) {
-    out <- add_item_id(out, units)
-  } else {
-    out$item_id <- rep(NA_character_, nrow(out))
-  }
-  design_order_items(out, item_selection)
+  out <- design_order_items(out, item_selection)
+  attr(out, "design_precedence") <- precedence
+  attr(out, "vomd_unresolved") <- unresolved_items
+  out
 }
 
 # Prepare one row per active variable, preserving original source references.
@@ -260,6 +280,224 @@ design_order_empty_metadata <- function() {
                  variable_section = list(), variable_element = list(),
                  variable_page_always_visible = logical(), source_ids = list(),
                  basis_sources = list(), sources_known = logical())
+}
+
+# VOMD list positions are item positions, not a total order of all variables.
+# Resolve original read-only references before aliases, without guessing names.
+design_order_vomd_metadata <- function(metadata, units) {
+  metadata$item_id <- rep(NA_character_, nrow(metadata))
+  metadata$item_position <- rep(NA_real_, nrow(metadata))
+  metadata$box_position <- rep(NA_real_, nrow(metadata))
+  metadata$box_included <- rep(FALSE, nrow(metadata))
+  metadata$box_is_item <- rep(FALSE, nrow(metadata))
+  metadata$analysis_included <- rep(FALSE, nrow(metadata))
+  unresolved_schema <- tibble::tibble(unit_key = character(), item_id = character(),
+                                      variable_id = character(), variable_ref = character(),
+                                      item_position = numeric())
+  attr(metadata, "vomd_unresolved") <- unresolved_schema
+  column <- intersect(c("items_list", "item_metadata"), names(units))
+  if (!length(column)) return(metadata)
+  mapping <- vector("list", nrow(units))
+  unresolved <- vector("list", nrow(units))
+  for (i in seq_len(nrow(units))) {
+    items <- units[[column[[1L]]]][[i]]
+    if (is.null(items) || !nrow(items)) next
+    assert_cols(items, c("variable_id", "item_id"), column[[1L]])
+    key <- as.character(units$unit_key[[i]])
+    current <- metadata[metadata$unit_key == key, , drop = FALSE]
+    reference <- if ("variable_ref" %in% names(items)) as.character(items$variable_ref) else rep(NA_character_, nrow(items))
+    aliases <- as.character(items$variable_id)
+    resolved <- match(reference, current$variable_ref)
+    valid_reference <- !is.na(reference) & nzchar(trimws(reference))
+    resolved[!valid_reference] <- NA_integer_
+    fallback <- is.na(resolved)
+    resolved[fallback] <- match(aliases[fallback], current$variable_id)
+    fallback <- is.na(resolved)
+    resolved[fallback] <- match(aliases[fallback], current$variable_ref)
+    positions <- if ("item_no" %in% names(items)) suppressWarnings(as.numeric(items$item_no)) else seq_len(nrow(items))
+    missing <- is.na(resolved) & !is.na(items$item_id) & nzchar(trimws(as.character(items$item_id)))
+    unresolved[[i]] <- tibble::tibble(unit_key = rep(key, sum(missing)),
+                                      item_id = as.character(items$item_id[missing]),
+                                      variable_id = aliases[missing], variable_ref = reference[missing],
+                                      item_position = as.numeric(positions[missing]))
+    valid <- !is.na(resolved) & !is.na(items$item_id) & nzchar(trimws(as.character(items$item_id)))
+    if (any(valid & (is.na(positions) | !is.finite(positions) | positions < 0))) {
+      cli::cli_abort("Invalid VOMD {.field item_no} in unit {key}; item-list positions must be finite and non-negative.")
+    }
+    mapping[[i]] <- tibble::tibble(unit_key = key,
+                                   variable_id = current$variable_id[resolved[valid]],
+                                   item_id = as.character(items$item_id[valid]),
+                                   item_position = as.numeric(positions[valid]))
+  }
+  mapping <- dplyr::distinct(dplyr::bind_rows(mapping))
+  attr(metadata, "vomd_unresolved") <- dplyr::distinct(dplyr::bind_rows(unresolved_schema, unresolved))
+  if (!nrow(mapping)) return(metadata)
+  if (anyDuplicated(mapping[c("unit_key", "variable_id")])) {
+    cli::cli_abort("Conflicting VOMD item identifiers or positions for one variable. Subset {.arg units} to the relevant versions first.")
+  }
+  index <- match(paste(metadata$unit_key, metadata$variable_id, sep = "\r"),
+                 paste(mapping$unit_key, mapping$variable_id, sep = "\r"))
+  metadata$item_id <- mapping$item_id[index]
+  metadata$item_position <- mapping$item_position[index]
+  metadata$box_is_item <- !is.na(metadata$item_position)
+  for (key in unique(metadata$unit_key)) {
+    indices <- which(metadata$unit_key == key)
+    current <- metadata[indices, , drop = FALSE]
+    anchors <- rep(list(numeric()), nrow(current))
+    items <- which(current$box_is_item)
+    # Directly mapped sources retain their own item anchor. Shared hidden
+    # sources cannot be assigned the position of an arbitrarily chosen owner.
+    visit <- function(j, anchor, visited = integer()) {
+      if (j %in% visited) return(invisible(NULL))
+      if (current$box_is_item[[j]]) {
+        anchor <- current$item_position[[j]]
+      } else {
+        anchors[[j]] <<- unique(c(anchors[[j]], anchor))
+      }
+      children <- match(current$source_ids[[j]], current$variable_id)
+      for (child in children[!is.na(children)]) visit(child, anchor, c(visited, j))
+      invisible(NULL)
+    }
+    for (j in items) visit(j, current$item_position[[j]])
+    unique_source <- lengths(anchors) == 1L
+    position <- current$item_position
+    hidden <- which(!current$box_is_item & unique_source)
+    position[hidden] <- vapply(anchors[hidden], `[[`, numeric(1), 1L)
+    included <- current$box_is_item | unique_source
+    metadata$box_position[indices] <- position
+    metadata$box_included[indices] <- included
+    metadata$analysis_included[indices] <- included
+  }
+  metadata
+}
+
+# Expand a partial basis order to variable presentation positions. A derived
+# variable is anchored at its latest source; its calculation/display index is
+# never itself proof that it follows those sources physically.
+design_order_expand_precedence <- function(metadata, basis_before) {
+  basis <- which(design_order_is_base(metadata))
+  leaves <- lapply(seq_len(nrow(metadata)), function(i) {
+    if (i %in% basis) return(match(i, basis))
+    if (!metadata$sources_known[[i]]) return(integer())
+    match(metadata$basis_sources[[i]], metadata$variable_id[basis])
+  })
+  before <- matrix(FALSE, nrow(metadata), nrow(metadata))
+  for (i in seq_len(nrow(metadata))) for (j in seq_len(nrow(metadata))) {
+    if (i == j || !length(leaves[[i]]) || !length(leaves[[j]]) ||
+        anyNA(leaves[[i]]) || anyNA(leaves[[j]])) next
+    before[i, j] <- all(vapply(leaves[[i]], function(source) {
+      any(basis_before[source, leaves[[j]]])
+    }, logical(1)))
+  }
+  before
+}
+
+design_order_transitive <- function(before, unit_key) {
+  if (nrow(before)) for (k in seq_len(nrow(before))) {
+    before <- before | outer(before[, k], before[k, ], `&`)
+  }
+  if (any(diag(before))) {
+    cli::cli_abort("VOMD order conflicts with physical metadata or variable-name order in unit {unit_key}. Use explicit {.arg order_overrides} to resolve the conflict.")
+  }
+  before
+}
+
+design_order_position_unit <- function(metadata, override, method, use_names) {
+  base <- which(design_order_is_base(metadata))
+  n <- nrow(metadata)
+  raw <- metadata
+  group <- raw$box_position
+  source <- ifelse(raw$box_is_item, "vomd_item",
+                    ifelse(raw$box_included, "vomd_source", "unit_only"))
+  vomd <- outer(group, group, `<`)
+  vomd[is.na(vomd)] <- FALSE
+  physical <- design_order_precedence(raw[base, , drop = FALSE], seq_along(base))
+  structural <- design_order_expand_precedence(raw, physical)
+  if (!is.null(override)) {
+    out <- design_order_unit(raw, override)
+    ranks <- override$local_order[match(raw$variable_id[base], override$variable_id)]
+    before <- design_order_expand_precedence(raw, outer(ranks, ranks, `<`))
+    group <- out$order_group[match(raw$variable_id, out$variable_id)]
+    source[] <- "override"
+  } else if (method == "structure") {
+    out <- design_order_unit(raw)
+    before <- structural
+    group <- out$order_group[match(raw$variable_id, out$variable_id)]
+    source <- out$order_source[match(raw$variable_id, out$variable_id)]
+    # No page/path means no intra-unit location, even if names supply a rank.
+    located <- !is.na(raw$variable_page) & is.finite(raw$variable_page) & raw$variable_page >= 0
+    group[!located & design_order_is_base(raw)] <- NA_real_
+    if (use_names) {
+      named <- design_order_precedence(raw[base, , drop = FALSE], seq_along(base),
+                                        use_variable_names_for_recoding = TRUE)
+      before <- design_order_expand_precedence(raw, named)
+      group[base] <- design_order_natural_rank(raw$variable_id[base])
+      source[base] <- "naming_trusted"
+    }
+  } else {
+    before <- vomd
+    if (method == "hybrid") {
+      before <- design_order_transitive(before | structural, raw$unit_key[[1L]])
+      supplemented <- rowSums(structural & !vomd) + colSums(structural & !vomd) > 0L
+      source[supplemented] <- ifelse(is.na(group[supplemented]), "structure", "vomd_structure")
+    }
+    if (use_names && length(base)) {
+      naming <- design_order_natural_rank(raw$variable_id[base])
+      known <- before[base, base, drop = FALSE]
+      eligible <- !known & !t(known)
+      named <- outer(naming, naming, `<`) & eligible
+      before <- design_order_transitive(before | design_order_expand_precedence(raw, named), raw$unit_key[[1L]])
+      named_ids <- base[rowSums(named) + colSums(named) > 0L]
+      source[named_ids] <- paste0(source[named_ids], "_naming_trusted")
+    }
+    # Dense ranks are deterministic and dependency-safe, while groups and the
+    # separate relation matrix retain the actual uncertainty.
+    pending <- seq_len(n)
+    emitted <- integer()
+    natural <- design_order_natural_rank(raw$variable_id)
+    priority <- group
+    priority[is.na(priority)] <- Inf
+    while (length(pending)) {
+      available <- pending[vapply(pending, function(j) {
+        # Calculation dependencies and item presentation can disagree; a
+        # displayed derivation must not block its own later mapped source.
+        predecessors <- which(before[, j] & design_order_is_base(raw))
+        deps <- match(raw$source_ids[[j]], raw$variable_id)
+        !any(predecessors %in% pending) &&
+          (design_order_is_base(raw)[[j]] ||
+             (raw$sources_known[[j]] && all(!is.na(deps)) && all(deps %in% emitted)))
+      }, logical(1))]
+      if (!length(available)) break
+      j <- available[order(priority[available], natural[available])[[1L]]]
+      emitted <- c(emitted, j)
+      pending <- pending[pending != j]
+      # Calculation order is a separate display convention: insert every
+      # newly available derivation immediately after its final source, even
+      # when its VOMD item occupies a later presentation position.
+      repeat {
+        ready <- pending[vapply(pending, function(k) {
+          deps <- match(raw$source_ids[[k]], raw$variable_id)
+          !design_order_is_base(raw)[[k]] && raw$sources_known[[k]] &&
+            length(deps) > 0L && !anyNA(deps) && all(deps %in% emitted)
+        }, logical(1))]
+        if (!length(ready)) break
+        k <- ready[order(priority[ready], natural[ready])[[1L]]]
+        emitted <- c(emitted, k)
+        pending <- pending[pending != k]
+      }
+    }
+    if (length(pending)) emitted <- c(emitted, pending[order(priority[pending], natural[pending])])
+    out <- raw[emitted, , drop = FALSE]
+    out$variable_order <- seq_along(emitted)
+    out$order_group <- as.integer(group[emitted])
+    out$order_source <- source[emitted]
+  }
+  index <- match(out$variable_id, raw$variable_id)
+  out$position_group <- as.numeric(group[index])
+  out$position_source <- source[index]
+  out$analysis_included <- raw$analysis_included[index]
+  attr(out, "before") <- before[index, index, drop = FALSE]
+  out
 }
 
 design_order_is_base <- function(metadata) {
@@ -491,21 +729,23 @@ design_order_items <- function(order, selection = NULL) {
   order$item_order <- rep(NA_integer_, nrow(order))
   for (booklet in unique(order$booklet_id)) {
     valid_item <- !is.na(order$item_id) & nzchar(trimws(order$item_id))
-    index <- which(order$booklet_id == booklet & selected &
-                     (valid_item | !is.null(selection)))
+    index <- which(order$booklet_id == booklet &
+                     (valid_item | (!is.null(selection) & selected)))
     if (!length(index)) next
     keys <- order[index, c("testlet_no", "unit_booklet_no", "unit_key", "unit_alias", "item_id", "variable_id")]
     # An item is represented by one chosen variable. Different variables mapped
     # to the same Studio item do not silently define an aggregation rule.
-    mapped <- keys[!is.na(keys$item_id) & nzchar(trimws(keys$item_id)), , drop = FALSE]
+    mapped <- keys[selected[index] & !is.na(keys$item_id) & nzchar(trimws(keys$item_id)), , drop = FALSE]
     item_keys <- mapped[setdiff(names(mapped), "variable_id")]
     if (anyDuplicated(item_keys)) {
       cli::cli_abort("Several variables map to the same item in a unit occurrence. Choose one variable per item using {.arg item_selection}.")
     }
-    unique_keys <- dplyr::distinct(keys)
+    positions <- order[index, c("testlet_no", "unit_booklet_no", "item_position", "variable_order")]
+    local <- do.call(base::order, c(positions, list(na.last = TRUE)))
+    unique_keys <- dplyr::distinct(keys[local, , drop = FALSE])
     unique_keys$.item_order <- seq_len(nrow(unique_keys))
     ordered <- dplyr::left_join(keys, unique_keys, by = names(keys), relationship = "many-to-one")
-    order$item_order[index] <- ordered$.item_order
+    order$item_order[index[selected[index]]] <- ordered$.item_order[selected[index]]
   }
   dplyr::select(order, -dplyr::any_of(c(".selected", ".selected_item_id")))
 }

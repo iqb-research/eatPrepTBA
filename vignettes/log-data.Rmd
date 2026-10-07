@@ -324,10 +324,11 @@ Unit-Zeit.
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
 Die hier ausgewerteten Zeitstempel beschreiben beobachtete Abläufe.
-`get_design_order()` und die Missing-Klassifikation verwenden dagegen die
-erwartete Reihenfolge aus Testheft und Unit-Struktur, ohne Log-Zeitstempel.
+Die Positionsbestimmung und Missing-Klassifikation in `complete_design()`
+verwenden dagegen die erwartete Reihenfolge aus Testheft, VOMD und Quellenbaum,
+optional ergänzt durch Unit-Struktur, ohne Log-Zeitstempel.
 Ein später Log-Eintrag oder eine angezeigte Seite ist für sich kein Beleg
-für eine beantwortete Basisvariable. Die Unterschiede und die Behandlung
+für eine beantwortete Variable. Die Unterschiede und die Behandlung
 von Auslassungen zeigt die Vignette
 [Variablenreihenfolge und Missing-Klassifikation](missing-classification.html).
 

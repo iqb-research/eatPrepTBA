@@ -5,7 +5,10 @@
 #' @param prepare Logical. Whether to unpack the coding results and to add information from the coding schemes.
 #' @param codes_manual Data frame (optional). Data frame holding the manual codes. Defaults to `NULL` and does only automatic coding.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Data frame (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme.
+#' @param missings Data frame (optional). Provide missing meta data with
+#'   `code_id`, `code_status`, `code_score`, and `code_type` for inserting manual
+#'   codes. Entries replace defaults with the same `code_id`; omitted default
+#'   codes remain available. Defaults to `NULL` and uses the default scheme.
 #'
 #' @description
 #' This function automatically codes responses by using the `eatAutoCode`
@@ -47,15 +50,22 @@ code_responses <- function(responses,
     assert_cols(missings, missings_cols, "missings")
   }
 
+  default_manual_missings <- tibble::tribble(
+    ~code_id, ~code_status, ~code_score, ~code_type,
+    -96, "NOT_REACHED", 0, "MISSING_NOT_REACHED",
+    -97, "CODING_ERROR", 0, "MISSING_CODING_IMPOSSIBLE",
+    -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
+    -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
+  )
   if (is.null(missings)) {
-    missings <-
-      tibble::tribble(
-        ~code_id, ~code_status, ~code_score, ~code_type,
-        -96, "NOT_REACHED", 0, "MISSING_NOT_REACHED",
-        -97, "CODING_ERROR", 0, "MISSING_CODING_IMPOSSIBLE",
-        -98, "INVALID", 0, "MISSING_INVALID_RESPONSE",
-        -99, "DISPLAYED", 0, "MISSING_BY_OMISSION"
-      )
+    missings <- default_manual_missings
+  } else {
+    # Manual codes are incoming IDs: a partial custom table must not make
+    # otherwise valid standard codes unknown to the autocoder.
+    missings <- dplyr::bind_rows(
+      default_manual_missings[!default_manual_missings$code_id %in% missings$code_id, ],
+      missings
+    )
   }
 
   cli::cli_h2("Automatic coding routine")
@@ -315,6 +325,15 @@ code_responses <- function(responses,
       "code_status" = "status"
     )))
 
+  # The autocoder may omit code and score entirely in an unclassified batch.
+  # Keep the same numeric column contract for prepared and nested outputs.
+  if (!"code_id" %in% names(responses_coded)) {
+    responses_coded$code_id <- rep(NA_integer_, nrow(responses_coded))
+  }
+  if (!"code_score" %in% names(responses_coded)) {
+    responses_coded$code_score <- rep(NA_real_, nrow(responses_coded))
+  }
+
   if (prepare) {
     tryCatch(
       error = function(cnd) {
@@ -324,7 +343,6 @@ code_responses <- function(responses,
         # Default return
         return(responses_coded)
       },
-      # TODO: Does not work if no code_ids are available (e.g., only coding errors)
       responses_coded %>%
         tidyr::unnest(value, keep_empty = TRUE) %>%
         dplyr::semi_join(pcs_variables, by = dplyr::join_by("unit_key", "variable_id")) %>%

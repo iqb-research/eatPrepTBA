@@ -1,3 +1,56 @@
+# eatPrepTBA 0.9.8.9038 [2026-10-07]
+
+## missing classification
+
+* Keep `complete_design()` as the single public entry point for completion,
+  position annotation, and missing classification. Ordering and classification
+  helpers are internal; `recode_omissions_to_not_reached = NULL` still only
+  completes expected rows without calculating new positions.
+* Add `missing_policy = "eatPrepTBA"` and `"coding_box"`. The latter follows the
+  coding-box item-dataset rules pinned to commit `39468e5`, including numeric
+  derived-result preservation, source aggregation, equal-position groups, and
+  scope restrictions. Both policies retain `code_status` and response `value`.
+* Use VOMD item sequence plus dependency closure by default. Optional hybrid
+  and structure methods use page/element relationships; explicit overrides
+  and trusted names can establish further ordering. Dense variable indices
+  remain separate from evidence of presentation order.
+* Let items, derived results, and required sources provide work evidence.
+  eatPrepTBA gives source-supported trailing classification priority over
+  derived fallback results. Valid and invalid derived results become NR only
+  when every known transitive basis source is NR in the proven trailing region;
+  `derived_not_reached = "preserve"` retains existing numeric results.
+* Protect existing numeric NR by default. Optional
+  `recode_existing_not_reached = TRUE` permits source-supported correction to
+  omission. The default scope is testlet for eatPrepTBA and unit for coding-box;
+  unit, testlet, and booklet scopes are available.
+* Keep unlinked basis variables in the response data and deterministic index.
+  Without within-unit location they supply only unit-level work evidence in
+  eatPrepTBA; the box policy excludes variables outside its item/source universe
+  from boundary classification.
+* Preserve `code_id_input`, `code_score_input`, and `code_type_input` for
+  comparisons and repeated calls. Distinguish optional `input_missings` from
+  the output `missings` profile, retaining noncolliding standard input codes
+  when custom output IDs are used.
+* Remain in long format and do not create additional missing-by-design rows.
+  Item selection affects item positions for subsequent filtering, never the
+  complete missing-classification universe.
+
+## documentation
+
+* Rewrite the executable missing-classification vignette for both rule sets,
+  input preservation, VOMD groups, optional structural ordering, and custom
+  profiles. Update the standard workflow and Studio introduction to use only
+  `complete_design()` as the public completion/classification API.
+
+## bug fixes
+
+* Retain numeric `code_id` and `code_score` columns when the autocoder omits
+  these entirely for an unclassified batch, including prepared output consumed
+  by `complete_design()`.
+* Supplement partial manual missing-code profiles with omitted standard IDs
+  in `code_responses()`. Explicit profile entries replace matching IDs without
+  discarding the other standard manual-code mappings.
+
 # eatPrepTBA 0.9.8.9037 [2026-10-06]
 
 ## new features

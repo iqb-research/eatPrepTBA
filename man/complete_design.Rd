@@ -15,7 +15,13 @@ complete_design(
   order_overrides = NULL,
   item_selection = NULL,
   use_variable_names_for_recoding = FALSE,
-  diagnostics = c("compact", "full", "none")
+  diagnostics = c("compact", "full", "none"),
+  missing_policy = c("eatPrepTBA", "coding_box"),
+  order_method = NULL,
+  not_reached_scope = NULL,
+  recode_existing_not_reached = FALSE,
+  derived_not_reached = NULL,
+  input_missings = NULL
 )
 }
 \arguments{
@@ -42,20 +48,20 @@ enabled. The scheme never fills or changes the technical \code{code_status}.}
 
 \item{recode_omissions_to_not_reached}{\code{FALSE} (default), \code{TRUE}, or \code{NULL}.
 \code{FALSE} adds expected positions and classifies missings while preserving
-omissions; existing not-reached values before later basis-variable work
-become omissions. \code{TRUE} additionally recodes trailing omissions to not
+omissions and existing numerical not-reached codes. \code{TRUE} additionally recodes trailing omissions to not
 reached. \code{NULL} only completes the design: supplied coding fields remain
 unchanged and newly inserted coding fields remain missing. No positions
 are computed in that mode.}
 
-\item{order_overrides}{Optional local basis-variable ordering, passed to
-\code{\link[=get_design_order]{get_design_order()}}.}
+\item{order_overrides}{Optional local basis-variable ordering table with
+\code{unit_key}, \code{variable_id}, and \code{local_order}, optionally restricted by booklet
+and unit occurrence. Available in the eatPrepTBA rule set.}
 
-\item{item_selection}{Optional item-variable selection, passed to
-\code{\link[=get_design_order]{get_design_order()}}. It affects item positions, not the response row set
-or variable positions.}
+\item{item_selection}{Optional Studio item-variable selection. It masks
+item positions without renumbering them, and does not filter response rows
+or the universe used for classification.}
 
-\item{use_variable_names_for_recoding}{Logical. Explicitly confirm natural
+\item{use_variable_names_for_recoding}{Logical. Explicitly trust natural
 variable-name order for missing classification. Defaults to \code{FALSE}.
 Known physical positions and manual overrides remain usable in either mode.}
 
@@ -63,16 +69,44 @@ Known physical positions and manual overrides remain usable in either mode.}
 in this call; \code{"full"} adds counts by booklet/testlet/unit occurrence;
 \code{"none"} suppresses the summary. Added rows and changes to existing rows
 are counted separately, regardless of earlier \code{response_present} values.}
+
+\item{missing_policy}{Rule set: \code{"eatPrepTBA"} (default) or \code{"coding_box"}.
+The latter reproduces the Coding Box item resolver at commit
+\verb{39468e5a28a24dc9ec860aee46daf8d4ed5c8682} on the expected long-format rows.}
+
+\item{order_method}{\code{NULL} (VOMD order), \code{"vomd"}, \code{"structure"} (unit pages
+and elements), or \code{"hybrid"} (consistent VOMD and structure constraints).
+Coding Box requires VOMD and does not permit overrides or trusted names.}
+
+\item{not_reached_scope}{\code{NULL} selects \code{"testlet"} for eatPrepTBA and
+\code{"unit"} for Coding Box. Explicit alternatives are \code{"unit"}, \code{"testlet"},
+and \code{"booklet"}. Coding Box forbids trailing-omission recoding in Unit scope.}
+
+\item{recode_existing_not_reached}{Logical, default \code{FALSE}. In eatPrepTBA,
+optionally correct existing numerical not-reached codes before proven later
+work to omission. Uncoded technical NOT_REACHED is classified in either mode.}
+
+\item{derived_not_reached}{\code{NULL} selects \code{"recode"} for eatPrepTBA and
+\code{"preserve"} for Coding Box. \code{"recode"} replaces valid or invalid derived
+results when all known basis sources are demonstrably not reached in the
+trailing region. \code{"preserve"} retains existing numerical derived results.}
+
+\item{input_missings}{Optional input schema with \code{code_type} and \code{code_id},
+for eatPrepTBA. Output remapping through \code{missings} retains recognition of
+nonconflicting standard incoming IDs. Ambiguous input IDs require an
+explicit schema. Coding Box recognizes its selected output profile exactly.}
 }
 \value{
 A tibble with completed response rows and \code{response_present}.
 With \code{FALSE} or \code{TRUE}, also includes \code{variable_order}, \code{item_order},
-\code{order_group}, and \code{order_source} (and the Studio \code{item_id} when available).
+\code{order_group}, \code{order_source}, \code{position_group}, \code{position_source}, and
+the original analytical input fields. Attributes \code{missing_policy} and
+\code{missing_diagnostics} record effective options and row-aligned diagnostics.
 }
 \description{
 Completes coded responses with the expected variables of each booklet.
 Expected positions are shared by everyone assigned the same booklet.
-Missing classification then runs separately per person and testlet.
+Missing classification runs separately per person within the selected scope.
 }
 \details{
 The technical \code{code_status} is always preserved, including \code{NA}. The logical
@@ -82,21 +116,26 @@ existing presence marker is retained when completing again. \code{id_used} retai
 its historical meaning: at least one supplied technical status is nonmissing
 for that person.
 
-Only basis variables determine the not-reached boundary. Derived variables
-cannot act as evidence of later work. Valid and invalid derived results
-become not reached when all their transitive basis sources are known and
-demonstrably not reached. A mixture of omissions and not-reached sources is
-insufficient; otherwise these derived results are preserved. This rule applies
-whenever classification is enabled, regardless of the previous score.
-The missing scheme updates \code{code_type}, \code{code_id}, and \code{code_score}
-together; \code{code_status} remains intact. Use the original coded input when
-comparing policies, since replaced analytical fields cannot be reconstructed.
-Uncertain ordering preserves existing categories and leaves unclassified
-rows unresolved. Names may resolve uncertainty only with explicit confirmation;
-conflicts with known physical order require an \code{order_overrides} entry.
+VOMD items and their required source closure provide activity evidence;
+eatPrepTBA additionally includes every active basis variable. Unlinked basis
+variables receive a display index but establish only Unit-level comparisons
+when no within-Unit location is known. A dense index does not resolve unknown
+presentation relationships. Coding Box leaves variables outside its item and
+uniquely anchored source universe unchanged.
 
-The same operations can be called separately: complete with \code{NULL}, obtain
-a static table using \code{\link[=get_design_order]{get_design_order()}}, and pass that table to
-\code{\link[=recode_missings]{recode_missings()}}. Classify before filtering to selected items, so later
-basis-variable work remains available as evidence.
+eatPrepTBA gives source evidence priority when considering a derived result
+for not-reached replacement, preventing that result from anchoring itself.
+Otherwise existing derived results also count as activity. Coding-error and
+no-coding results count as activity in eatPrepTBA only with a stored value;
+Coding Box follows its own technical-status and numerical-result rules.
+Uncertain ordering and incomplete sources retain existing analytical results
+and expose unresolved diagnostics rather than inventing a score.
+
+The original analytical fields are retained as \code{code_id_input},
+\code{code_score_input}, and \code{code_type_input}. Subsequent classification starts
+from these fields, so changing rule sets or profiles restores original input.
+Deliberate edits to the analytical input must also update the corresponding
+input fields or remove all three input fields before reclassification.
+Classification precedes item selection and never widens the response table
+or creates missing-by-design rows outside the supplied design.
 }

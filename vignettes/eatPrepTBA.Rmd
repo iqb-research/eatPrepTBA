@@ -95,13 +95,15 @@ This loads the units from the selected workspaces into one table; larger
 workspaces may take a moment to load. Metadata is included by default.
 Use `unit_definition = TRUE` if you also need page information.
 
-For expected variable and item positions with
-[`get_design_order()`](../reference/get_design_order.html), retrieve both
-metadata and the unit definition, for example
-`get_units(workspace, metadata = TRUE, unit_definition = TRUE)`, and prepare
-the coding schemes with `add_coding_scheme()`. Item links come from Studio
-metadata; page and element positions come from the unit definition.
-Positions are shared by participants using the same booklet. See
+For expected variable and item positions, use
+[`complete_design()`](../reference/complete_design.html) after preparing the
+coding schemes with `add_coding_scheme()`. The default uses the item sequence
+from Studio/VOMD metadata and the dependency tree. Retrieve metadata with
+`get_units(workspace, metadata = TRUE)`; include `unit_definition = TRUE` for
+the optional hybrid or structure order based on page and element positions.
+Positions are shared by participants using the same booklet. The function
+offers the eatPrepTBA rules and a complete coding-box alternative, and retains
+the long response format. See
 [variable order and missing classification](missing-classification.html)
 for executable examples and the distinction between technical `code_status`
 and analytical `code_type`.

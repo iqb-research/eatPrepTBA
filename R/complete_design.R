@@ -17,28 +17,48 @@
 #'   enabled. The scheme never fills or changes the technical `code_status`.
 #' @param recode_omissions_to_not_reached `FALSE` (default), `TRUE`, or `NULL`.
 #'   `FALSE` adds expected positions and classifies missings while preserving
-#'   omissions; existing not-reached values before later basis-variable work
-#'   become omissions. `TRUE` additionally recodes trailing omissions to not
+#'   omissions and existing numerical not-reached codes. `TRUE` additionally recodes trailing omissions to not
 #'   reached. `NULL` only completes the design: supplied coding fields remain
 #'   unchanged and newly inserted coding fields remain missing. No positions
 #'   are computed in that mode.
-#' @param order_overrides Optional local basis-variable ordering, passed to
-#'   [get_design_order()].
-#' @param item_selection Optional item-variable selection, passed to
-#'   [get_design_order()]. It affects item positions, not the response row set
-#'   or variable positions.
-#' @param use_variable_names_for_recoding Logical. Explicitly confirm natural
+#' @param order_overrides Optional local basis-variable ordering table with
+#'   `unit_key`, `variable_id`, and `local_order`, optionally restricted by booklet
+#'   and unit occurrence. Available in the eatPrepTBA rule set.
+#' @param item_selection Optional Studio item-variable selection. It masks
+#'   item positions without renumbering them, and does not filter response rows
+#'   or the universe used for classification.
+#' @param use_variable_names_for_recoding Logical. Explicitly trust natural
 #'   variable-name order for missing classification. Defaults to `FALSE`.
 #'   Known physical positions and manual overrides remain usable in either mode.
 #' @param diagnostics Character. `"compact"` prints a summary of actual changes
 #'   in this call; `"full"` adds counts by booklet/testlet/unit occurrence;
 #'   `"none"` suppresses the summary. Added rows and changes to existing rows
 #'   are counted separately, regardless of earlier `response_present` values.
+#' @param missing_policy Rule set: `"eatPrepTBA"` (default) or `"coding_box"`.
+#'   The latter reproduces the Coding Box item resolver at commit
+#'   `39468e5a28a24dc9ec860aee46daf8d4ed5c8682` on the expected long-format rows.
+#' @param order_method `NULL` (VOMD order), `"vomd"`, `"structure"` (unit pages
+#'   and elements), or `"hybrid"` (consistent VOMD and structure constraints).
+#'   Coding Box requires VOMD and does not permit overrides or trusted names.
+#' @param not_reached_scope `NULL` selects `"testlet"` for eatPrepTBA and
+#'   `"unit"` for Coding Box. Explicit alternatives are `"unit"`, `"testlet"`,
+#'   and `"booklet"`. Coding Box forbids trailing-omission recoding in Unit scope.
+#' @param recode_existing_not_reached Logical, default `FALSE`. In eatPrepTBA,
+#'   optionally correct existing numerical not-reached codes before proven later
+#'   work to omission. Uncoded technical NOT_REACHED is classified in either mode.
+#' @param derived_not_reached `NULL` selects `"recode"` for eatPrepTBA and
+#'   `"preserve"` for Coding Box. `"recode"` replaces valid or invalid derived
+#'   results when all known basis sources are demonstrably not reached in the
+#'   trailing region. `"preserve"` retains existing numerical derived results.
+#' @param input_missings Optional input schema with `code_type` and `code_id`,
+#'   for eatPrepTBA. Output remapping through `missings` retains recognition of
+#'   nonconflicting standard incoming IDs. Ambiguous input IDs require an
+#'   explicit schema. Coding Box recognizes its selected output profile exactly.
 #'
 #' @description
 #' Completes coded responses with the expected variables of each booklet.
 #' Expected positions are shared by everyone assigned the same booklet.
-#' Missing classification then runs separately per person and testlet.
+#' Missing classification runs separately per person within the selected scope.
 #'
 #' @details
 #' The technical `code_status` is always preserved, including `NA`. The logical
@@ -48,27 +68,34 @@
 #' its historical meaning: at least one supplied technical status is nonmissing
 #' for that person.
 #'
-#' Only basis variables determine the not-reached boundary. Derived variables
-#' cannot act as evidence of later work. Valid and invalid derived results
-#' become not reached when all their transitive basis sources are known and
-#' demonstrably not reached. A mixture of omissions and not-reached sources is
-#' insufficient; otherwise these derived results are preserved. This rule applies
-#' whenever classification is enabled, regardless of the previous score.
-#' The missing scheme updates `code_type`, `code_id`, and `code_score`
-#' together; `code_status` remains intact. Use the original coded input when
-#' comparing policies, since replaced analytical fields cannot be reconstructed.
-#' Uncertain ordering preserves existing categories and leaves unclassified
-#' rows unresolved. Names may resolve uncertainty only with explicit confirmation;
-#' conflicts with known physical order require an `order_overrides` entry.
+#' VOMD items and their required source closure provide activity evidence;
+#' eatPrepTBA additionally includes every active basis variable. Unlinked basis
+#' variables receive a display index but establish only Unit-level comparisons
+#' when no within-Unit location is known. A dense index does not resolve unknown
+#' presentation relationships. Coding Box leaves variables outside its item and
+#' uniquely anchored source universe unchanged.
 #'
-#' The same operations can be called separately: complete with `NULL`, obtain
-#' a static table using [get_design_order()], and pass that table to
-#' [recode_missings()]. Classify before filtering to selected items, so later
-#' basis-variable work remains available as evidence.
+#' eatPrepTBA gives source evidence priority when considering a derived result
+#' for not-reached replacement, preventing that result from anchoring itself.
+#' Otherwise existing derived results also count as activity. Coding-error and
+#' no-coding results count as activity in eatPrepTBA only with a stored value;
+#' Coding Box follows its own technical-status and numerical-result rules.
+#' Uncertain ordering and incomplete sources retain existing analytical results
+#' and expose unresolved diagnostics rather than inventing a score.
+#'
+#' The original analytical fields are retained as `code_id_input`,
+#' `code_score_input`, and `code_type_input`. Subsequent classification starts
+#' from these fields, so changing rule sets or profiles restores original input.
+#' Deliberate edits to the analytical input must also update the corresponding
+#' input fields or remove all three input fields before reclassification.
+#' Classification precedes item selection and never widens the response table
+#' or creates missing-by-design rows outside the supplied design.
 #'
 #' @return A tibble with completed response rows and `response_present`.
 #'   With `FALSE` or `TRUE`, also includes `variable_order`, `item_order`,
-#'   `order_group`, and `order_source` (and the Studio `item_id` when available).
+#'   `order_group`, `order_source`, `position_group`, `position_source`, and
+#'   the original analytical input fields. Attributes `missing_policy` and
+#'   `missing_diagnostics` record effective options and row-aligned diagnostics.
 #' @export
 complete_design <- function(coded,
                             units,
@@ -80,7 +107,13 @@ complete_design <- function(coded,
                             order_overrides = NULL,
                             item_selection = NULL,
                             use_variable_names_for_recoding = FALSE,
-                            diagnostics = c("compact", "full", "none")) {
+                            diagnostics = c("compact", "full", "none"),
+                            missing_policy = c("eatPrepTBA", "coding_box"),
+                            order_method = NULL,
+                            not_reached_scope = NULL,
+                            recode_existing_not_reached = FALSE,
+                            derived_not_reached = NULL,
+                            input_missings = NULL) {
   diagnostics <- match.arg(diagnostics)
   checkmate::assert_character(identifiers, min.len = 1L, any.missing = FALSE)
   checkmate::assert_flag(overwrite)
@@ -101,6 +134,7 @@ complete_design <- function(coded,
   coded_keys <- c(identifiers, "booklet_id", "unit_key", "unit_alias", "variable_id")
   code_fields <- c("code_status", "value", "code_id", "code_type", "code_score")
   assert_cols(coded, c(coded_keys, code_fields), "coded")
+  code_fields <- c(code_fields, "code_id_input", "code_score_input", "code_type_input")
   if ("response_present" %in% names(coded)) {
     checkmate::assert_logical(coded$response_present, len = nrow(coded),
                              any.missing = FALSE)
@@ -166,23 +200,36 @@ complete_design <- function(coded,
     return(completed)
   }
 
+  missing_policy <- match.arg(missing_policy)
+  settings <- missing_policy_settings(missing_policy, order_method, not_reached_scope,
+    recode_existing_not_reached, derived_not_reached,
+    use_variable_names_for_recoding, order_overrides, input_missings)
   completed <- completed %>%
     dplyr::select(-dplyr::any_of(c(
-      "variable_order", "item_order", "order_group", "order_source", "item_order_source", "item_id"
+      "variable_order", "item_order", "order_group", "order_source", "item_order_source", "item_id",
+      "position_group", "position_source", "item_position", "analysis_included",
+      "box_position", "box_included", "box_is_item"
     )))
   positions <- get_design_order(completed, prepared_units,
                                 order_overrides = order_overrides,
-                                item_selection = item_selection)
+                                item_selection = item_selection,
+                                order_method = settings$order_method,
+                                use_variable_names_for_recoding = use_variable_names_for_recoding)
   out <- recode_missings_impl(
     completed, prepared_units, positions = positions,
     identifiers = identifiers, missings = missings,
     recode_omissions_to_not_reached = recode_omissions_to_not_reached,
-    use_variable_names_for_recoding = use_variable_names_for_recoding
+    use_variable_names_for_recoding = use_variable_names_for_recoding,
+    missing_policy = settings$missing_policy, order_method = settings$order_method,
+    not_reached_scope = settings$not_reached_scope,
+    recode_existing_not_reached = recode_existing_not_reached,
+    derived_not_reached = settings$derived_not_reached, input_missings = input_missings
   )
   if (diagnostics != "none") {
     report <- missing_change_report(before, out$data, added = added,
                                     reasons = out$reasons, basis = out$basis)
     emit_missing_report(report, diagnostics, source = "complete_design")
+    emit_missing_policy_report(out)
   }
   out$data
 }
