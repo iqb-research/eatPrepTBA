@@ -37,8 +37,10 @@
 #' @param missing_policy Rule set: `"eatPrepTBA"` (default) or `"coding_box"`.
 #'   The latter reproduces the Coding Box item resolver at commit
 #'   `39468e5a28a24dc9ec860aee46daf8d4ed5c8682` on the expected long-format rows.
-#' @param order_method `NULL` (VOMD order), `"vomd"`, `"structure"` (unit pages
-#'   and elements), or `"hybrid"` (consistent VOMD and structure constraints).
+#' @param order_method `NULL` selects `"hybrid"` for eatPrepTBA and `"vomd"`
+#'   for Coding Box. Explicit alternatives are `"vomd"`, `"structure"` (unit
+#'   pages and elements), or `"hybrid"` (consistent VOMD and structure constraints).
+#'   Always-visible pages do not establish physical before/after relations.
 #'   Coding Box requires VOMD and does not permit overrides or trusted names.
 #' @param not_reached_scope `NULL` selects `"testlet"` for eatPrepTBA and
 #'   `"unit"` for Coding Box. Explicit alternatives are `"unit"`, `"testlet"`,

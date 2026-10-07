@@ -568,6 +568,15 @@ design_order_precedence <- function(metadata, variable_order, order_source = NUL
     (same_page & same_section & outer(element, element, `<`))
   before[is.na(before)] <- FALSE
 
+  # Permanently visible supplementary pages have no position in the sequential
+  # page flow. Their layout must not imply reachability, even within that page.
+  # VOMD item order and explicit overrides remain independent sources of order.
+  always_visible <- if ("variable_page_always_visible" %in% names(metadata)) {
+    metadata$variable_page_always_visible %in% TRUE
+  } else rep(FALSE, n)
+  before[always_visible, ] <- FALSE
+  before[, always_visible] <- FALSE
+
   if (use_variable_names_for_recoding) {
     naming <- design_order_natural_rank(metadata$variable_id)
     named_before <- outer(naming, naming, `<`)

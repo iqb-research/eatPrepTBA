@@ -33,7 +33,7 @@ werden, zeigt der [Standard-Workflow](standard-workflow.html).
 | Argument | Standard im eatPrepTBA-Regelwerk | Bedeutung |
 |:--|:--|:--|
 | `recode_omissions_to_not_reached` | `FALSE` | Bestehende Auslassungen erhalten; `TRUE` klassifiziert zusätzlich abschließende Auslassungen als NR. `NULL` ergänzt ausschließlich fehlende Zeilen. |
-| `order_method` | `NULL`, effektiv `"vomd"` | Itemfolge aus Studio/VOMD plus Ableitungsbaum. `"hybrid"` ergänzt sie durch Unitstruktur; `"structure"` verwendet die Unitstruktur. |
+| `order_method` | `NULL`, effektiv `"hybrid"` | Itemfolge aus Studio/VOMD plus Ableitungsbaum, ergänzt um kompatible Unitstruktur. `"vomd"` verwendet ausschließlich VOMD und Quellenbaum; `"structure"` verwendet die Unitstruktur. |
 | `not_reached_scope` | `NULL`, effektiv `"testlet"` | Grenze innerhalb eines Testlets bestimmen. Alternativen: `"unit"` und `"booklet"`. |
 | `recode_existing_not_reached` | `FALSE` | Vorhandene numerisch kodierte NR erhalten. `TRUE` erlaubt bei belegter späterer Bearbeitung die Rückklassifikation zu Omission. |
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | Vorhandene gültige und Invalid-Ableitungen bei ausschließlich belegten NR-Quellen im Schlussbereich zu NR machen. `"preserve"` erhält diese Ergebnisse. |
@@ -52,8 +52,8 @@ Optionen, die dem Box-Regelwerk widersprechen, werden nicht still übernommen.
 Eine Person bearbeitet zwei Units im selben Testlet. Jede Unit besitzt zwei
 VOMD-Items. Das erste Item `01` wird aus `01a` und `01b` abgeleitet; das zweite
 Item `02` besitzt je nach Unit eine oder zwei Quellen. Die Itemfolge steht in
-`items_list`. Seiten und Elementpositionen sind ebenfalls vorhanden, spielen
-aber bei der voreingestellten VOMD-Reihenfolge zunächst keine Rolle.
+`items_list`. Seiten und Elementpositionen ergänzen im voreingestellten
+Hybridverfahren die Reihenfolge innerhalb der VOMD-Itemgruppen.
 
 <details>
 <summary>Beispieldaten anlegen</summary>
@@ -251,9 +251,24 @@ classified_false %>%
 
 Basisquellen werden vor ihren Ableitungen in den Index eingeordnet.
 Mehrere Ableitungen nach derselben letzten Quelle erhalten eindeutige Indizes.
-Ein eindeutiger Index beweist aber keine physische Reihenfolge: Ohne weitere
-Information gehören etwa `01a` und `01b` zur selben VOMD-Positionsgruppe
-(`position_group`); `position_source` nennt deren Grundlage.
+Ein eindeutiger Index beweist aber für sich keine physische Reihenfolge.
+`01a` und `01b` gehören zur selben VOMD-Positionsgruppe (`position_group`),
+auch bei Hybrid. Im Beispiel ergänzt die Hybridreihenfolge eine separate
+Ordnungsbeziehung anhand ihrer Elementpositionen; `position_source` nennt
+die verwendeten Grundlagen. Der folgende Aufruf zeigt zum Vergleich
+ausdrücklich die reine VOMD-Reihenfolge:
+
+```{r vomd-positions}
+vomd_only <- complete_design(
+  coded, units, design,
+  order_method = "vomd",
+  diagnostics = "none"
+)
+vomd_only %>%
+  arrange(variable_order) %>%
+  select(unit_key, variable_id, variable_order, position_group, position_source) %>%
+  knitr::kable()
+```
 
 Im eatPrepTBA-Standard bleibt eine Omission in einer ungeordneten Gruppe
 mit beantworteten Variablen erhalten. Eine vollständig fehlende Schlussgruppe
@@ -267,7 +282,7 @@ belegen, aber keine Reihenfolge innerhalb von Unit 2. Solche Variablen begrenzen
 unbelegte NR-Umklassifikationen innerhalb ihrer Unit. Im Box-Regelwerk werden
 Variablen außerhalb der VOMD-/Quellenmenge nicht für die Grenze verwendet.
 
-### Strukturinformationen oder Namen zusätzlich verwenden
+### Vorhandene NR korrigieren und Namen zusätzlich verwenden
 
 ```{r hybrid-order}
 hybrid <- complete_design(
@@ -277,10 +292,16 @@ hybrid <- complete_design(
 )
 ```
 
-Die Hybridvariante nutzt VOMD und Ableitungsbaum und ergänzt fehlende
-Ordnungsbeziehungen durch Unitstruktur, Seiten und Elemente. Hier kann die
+Die voreingestellte Hybridvariante nutzt VOMD und Ableitungsbaum und ergänzt
+fehlende Ordnungsbeziehungen durch Unitstruktur, Seiten und Elemente.
+`order_method = "hybrid"` ist im Aufruf oben deshalb optional. Hier kann die
 bekannte Elementfolge belegen, dass `U1/02a` vor `U1/02b` liegt. Die optionale
 Rückklassifikation vorhandener NR kann dann `U1/02a` zur Omission machen.
+Die Struktur beschreibt die erwartete Reihenfolge, nicht den tatsächlichen
+Bearbeitungsverlauf. Für ausdrücklich dauerhaft sichtbare Seiten ergänzt
+die Hybridvariante keine physischen Beziehungen. Widersprüchliche VOMD- und
+Strukturangaben führen zu einem Abbruch; ein vollständiger, geprüfter Override
+kann die Reihenfolge vorgeben.
 
 `order_method = "structure"` verwendet stattdessen die Unitstruktur.
 Mit `use_variable_names_for_recoding = TRUE` dürfen vertrauenswürdige Namen

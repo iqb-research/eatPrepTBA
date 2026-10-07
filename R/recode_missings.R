@@ -29,8 +29,9 @@ missing_policy_settings <- function(missing_policy = "eatPrepTBA", order_method 
                                      use_variable_names_for_recoding = FALSE,
                                      order_overrides = NULL, input_missings = NULL) {
   missing_policy <- match.arg(missing_policy, c("eatPrepTBA", "coding_box"))
-  order_method <- if (is.null(order_method)) "vomd" else
-    match.arg(order_method, c("vomd", "structure", "hybrid"))
+  order_method <- if (is.null(order_method)) {
+    if (missing_policy == "coding_box") "vomd" else "hybrid"
+  } else match.arg(order_method, c("vomd", "structure", "hybrid"))
   not_reached_scope <- if (is.null(not_reached_scope)) {
     if (missing_policy == "coding_box") "unit" else "testlet"
   } else match.arg(not_reached_scope, c("unit", "testlet", "booklet"))

@@ -405,6 +405,36 @@ test_that("hybrid metadata refines a VOMD group without trusting display indices
   expect_true(attr(named, "design_precedence")[[1L]]$before[a, b])
 })
 
+test_that("always-visible pages do not establish physical reachability", {
+  units <- order_test_units(c("persistent", "ordinary", "same-page", "later"),
+    page = c(1, 2, 2, 3), element = c(1, 1, 2, 1))
+  codes <- units$unit_codes[[1]]
+  codes$unit_key <- "U1"
+  codes$variable_page_always_visible <- c(TRUE, FALSE, TRUE, NA)
+  relation <- eatPrepTBA:::design_order_precedence(codes, seq_len(nrow(codes)))
+  expect_false(any(c(relation[c(1, 3), ], relation[, c(1, 3)])))
+  expect_true(relation[2, 4])
+  expect_false(relation[4, 2])
+
+  # A VOMD item order or a complete manual override can still place variables
+  # from persistent pages; only the physical layout is excluded as evidence.
+  units <- order_test_units(c("persistent", "ordinary"), page = c(2, 1))
+  units$unit_codes[[1]]$variable_page_always_visible <- c(TRUE, FALSE)
+  units$items_list <- list(tibble::tibble(variable_id = c("persistent", "ordinary"),
+    item_id = c("IP", "IO"), item_no = 1:2))
+  hybrid <- eatPrepTBA:::get_design_order(order_test_design(), units, order_method = "hybrid")
+  relation <- attr(hybrid, "design_precedence")[[1L]]
+  expect_true(relation$before[match("persistent", relation$variable_ids),
+                              match("ordinary", relation$variable_ids)])
+  override <- tibble::tibble(unit_key = "U1", variable_id = c("persistent", "ordinary"),
+    local_order = 2:1)
+  manual <- eatPrepTBA:::get_design_order(order_test_design(), units,
+    order_method = "hybrid", order_overrides = override)
+  relation <- attr(manual, "design_precedence")[[1L]]
+  expect_true(relation$before[match("ordinary", relation$variable_ids),
+                              match("persistent", relation$variable_ids)])
+})
+
 test_that("orphan variables have only unit-level positions by default", {
   units <- order_test_units(c("B", "A"), page = c(1, 2))
   out <- eatPrepTBA:::get_design_order(order_test_design(), units)

@@ -74,8 +74,10 @@ are counted separately, regardless of earlier \code{response_present} values.}
 The latter reproduces the Coding Box item resolver at commit
 \verb{39468e5a28a24dc9ec860aee46daf8d4ed5c8682} on the expected long-format rows.}
 
-\item{order_method}{\code{NULL} (VOMD order), \code{"vomd"}, \code{"structure"} (unit pages
-and elements), or \code{"hybrid"} (consistent VOMD and structure constraints).
+\item{order_method}{\code{NULL} selects \code{"hybrid"} for eatPrepTBA and \code{"vomd"}
+for Coding Box. Explicit alternatives are \code{"vomd"}, \code{"structure"} (unit
+pages and elements), or \code{"hybrid"} (consistent VOMD and structure constraints).
+Always-visible pages do not establish physical before/after relations.
 Coding Box requires VOMD and does not permit overrides or trusted names.}
 
 \item{not_reached_scope}{\code{NULL} selects \code{"testlet"} for eatPrepTBA and

@@ -97,10 +97,12 @@ Use `unit_definition = TRUE` if you also need page information.
 
 For expected variable and item positions, use
 [`complete_design()`](../reference/complete_design.html) after preparing the
-coding schemes with `add_coding_scheme()`. The default uses the item sequence
-from Studio/VOMD metadata and the dependency tree. Retrieve metadata with
-`get_units(workspace, metadata = TRUE)`; include `unit_definition = TRUE` for
-the optional hybrid or structure order based on page and element positions.
+coding schemes with `add_coding_scheme()`. The eatPrepTBA default uses hybrid
+order: the Studio/VOMD item sequence and dependency tree, supplemented by
+consistent page and element relationships. Retrieve metadata with
+`get_units(workspace, metadata = TRUE, unit_definition = TRUE)` to include
+these structural relationships. Explicit VOMD-only and structure-only orders
+remain available; the coding-box policy uses VOMD order.
 Positions are shared by participants using the same booklet. The function
 offers the eatPrepTBA rules and a complete coding-box alternative, and retains
 the long response format. See

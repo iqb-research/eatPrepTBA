@@ -297,11 +297,14 @@ are not needed.
 
 For expected positions, retrieve Studio/VOMD item metadata with
 `get_units(..., metadata = TRUE)` and prepare the coding schemes. Include
-`unit_definition = TRUE` for optional page and element information.
+`unit_definition = TRUE` to include page and element information.
 With these data and the booklet design, `complete_design()` determines
 positions and classifies missings locally, without additional API requests.
-The default uses VOMD order and the dependency tree; optional hybrid and
-structure orders can use the unit definition. Both missing policies preserve
+The eatPrepTBA default uses hybrid order: VOMD and the dependency tree,
+supplemented by consistent page and element relationships from the unit
+definition. Without structural information, those additional relationships
+remain unknown. The Coding Box policy retains VOMD order; explicit VOMD-only
+and structure-only orders are also available in eatPrepTBA. Both policies preserve
 technical `code_status` values, including `NA`. See
 [variable order and missing classification](missing-classification.html)
 for an offline example.

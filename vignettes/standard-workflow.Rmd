@@ -18,7 +18,7 @@ Für Daten ohne solche Schemata, etwa aus StarS, siehe den Hinweis in Abschnitt 
 
 | Quelle | Benötigte Daten |
 |:--|:--|
-| **Studio** | Units mit Kodierschemata und VOMD-Item-Metadaten; Seiteninformationen für die optionale Hybridreihenfolge |
+| **Studio** | Units mit Kodierschemata, VOMD-Item-Metadaten und verfügbaren Seiteninformationen für die Hybridreihenfolge |
 | **Testcenter** | Antworten sowie Testdesign aus Testpersonen und Testheften |
 
 Dateipfade, Serveradresse, Version, Workspace-IDs und Testmodus sind Platzhalter.
@@ -34,8 +34,10 @@ library(tidyr)
 
 Die Units müssen zur eingesetzten Testversion passen. `metadata = TRUE`
 liefert die Item-Verknüpfungen und deren VOMD-Reihenfolge. `unit_definition = TRUE`
-liefert zusätzlich die Seiteninformationen für eine optionale Hybrid- oder
-Strukturreihenfolge. Die Standardklassifikation benötigt VOMD und Ableitungsbaum.
+liefert zusätzlich die Seiteninformationen. Die Standardklassifikation verbindet
+die VOMD-Itemfolge und den Ableitungsbaum mit vorhandenen Strukturinformationen
+(Hybridreihenfolge). Ohne zusätzliche Strukturinformationen bleiben die
+VOMD-/Quellenbeziehungen maßgeblich.
 
 Ein **Kodierschema** legt für jede Variable fest, welche Antwort welchen Code
 und wie viele Punkte erhält, etwa „richtige Auswahl → Code 1 → 1 Punkt“.
@@ -235,13 +237,22 @@ wird dagegen anhand nachweislicher späterer Bearbeitung eingeordnet.
 `id_used` markiert Personen mit mindestens einem gespeicherten Kodierstatus;
 `response_present = FALSE` kennzeichnet ergänzte Zeilen.
 
-### Das Regelwerk und seine Optionen
+Für die Auswertung `code_type` (Missing-Art) und `code_score` (Punkte)
+verwenden. Bei einer Umkodierung ändern sich Art, Code und Score gemeinsam.
+**`code_status` und `value` bleiben immer erhalten**, auch wenn sie `NA` sind.
+Der Status dokumentiert das ursprüngliche technische Ergebnis.
+`code_id_input`, `code_score_input` und `code_type_input` sichern zusätzlich
+den ursprünglichen analytischen Kodierstand für wiederholte Aufrufe und
+Vergleiche zwischen Einstellungen.
+
+<details>
+<summary>Das Regelwerk und seine Optionen</summary>
 
 | Argument | Standard | Option |
 |:--|:--|:--|
 | `missing_policy` | `"eatPrepTBA"`: Quellenprüfung auch bei vorhandenen Ableitungscodes | `"coding_box"`: vollständige Alternative nach Kodierbox-Referenzstand `39468e5`, mit Erhalt vorhandener numerischer Ableitungsergebnisse. |
 | `recode_omissions_to_not_reached` | `FALSE`: bestehende Auslassungen erhalten | `TRUE`: auch abschließende Auslassungen zu nicht erreicht ändern. `NULL`: nur fehlende Zeilen ergänzen, neue Kodierfelder `NA` lassen. |
-| `order_method` | `NULL`, effektiv `"vomd"`: VOMD-Itemfolge und Quellenbaum | `"hybrid"`: durch Unitstruktur ergänzen; `"structure"`: Unitstruktur verwenden. |
+| `order_method` | `NULL`, effektiv `"hybrid"`: VOMD-Itemfolge und Quellenbaum, ergänzt um kompatible Unitstruktur | `"vomd"`: nur VOMD und Quellenbaum; `"structure"`: Unitstruktur verwenden. Im Kodierbox-Modus gilt `"vomd"`. |
 | `not_reached_scope` | `NULL`, effektiv `"testlet"` | `"unit"` oder `"booklet"`; im Kodierbox-Modus ist der Standard Unit. |
 | `recode_existing_not_reached` | `FALSE`: vorhandene numerische NR schützen | `TRUE`: bei gesicherter späterer Bearbeitung zu Omission korrigieren. |
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | `"preserve"`: vorhandene numerische Ableitungen erhalten; das allein ist kein vollständiger Kodierbox-Modus. |
@@ -249,12 +260,16 @@ wird dagegen anhand nachweislicher späterer Bearbeitung eingeordnet.
 
 **Zur Reihenfolge:** Standardmäßig bestimmt die VOMD-Itemliste die Itemfolge;
 der Quellenbaum ergänzt die benötigten Basisvariablen und Ableitungen.
-Ein eindeutiger `variable_order` beweist keine Reihenfolge innerhalb derselben
-Itemgruppe. Eine dortige Omission bleibt bei beantworteten Gruppenmitgliedern
-im eatPrepTBA-Standard erhalten. `order_method = "hybrid"` kann Seiten und
-Elementpositionen ergänzen. Namen dürfen erst mit
+Die Hybridreihenfolge ergänzt kompatible Seiten- und Elementpositionen, etwa
+zwischen den Basisquellen desselben Items. Sie beschreibt die erwartete Folge;
+Zeitstempel gehen nicht ein. Für ausdrücklich dauerhaft sichtbare Seiten
+werden keine Strukturbeziehungen ergänzt. Ohne weitere Informationen beweist
+ein eindeutiger `variable_order` keine Reihenfolge innerhalb einer Itemgruppe.
+Eine dortige Omission bleibt bei beantworteten Gruppenmitgliedern erhalten.
+`order_method = "vomd"` verzichtet auf die Strukturergänzung. Widersprechen
+sich VOMD und Unitstruktur, bricht die Hybridbestimmung ab; eine geprüfte
+Reihenfolge kann mit `order_overrides` vorgegeben werden. Namen dürfen erst mit
 `use_variable_names_for_recoding = TRUE` eine analytische Reihenfolge belegen.
-Geprüfte Sonderfälle lassen sich mit `order_overrides` vorgeben.
 Bei nicht belegter Reihenfolge bleiben Entscheidungen konservativ;
 neu ergänzte Zeilen können zunächst ohne Einordnung bleiben.
 
@@ -278,17 +293,13 @@ Ergebnis kann die Grenze verändern. Für `TRUE` ist im Box-Modus ausdrücklich
 nicht erlaubt. Die Beispiele und Unterschiede stehen in der
 [Missing-Vignette](missing-classification.html).
 
-Für die Auswertung `code_type` (Missing-Art) und `code_score` (Punkte)
-verwenden. Bei einer Umkodierung ändern sich Art, Code und Score gemeinsam.
-**`code_status` bleibt immer erhalten**, auch wenn er `NA` ist. Er dokumentiert
-das ursprüngliche technische Ergebnis. `code_id_input`, `code_score_input`
-und `code_type_input` sichern zusätzlich den ursprünglichen analytischen
-Kodierstand für wiederholte Aufrufe und Vergleiche zwischen Einstellungen.
 `missings` beschreibt das Ausgabeschema; bei abweichenden Eingangscodes kann
 `input_missings` im eatPrepTBA-Regelwerk deren Interpretation ausdrücklich
 festlegen. Im Kodierbox-Modus werden vorhandene numerische Missings dagegen
 anhand des ausgewählten Profils mit exakt passendem Code und Score erkannt;
 ein separates Eingangsprofil ist dort nicht zulässig.
+
+</details>
 
 ### Den Änderungsbericht prüfen
 

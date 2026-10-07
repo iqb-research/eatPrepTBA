@@ -189,6 +189,24 @@ policy_add_items <- function(fixture, ids = fixture$design$variable_id) {
   fixture
 }
 
+test_that("public order defaults supplement eatPrepTBA with structure and preserve Box VOMD", {
+  expect_identical(eatPrepTBA:::missing_policy_settings()$order_method, "hybrid")
+  expect_identical(eatPrepTBA:::missing_policy_settings("coding_box")$order_method, "vomd")
+  f <- policy_fixture(c("FULL_CREDIT", "MISSING_BY_OMISSION"), page = 1:2)
+  hybrid <- complete_design(f$coded, f$units, f$design,
+    recode_omissions_to_not_reached = TRUE, diagnostics = "none")
+  expect_identical(hybrid$code_type, c("FULL_CREDIT", "MISSING_NOT_REACHED"))
+  expect_identical(attr(hybrid, "missing_policy")$order_method, "hybrid")
+  vomd <- complete_design(f$coded, f$units, f$design, order_method = "vomd",
+    recode_omissions_to_not_reached = TRUE, diagnostics = "none")
+  expect_identical(vomd$code_type, f$coded$code_type)
+  f$units$unit_codes[[1]]$variable_page_always_visible <- c(NA, TRUE)
+  persistent <- complete_design(f$coded, f$units, f$design,
+    recode_omissions_to_not_reached = TRUE, diagnostics = "none")
+  expect_identical(persistent$code_type, f$coded$code_type)
+  expect_identical(persistent$code_status, f$coded$code_status)
+})
+
 test_that("public defaults protect numerical NR while unencoded NR remains classifiable", {
   f <- policy_add_items(policy_fixture(c("MISSING_NOT_REACHED", "FULL_CREDIT")))
   protected <- complete_design(f$coded, f$units, f$design, diagnostics = "none")

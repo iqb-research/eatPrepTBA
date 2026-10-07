@@ -1,3 +1,21 @@
+# eatPrepTBA 0.9.8.9039 [2026-10-07]
+
+## missing classification
+
+* Use consistent VOMD item sequence, dependency closure, and page/element
+  relationships by default in eatPrepTBA (`order_method = "hybrid"`). Coding Box
+  retains VOMD order. Explicit VOMD-only and structure-only methods, overrides,
+  and trusted names remain available.
+* Exclude physical before/after relations involving always-visible pages.
+  VOMD item positions and explicit overrides remain usable for these variables;
+  an unspecified always-visible flag does not exclude ordinary page metadata.
+
+## documentation
+
+* Make the detailed rule-set options collapsible in the standard workflow.
+  Update the workflow, missing-classification, and Studio vignettes for the
+  hybrid default and distinguish VOMD groups from additional order relations.
+
 # eatPrepTBA 0.9.8.9038 [2026-10-07]
 
 ## missing classification
