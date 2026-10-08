@@ -32,6 +32,8 @@ selbst keine Itemmatrix. Referenz ist der festgelegte
 
 Die Beispiele benötigen keinen Serverzugang. Wie echte Exportdaten vorbereitet
 werden, zeigt der [Standard-Workflow](standard-workflow.html).
+Die Ergänzung [Elf Fälle im Vergleich](missing-examples.html) stellt die
+aktuellen Optionen der historischen Version `.9001` gegenüber.
 
 ## Die Einstellungen wählen
 

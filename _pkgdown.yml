@@ -10,6 +10,8 @@ navbar:
         href: articles/standard-workflow.html
       - text: Variablenreihenfolge und Missing-Klassifikation
         href: articles/missing-classification.html
+      - text: "Missing-Klassifikation: elf Fälle im Vergleich"
+        href: articles/missing-examples.html
       - text: Log-Daten
         href: articles/log-data.html
       - text: Prepare Codebooks

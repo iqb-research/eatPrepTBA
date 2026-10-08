@@ -154,7 +154,11 @@ Untervariablen, die selbst keine Items werden, können andere Status behalten,
 ohne dass ein Problem vorliegt. Zu klären sind offene Kodierungen und Fehler,
 die die Itemvariablen oder deren Berechnung betreffen.
 
-### Zur Information: die voreingestellte Missing-Zuordnung
+Im Standard erhalten **Auslassungen und ungültige Antworten 0 Punkte**,
+**Not reached und Kodierfehler `NA`**. Eigene Missing-Regeln sind optional.
+
+<details>
+<summary>Optional: Missing-Codes und eigene Zuordnungen</summary>
 
 **Das Objekt muss nicht selbst angelegt oder übergeben werden.** Die folgende
 Tabelle zeigt nur zur Information die Standardwerte von `complete_design()`:
@@ -193,6 +197,8 @@ manueller Codes, nicht dem Auffüllen technischer Status durch
 `complete_design()`. Änderungen analytischer
 Missing-Arten passen `code_type`, `code_id` und `code_score` gemeinsam an.
 
+</details>
+
 ## 4. Optional: manuelle Codes einfügen
 
 **Nur nötig, wenn Antworten manuell kodiert werden. Sonst weiter mit Abschnitt 5.**
@@ -224,36 +230,81 @@ und unterscheidet zwei Fälle:
 - **Auslassung:** Eine Antwort fehlt vor späterer Bearbeitung.
 - **Nicht erreicht (Not reached):** Eine Antwort fehlt nach der letzten Bearbeitung.
 
-Die Funktion prüft das getrennt je Person und Testlet, auch innerhalb einer
-Unit. Ein Testlet ist ein Abschnitt des Testhefts. Es gilt die Reihenfolge
+Im Standard prüft die Funktion das getrennt je Person und Testlet, auch innerhalb
+einer Unit. Ein Testlet ist ein Abschnitt des Testhefts. Es gilt die Reihenfolge
 im Testdesign; Zeitstempel werden dafür nicht ausgewertet.
 
-Für jede verwendete Unit bleiben alle aktiven Variablen und benötigten Quellen
-Teil der Prüfung, auch bei einer späteren Itemauswahl. Widersprüchliche oder
-ungültige Metadaten verwendeter Units müssen weiterhin geklärt werden;
-ungenutzte Workspace-Units beeinflussen diesen Schritt nicht.
+**Eine der folgenden drei Varianten wählen.** Alle starten mit den kodierten
+Daten `coded`; das gewählte Ergebnis heißt jeweils `design_coded`.
+
+### A – Standard: bestehende Auslassungen erhalten
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design)
+```
 
+Dieser Aufruf verwendet das eatPrepTBA-Regelwerk und
+`recode_omissions_to_not_reached = FALSE`. Bestehende Auslassungen behalten
+damit ihre 0 Punkte. Neue Zeilen und technische `NOT_REACHED`-Status ohne
+numerisches Ergebnis werden anhand der belegten Bearbeitung eingeordnet.
+
+### B – eatPrepTBA: abschließende Auslassungen als Not reached werten
+
+**Mit `TRUE` werden zusätzlich nachweislich abschließende Auslassungen zu
+Not reached:** Code `-96` und Score `NA` statt Code `-99` und 0 Punkten.
+Auslassungen vor späterer Bearbeitung bleiben Auslassungen.
+
+```{r complete-eatpreptba-true, eval=FALSE}
+design_coded <- complete_design(
+  coded, units, design,
+  missing_policy = "eatPrepTBA",
+  recode_omissions_to_not_reached = TRUE,
+  not_reached_scope = "testlet"
+)
+```
+
+Beispiel bei sicherer Reihenfolge: **beantwortet – ausgelassen – beantwortet –
+ausgelassen**. Die mittlere Auslassung bleibt bei 0 Punkten; die letzte wird
+Not reached mit Score `NA`.
+
+### C – Kodierbox: abschließende Auslassungen als Not reached werten
+
+Für das Kodierbox-Regelwerk lautet der entsprechende Aufruf:
+
+```{r complete-coding-box-true, eval=FALSE}
+design_coded <- complete_design(
+  coded, units, design,
+  missing_policy = "coding_box",
+  recode_omissions_to_not_reached = TRUE,
+  not_reached_scope = "testlet"
+)
+```
+
+**Im Box-Modus ist bei `TRUE` der Testlet- oder Testheft-Scope erforderlich.**
+Der voreingestellte Unit-Scope ist dafür nicht erlaubt. `"testlet"` prüft je
+Testheftabschnitt; `"booklet"` würde das ganze Testheft betrachten.
+
+Die Box verwendet die VOMD-Reihenfolge und erhält vorhandene numerische
+Ableitungsergebnisse. eatPrepTBA ergänzt die Reihenfolge um Strukturinformationen
+und prüft Ableitungen anhand ihrer Ausgangsantworten. Deshalb können sich die
+Ergebnisse beider Regelwerke unterscheiden.
+
+### Mit dem gewählten Ergebnis weiterarbeiten
+
+```{r completed-data, eval=FALSE}
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
 ```
 
-Mit diesem Standardaufruf bleiben bestehende Auslassungen erhalten.
-Auch vorhandene numerisch kodierte Not-reached-Werte bleiben erhalten.
-Ein technisches `NOT_REACHED` ohne numerisches Ergebnis oder eine neue Zeile
-wird dagegen anhand nachweislicher späterer Bearbeitung eingeordnet.
 `id_used` markiert Personen mit mindestens einem gespeicherten Kodierstatus;
-`response_present = FALSE` kennzeichnet ergänzte Zeilen.
+`response_present = FALSE` kennzeichnet ergänzte Zeilen. Vorhandene numerisch
+kodierte Not-reached-Werte bleiben in allen drei Varianten geschützt:
+`TRUE` schaltet keine Rückklassifikation zu Auslassungen ein.
 
-Für die Auswertung `code_type` (Missing-Art) und `code_score` (Punkte)
-verwenden. Bei einer Umkodierung ändern sich Art, Code und Score gemeinsam.
+**Für die Auswertung `code_type` (Missing-Art) und `code_score` (Punkte) verwenden.**
+Bei einer Umkodierung ändern sich Art, Code und Score gemeinsam.
 **`code_status` und `value` bleiben immer erhalten**, auch wenn sie `NA` sind.
 Der Status dokumentiert das ursprüngliche technische Ergebnis.
-`code_id_input`, `code_score_input` und `code_type_input` sichern zusätzlich
-den ursprünglichen analytischen Kodierstand für wiederholte Aufrufe und
-Vergleiche zwischen Einstellungen.
 
 <details>
 <summary>Das Regelwerk und seine Optionen</summary>
@@ -266,7 +317,7 @@ Vergleiche zwischen Einstellungen.
 | `not_reached_scope` | `NULL`, effektiv `"testlet"` | `"unit"` oder `"booklet"`; im Kodierbox-Modus ist der Standard Unit. |
 | `recode_existing_not_reached` | `FALSE`: vorhandene numerische NR schützen | `TRUE`: bei gesicherter späterer Bearbeitung zu Omission korrigieren. |
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | `"preserve"`: vorhandene numerische Ableitungen erhalten; das allein ist kein vollständiger Kodierbox-Modus. |
-| `use_variable_names_for_recoding` | `FALSE`: Namen nur zur Sortierung nutzen | `TRUE`: bestätigen, dass Namen auch die Bearbeitungsreihenfolge zuverlässig angeben. |
+| `use_variable_names_for_recoding` | `FALSE`: Namen belegen keine Rekodierungsreihenfolge | `TRUE`: bestätigen, dass Namen auch die Bearbeitungsreihenfolge zuverlässig angeben. |
 
 **Zur Reihenfolge:** Standardmäßig bestimmt die VOMD-Itemliste die Itemfolge;
 der Quellenbaum ergänzt die benötigten Basisvariablen und Ableitungen.
@@ -292,22 +343,21 @@ im Schlussbereich, wird auch die Ableitung zu nicht erreicht.
 Das verhindert etwa einen 0-Punkte-Score für eine vollständig nicht erreichte
 Aufgabe. Die überschreibbare Ableitung darf dabei nicht selbst verhindern,
 dass ihre ausschließlich fehlenden Quellen als Schlussbereich erkannt werden.
-Eine Mischung aus Auslassungen und nicht erreichten Basisantworten reicht
-nicht; das bisherige Ergebnis bleibt dann erhalten.
-Diese Regel gilt bei `FALSE` und `TRUE`. Bei `NULL` werden nur Zeilen ergänzt.
-
-**Kodierbox-Alternative:** Der Box-Modus verwendet dessen vollständige
-VOMD-/Quellenlogik und erhält vorhandene numerische Ableitungen. Ein solches
-Ergebnis kann die Grenze verändern. Für `TRUE` ist im Box-Modus ausdrücklich
-`not_reached_scope = "testlet"` oder `"booklet"` zu wählen; Unit-Scope ist dafür
-nicht erlaubt. Die Beispiele und Unterschiede stehen in der
-[Missing-Vignette](missing-classification.html).
+Maßgeblich sind die Quellen nach ihrer Missing-Klassifikation. Bei `TRUE`
+können also zuerst abschließende Auslassungen zu Not reached werden und dann
+auch die Ableitung. Bleibt eine Quelle beantwortet oder eine Auslassung,
+reicht das nicht für diese Umklassifikation. Bei `NULL` werden nur Zeilen ergänzt.
 
 `missings` beschreibt das Ausgabeschema; bei abweichenden Eingangscodes kann
 `input_missings` im eatPrepTBA-Regelwerk deren Interpretation ausdrücklich
 festlegen. Im Kodierbox-Modus werden vorhandene numerische Missings dagegen
 anhand des ausgewählten Profils mit exakt passendem Code und Score erkannt;
 ein separates Eingangsprofil ist dort nicht zulässig.
+
+`code_id_input`, `code_score_input` und `code_type_input` sichern den
+ursprünglichen analytischen Kodierstand. Erneute Aufrufe verwenden diese
+gesicherten Eingaben, auch wenn zwischenzeitlich andere Missing-Regeln galten.
+Für einen Vergleich der Varianten am einfachsten jeweils bei `coded` beginnen.
 
 </details>
 
@@ -317,38 +367,13 @@ Der Standardbericht zählt neue Zeilen und Änderungen an vorhandenen Zeilen
 getrennt. Er zeigt die Änderungen dieses Aufrufs. Eine unveränderte Wiederholung
 meldet deshalb keine neuen Änderungen.
 
-Für Details je Testheft, Testlet und Unit:
+Für Details je Testheft, Testlet und Unit im **gewählten Aufruf** zusätzlich
+`diagnostics = "full"` angeben. `diagnostics = "none"` schaltet den Bericht aus.
 
-```{r completion-report, eval=FALSE}
-design_coded <- complete_design(coded, units, design, diagnostics = "full")
-```
-
-`diagnostics = "none"` schaltet den Bericht aus. Um verschiedene
-Umkodierungsoptionen zu vergleichen, vorzugsweise die ursprünglichen Daten
-`coded` verwenden. Bereits gesicherte Input-Spalten werden bei erneuten Aufrufen
-beibehalten und bilden weiterhin die Klassifikationsgrundlage.
-
-### Erst danach auf Items filtern
-
-Für die Missing-Prüfung werden die vollständigen Itemzuordnungen und die
-benötigten Quellen gebraucht. Unzugeordnete Basisvariablen bleiben ebenfalls
-im Datensatz; ohne Binnenposition liefern sie nur Unit-bezogene Hinweise.
-`complete_design()` ergänzt sie auch dann, wenn das Design nur ausgewählte
-Items enthält. Die Itemauswahl folgt deshalb erst nach diesem Schritt.
-Bei einer eigenen `item_selection` anschließend auf `!is.na(item_order)`
-filtern. `item_id` kann auch bei nicht ausgewählten Studio-Items vorhanden sein.
-
-`complete_design()` liefert bereits die Studio-`item_id`. Ein bisher direkt
-anschließendes `add_item_id()` ist damit überflüssig. `complete_design()` bleibt
-im Long-Format und ergänzt keine Zeilen für ein größeres Itemuniversum.
-Eine fehlende Response zu einer erwarteten Variable ist kein Missing by design.
-Aufgaben, die im Testdesign gar nicht vorgesehen sind, können erst beim späteren
-Umformen als leere Zellen (`NA`) erscheinen: Das ist **Missing by Design**.
-
-Die Vignette [Variablenreihenfolge und Missing-Klassifikation](missing-classification.html)
-zeigt beide Regelwerke, die Positionsgruppen, manuelle Reihenfolgen und die
-Itemauswahl an kleinen ausführbaren Beispielen. Der öffentliche Einstieg ist
-`complete_design()`; die einzelnen Verarbeitungsschritte sind intern.
+Wie sich die Optionen auswirken, zeigen
+[elf Fälle im direkten Vergleich](missing-examples.html), einschließlich
+Version `.9001`. Details zu Reihenfolge und Ableitungen stehen in der
+[Missing-Vignette](missing-classification.html).
 
 ## 6. Psychometrische Kennwerte berechnen
 
@@ -392,7 +417,14 @@ in Zahlen verloren gehen.
 item_data <- filter(analysis_data, !is.na(item_id))
 ```
 
-**Optional: fehlende führende Nullen ergänzen.** Falls die Studio-Metadaten
+**Erst nach `complete_design()` auf Items filtern**, damit alle benötigten
+Antworten und Quellen in die Missing-Prüfung eingehen. Bei einer eigenen
+`item_selection` stattdessen auf `!is.na(item_order)` filtern.
+
+<details>
+<summary>Optional: fehlende führende Nullen in Item-IDs ergänzen</summary>
+
+Falls die Studio-Metadaten
 einstellige Item-IDs wie `"8"` enthalten, diesen Chunk vor dem nächsten Schritt
 ausführen. Nach der Konvention besteht `item_id` hier aus genau zwei Ziffern:
 `"8"` wird zu `"08"`, `"08"` und `"12"` bleiben unverändert.
@@ -403,6 +435,8 @@ stopifnot(all(grepl("^[0-9]{1,2}$", item_data$item_id)))
 item_data <- mutate(item_data,
                     item_id = stringr::str_pad(item_id, width = 2, pad = "0"))
 ```
+
+</details>
 
 Anschließend die Itemnamen bilden und ins weite Format umformen:
 
@@ -422,6 +456,7 @@ bleiben erhalten. `any_of()` überspringt fehlende Kennungsspalten. Voraussetzun
 eindeutige Itemnamen und genau ein Score je Person und Item. Fehlende Werte
 bleiben `NA`, sie werden nicht mit 0 aufgefüllt.
 `analysis_data` aufbewahren: Darin bleiben die Missing-Arten unterscheidbar.
+Leere Zellen für im Testdesign nicht vorgesehene Items sind **Missing by Design**.
 
 Die weiteren Schritte zur Skalierung beschreibt die
 [eatModel-Dokumentation](https://weirichs.github.io/eatModel/).
