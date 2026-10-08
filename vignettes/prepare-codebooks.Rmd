@@ -178,7 +178,27 @@ cb %>%
 
 ### Adding missing-value codes
 
-Missing-value codes can be added when specific response categories, such as omitted or invalid responses, should be documented alongside the regular coding categories.
+Missing-value codes describe categories such as omitted or invalid responses.
+Adding them to a codebook documents these categories; it does not change any
+response data.
+
+The `missings` table has different columns depending on the task:
+
+| Task | Function | Columns in `missings` |
+|:--|:--|:--|
+| Document codes | `prepare_codebook()` | `id`, `label`, `description` |
+| Classify responses | `complete_design()` | `code_id`, `code_status`, `code_score`, `code_type` |
+
+For response classification, use `code_type` to identify the missing category.
+The original `code_status` is preserved. In the default eatPrepTBA rule set,
+valid and invalid derived results become not reached when all underlying
+basis variables are known and demonstrably not reached in the trailing region.
+The optional coding-box rule set preserves existing numeric derived results.
+The output profile does not replace the interpretation of incoming codes;
+an optional `input_missings` table can declare a different input scheme.
+The [missing-classification guide](missing-classification.html)
+shows the options and change report with examples. The following sections
+focus on documenting codes in the codebook.
 
 #### Using a profile configured in Studio
 

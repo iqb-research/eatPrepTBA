@@ -4,7 +4,12 @@
 \alias{add_coding_scheme}
 \title{Adds prepared coding scheme to units}
 \usage{
-add_coding_scheme(units, filter_has_codes = TRUE, overwrite = FALSE)
+add_coding_scheme(
+  units,
+  filter_has_codes = TRUE,
+  overwrite = FALSE,
+  progress = TRUE
+)
 }
 \arguments{
 \item{units}{Tibble. Contains units retrieved from \code{\link[=get_units]{get_units()}}.}
@@ -12,6 +17,11 @@ add_coding_scheme(units, filter_has_codes = TRUE, overwrite = FALSE)
 \item{filter_has_codes}{Logical. Only returns variables that were not deactivated. Defaults to \code{TRUE}.}
 
 \item{overwrite}{Logical. Should potentially existing \code{unit_codes} be overwritten? Defaults to \code{FALSE}.}
+
+\item{progress}{Logical. Show progress while preparing coding schemes?
+Defaults to \code{TRUE}. RGui uses one Windows progress window; other
+environments receive throttled console updates. Counts and elapsed time
+refer to the named preparation step.}
 }
 \value{
 A tibble.

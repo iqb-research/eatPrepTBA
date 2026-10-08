@@ -1,0 +1,342 @@
+---
+title: "Missing-Klassifikation: Fälle und Optionen im Vergleich"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+resource_files:
+  - missing-examples.csv
+vignette: >
+  %\VignetteIndexEntry{Missing-Klassifikation: Fälle und Optionen im Vergleich}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, error = FALSE)
+library(eatPrepTBA)
+library(dplyr)
+
+inputs <- read.csv(
+  "missing-examples.csv", na.strings = "NA", stringsAsFactors = FALSE,
+  colClasses = c(value = "character", code_status = "character",
+                code_type = "character", legacy_code_status = "character",
+                legacy_code_type = "character")
+) |> tibble::as_tibble()
+stopifnot(nrow(inputs) == 67L, identical(unique(inputs$case_id), 1:15),
+          !anyDuplicated(inputs[c("case_id", "unit_key", "variable_id")]))
+
+type_labels <- c(FULL_CREDIT = "A", MISSING_BY_OMISSION = "O",
+                 MISSING_NOT_REACHED = "N", MISSING_INVALID_RESPONSE = "I",
+                 MISSING_CODING_IMPOSSIBLE = "C", NO_CODING = "NC")
+escape <- function(x) as.character(htmltools::htmlEscape(x))
+number <- function(x) if (is.na(x)) "NA" else format(x, trim = TRUE, scientific = FALSE)
+fields <- function(row, prefix = "") {
+  type <- row[[paste0(prefix, "code_type")]]
+  type <- if (is.na(type)) "NA" else unname(type_labels[type])
+  c(number(row[[paste0(prefix, "code_id")]]), type,
+    number(row[[paste0(prefix, "code_score")]]))
+}
+result_cell <- function(row, input) {
+  values <- fields(row)
+  changed <- values != fields(input)
+  values <- escape(values)
+  values[changed] <- paste0("<strong>", values[changed], "</strong>")
+  paste(values, collapse = " / ")
+}
+
+make_fixture <- function(rows) {
+  design <- rows |> distinct(unit_key, testlet_no) |>
+    mutate(login_code = "P1", booklet_id = "B1", booklet_no = 1L,
+           unit_booklet_no = as.integer(sub("^U", "", unit_key)),
+           unit_alias = tolower(unit_key))
+  units <- bind_rows(lapply(unique(rows$unit_key), function(key) {
+    ids <- rows$variable_id[rows$unit_key == key]
+    codes <- tibble::tibble(
+      variable_id = ids, variable_ref = paste0("ref_", ids),
+      variable_source_type = "BASE", variable_level = 0L,
+      variable_page = 1L, variable_section = 0L,
+      variable_element = seq_along(ids) - 1L,
+      variable_page_always_visible = FALSE
+    )
+    if (rows$case_id[[1L]] == 14L) codes$variable_page <- seq_along(ids)
+    if (rows$case_id[[1L]] == 15L) {
+      codes$variable_page <- c(1L, 2L, NA_integer_)
+      codes$variable_source_type <- c("BASE", "BASE", "SUM_CODE")
+      codes$variable_level <- c(0L, 0L, 1L)
+      codes$derive_sources <- list(character(), character(), "ref_V01")
+    }
+    items <- tibble::tibble(variable_id = ids,
+      item_id = paste0(key, "_", ids), item_no = seq_along(ids))
+    if (rows$case_id[[1L]] == 14L) {
+      items <- tibble::tibble(variable_id = ids[c(2, 4, 5, 6, 1, 3, 7, 8, 9)],
+        item_id = paste0(key, "_I", c("02", "03", "04", "05", "09", "11", "12", "13", "14")),
+        item_no = seq_along(ids))
+    }
+    tibble::tibble(unit_key = key, unit_codes = list(codes),
+      items_list = list(items))
+  }))
+  coded <- rows |> filter(response_present) |>
+    select(unit_key, variable_id, value, code_status, code_id, code_type, code_score) |>
+    left_join(design, by = "unit_key")
+  missings <- if (rows$case_id[[1L]] == 11L) tibble::tribble(
+    ~code_type, ~code_id, ~code_status, ~code_score,
+    "MISSING_NOT_REACHED", -196, "CUSTOM_NOT_REACHED", 0.5,
+    "MISSING_BY_OMISSION", -199, "CUSTOM_OMISSION", 0
+  ) else NULL
+  list(coded = coded, units = units, design = design, missings = missings)
+}
+
+configs <- list(
+  eat = list(missing_policy = "eatPrepTBA", not_reached_scope = "testlet"),
+  correction = list(missing_policy = "eatPrepTBA", not_reached_scope = "testlet",
+                    recode_existing_not_reached = TRUE),
+  box_unit = list(missing_policy = "coding_box", not_reached_scope = "unit"),
+  box_testlet = list(missing_policy = "coding_box", not_reached_scope = "testlet"),
+  eat_unit = list(missing_policy = "eatPrepTBA", not_reached_scope = "unit",
+                  recode_existing_not_reached = TRUE),
+  eat_booklet = list(missing_policy = "eatPrepTBA", not_reached_scope = "booklet",
+                     recode_existing_not_reached = TRUE),
+  box_booklet = list(missing_policy = "coding_box", not_reached_scope = "booklet"),
+  completion = list()
+)
+variants <- lapply(names(configs), function(key) {
+  if (key == "completion") list(NULL) else if (key == "box_unit") list(FALSE) else list(FALSE, TRUE)
+})
+names(variants) <- names(configs)
+
+calculate <- function(rows) {
+  fixture <- make_fixture(rows)
+  lapply(names(configs), function(key) {
+    lapply(variants[[key]], function(mode) {
+      result <- withCallingHandlers(
+        do.call(complete_design, c(fixture, configs[[key]], list(
+          recode_omissions_to_not_reached = mode, diagnostics = "none"))),
+        eatPrepTBA_order_conflict = function(w) invokeRestart("muffleWarning"))
+      at <- match(paste(rows$unit_key, rows$variable_id),
+                  paste(result$unit_key, result$variable_id))
+      stopifnot(nrow(result) == nrow(rows), !anyNA(at))
+      diagnostics <- attr(result, "missing_diagnostics")
+      result <- result[at, ]
+      stopifnot(identical(result$value, rows$value),
+                identical(result$code_status, rows$code_status),
+                identical(result$response_present, rows$response_present),
+                all(result$id_used == (rows$case_id[[1L]] != 8L)))
+      result$.diagnostic <- if (is.null(diagnostics)) NA_character_ else diagnostics$reason[at]
+      result
+    })
+  }) |> stats::setNames(names(configs))
+}
+cases <- split(inputs, inputs$case_id)
+results <- lapply(cases, calculate)
+
+option_cell <- function(key, output, rows, i) {
+  labels <- if (key == "completion") "NULL" else
+    if (key == "box_unit") "FALSE" else c("FALSE", "TRUE")
+  paste(vapply(seq_along(output), function(j) {
+    result <- output[[j]][i, ]
+    detail <- result_cell(result, rows[i, ])
+    diagnostic <- result$.diagnostic[[1L]]
+    if (!is.na(diagnostic)) detail <- paste0(detail,
+      '<sup title="', escape(diagnostic), '">†</sup>')
+    paste0('<span class="missing-result"><span class="missing-mode">',
+           labels[[j]], ':</span> ', detail, '</span>')
+  }, character(1)), collapse = "")
+}
+
+print_comparison <- function(rows, outputs, extra = FALSE) {
+  label <- paste0("T", rows$testlet_no, " · ", rows$unit_key, "/", rows$variable_id)
+  table <- data.frame(Variable = escape(label), check.names = FALSE)
+  if (!extra) {
+    table$value <- vapply(rows$value, function(x) if (is.na(x)) "NA" else
+      paste0('&quot;', escape(x), '&quot;'), character(1))
+    table$Eingang <- vapply(seq_len(nrow(rows)), function(i) {
+      if (!rows$response_present[[i]]) return("Keine Zeile")
+      status <- if (is.na(rows$code_status[[i]])) "NA" else rows$code_status[[i]]
+      paste0('<span class="missing-status">', escape(status), '</span>',
+             paste(fields(rows[i, ]), collapse = " / "))
+    }, character(1))
+    table[["Alte Version"]] <- vapply(seq_len(nrow(rows)), function(i) {
+      historical <- rows[i, ]
+      for (field in c("code_id", "code_type", "code_score")) {
+        historical[[field]] <- historical[[paste0("legacy_", field)]]
+      }
+      result_cell(historical, rows[i, ])
+    }, character(1))
+    keys <- c("eat", "correction", "box_unit", "box_testlet")
+    titles <- c("eatPrepTBA", "eatPrepTBA<br>NR zurück", "Box<br>Unit", "Box<br>Testlet")
+  } else {
+    keys <- c("eat_unit", "eat_booklet", "box_booklet", "completion")
+    titles <- c("eatPrepTBA<br>Unit + NR zurück", "eatPrepTBA<br>Booklet + NR zurück",
+                "Box<br>Booklet", "Nur ergänzen")
+  }
+  for (j in seq_along(keys)) table[[titles[[j]]]] <- vapply(seq_len(nrow(rows)), function(i) {
+    option_cell(keys[[j]], outputs[[keys[[j]]]], rows, i)
+  }, character(1))
+  caption <- paste0("Fall ", rows$case_id[[1L]], if (extra) ": weitere Optionen" else ": Hauptvergleich")
+  cat('\n```{=html}\n<div class="missing-comparison" tabindex="0" role="region" aria-label="',
+      caption, '">\n', sep = "")
+  cat(as.character(knitr::kable(table, format = "html", escape = FALSE,
+                               row.names = FALSE, caption = caption)), "\n</div>\n```\n\n")
+}
+```
+
+<style>
+.missing-comparison { overflow-x: auto; margin: 1em 0; }
+.missing-comparison:focus { outline: 2px solid #407096; }
+.missing-comparison table { font-size: 0.88em; width: max-content; min-width: 100%; }
+.missing-comparison th, .missing-comparison td { padding: 0.55em 0.7em; vertical-align: top; white-space: nowrap; }
+.missing-comparison th:first-child, .missing-comparison td:first-child { position: sticky; left: 0; background: #fff; z-index: 1; }
+.missing-comparison th { background: #f1f4f7; }
+.missing-comparison td strong { color: #0645a5; background: #e6efff; font-weight: 800; padding: 0.05em 0.2em; border-radius: 0.15em; }
+.missing-result, .missing-status { display: block; }
+.missing-status { font-size: 0.9em; color: #555; }
+.missing-mode { display: inline-block; min-width: 3.5em; font-size: 0.9em; color: #555; }
+.missing-comparison sup { color: #855400; }
+details { margin: 1em 0; }
+summary { cursor: pointer; font-weight: bold; }
+</style>
+
+15 Fälle zeigen, wie `complete_design()` fehlende Antworten einordnet.
+**Alte Version** bezeichnet **eatPrepTBA 0.9.8.9001**; die übrigen Spalten
+zeigen die Optionen von **eatPrepTBA `r as.character(packageVersion("eatPrepTBA"))`**.
+
+## So liest du die Tabellen
+
+- **Eingang:** Status und `code_id / code_type / code_score`; **Ergebnisse:** nur Code, Typ und Score.
+- **Nur fette Ergebniswerte wurden gegenüber dem Eingang geändert.** Die blaue Hinterlegung verstärkt diese Markierung.
+- **FALSE / TRUE:** Wert von `recode_omissions_to_not_reached`. `TRUE` erlaubt, abschließende Auslassungen als NR zu werten.
+- **NR zurück:** `recode_existing_not_reached = TRUE` erlaubt im eatPrepTBA-Regelwerk, vorhandenes NR vor späterer Bearbeitung zur Auslassung zu machen.
+
+| Kürzel | Bedeutung |
+|:--|:--|
+| A | Gültige Antwort (`FULL_CREDIT`) |
+| O | Auslassung (`MISSING_BY_OMISSION`) |
+| N | Nicht erreicht (`MISSING_NOT_REACHED`) |
+| I | Ungültige Antwort (`MISSING_INVALID_RESPONSE`) |
+| C | Kodierfehler (`MISSING_CODING_IMPOSSIBLE`) |
+| NC | Keine Kodierung (`NO_CODING`) |
+| NA | Fehlender Einzelwert, zum Beispiel kein Score |
+
+**`code_status` und `value` bleiben erhalten**, auch bei geänderten Scores.
+„Keine Zeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
+Bei solchen Zeilen bleiben Status und Antwortwert `NA`.
+`T1 · U2/V03` bezeichnet Testlet 1, Unit 2, Variable V03.
+
+## NR-Status oder schon ein NR-Code?
+
+Für die Box macht der **Eingang** den Unterschied:
+
+- **Nur Status `NOT_REACHED`, noch kein Code:** Spätere Bearbeitung im gewählten Bereich macht die Zelle zur Auslassung (`-99`, Score **0**). Ohne spätere Bearbeitung erhält sie NR (`-96`, Score **NA**). Siehe [Fall 12](#beispiel-12) und [Fall 13](#beispiel-13).
+- **Code `-96` mit Score `NA` schon vorhanden:** Die Box erhält diesen NR-Code. Siehe [Fall 2](#beispiel-2) und [Fall 3](#beispiel-3).
+
+Die Codes und Scores gelten für das hier verwendete Standardprofil.
+Ein `-96` im fertigen Export sagt nicht, ob dieser Code schon im Eingang stand.
+Bei späterer Antwort in einer anderen Unit desselben Testlets zeigt
+[Fall 13](#beispiel-13) deshalb: **Unit → NA, Testlet → 0**.
+
+## Welche Optionen werden verglichen?
+
+| Ergebnisspalte | Regelwerk | Bereich der Prüfung | Gespeicherten NR-Code korrigieren? |
+|:--|:--|:--|:--|
+| eatPrepTBA | eatPrepTBA, Hybridreihenfolge | Testlet | Nein; entspricht bei FALSE dem Standardaufruf |
+| eatPrepTBA NR zurück | eatPrepTBA, Hybridreihenfolge | Testlet | Ja |
+| Box Unit | Kodierbox, VOMD-Reihenfolge | Unit | Nein; Box-Standard, nur FALSE erlaubt |
+| Box Testlet | Kodierbox, VOMD-Reihenfolge | Testlet | Nein |
+| eatPrepTBA Unit + NR zurück | eatPrepTBA, Hybridreihenfolge | Unit | Ja |
+| eatPrepTBA Booklet + NR zurück | eatPrepTBA, Hybridreihenfolge | Ganzes Testheft | Ja |
+| Box Booklet | Kodierbox, VOMD-Reihenfolge | Ganzes Testheft | Nein |
+| Nur ergänzen | Keine Missing-Klassifikation (`NULL`) | – | Nein; neue Kodierfelder bleiben NA |
+
+Die letzten vier Spalten stehen jeweils unter **Weitere Optionen**.
+Breite Tabellen lassen sich seitlich scrollen. „Box Unit“ erlaubt nur FALSE.
+
+Alle Fälle verwenden eine Person und ein Testheft. In Fall 1–13 liegen die
+Basisvariablen einer Unit auf derselben Seite; bekannte Element- und Itemfolge
+stimmen überein. Die Elementfolge ist hier eine Modellannahme, kein Zeitnachweis.
+[Fall 14](#beispiel-14) zeigt abweichende Seiten- und Itemfolgen,
+[Fall 15](#beispiel-15) eine Ableitung. Einzelheiten erklärt die
+[Missing-Vignette](missing-classification.html).
+
+<details>
+<summary>Beispielaufrufe</summary>
+
+Die [Beispieldaten](missing-examples.csv) stehen als CSV bereit.
+So entstehen die TRUE-Zeilen der NR-Korrektur- und Box-Spalten:
+
+```{r example-calls, echo=TRUE, eval=FALSE}
+# eatPrepTBA: abschließende Auslassungen umkodieren und vorhandenes NR prüfen
+complete_design(coded, units, design,
+  recode_omissions_to_not_reached = TRUE,
+  recode_existing_not_reached = TRUE,
+  not_reached_scope = "testlet")
+
+# Kodierbox: abschließende Auslassungen je Testlet umkodieren
+complete_design(coded, units, design,
+  missing_policy = "coding_box",
+  recode_omissions_to_not_reached = TRUE,
+  not_reached_scope = "testlet")
+```
+
+Für FALSE nur `recode_omissions_to_not_reached` ändern.
+Alle Spalten starten mit denselben Eingaben.
+Ein † kennzeichnet eine Diagnose; der Grund erscheint beim Darüberfahren
+mit der Maus und wird im jeweiligen Fall erklärt.
+
+</details>
+
+```{r case-comparisons, results='asis'}
+titles <- c(
+  "Auslassung vor und nach der letzten Antwort",
+  "Gespeicherter NR-Code: spätere Antwort in derselben Unit",
+  "Gespeicherter NR-Code: spätere Antwort in einer anderen Unit",
+  "Nachfolgende Units enthalten nur Auslassungen",
+  "Das gesamte Testlet enthält nur Auslassungen",
+  "Spätere Antwort im nächsten Testlet",
+  "Einzelne Antwortzeilen fehlen",
+  "Alle Antwortzeilen fehlen",
+  "Invalid und Kodierfehler als Bearbeitung",
+  "NO_CODING im Versionsvergleich",
+  "Eigenes Missing-Schema",
+  "NR-Status ohne Code: spätere Antwort in derselben Unit",
+  "NR-Status ohne Code: spätere Antwort in einer anderen Unit",
+  "Seitenfolge und Itemliste widersprechen sich",
+  "Eine Ableitung hat eine andere Itemposition als ihre Quelle"
+)
+notes <- c(
+  "V02 liegt vor der Antwort auf V03 und bleibt Auslassung. V04 liegt danach und wird nur mit TRUE zu NR. Vorhandene NR bleiben erhalten.",
+  "V01 hat bereits den Code -96. Die Box erhält ihn; eatPrepTBA korrigiert ihn nur mit **NR zurück**, weil V02 spätere Bearbeitung belegt. V03 bleibt NR. Dasselbe Muster ohne gesetzte NR-Codes zeigt [Fall 12](#beispiel-12).",
+  "V03 hat bereits den Code -96; die Box erhält ihn. V04 liegt in der nächsten Unit desselben Testlets: eatPrepTBA mit **NR zurück** macht V03 deshalb zur Auslassung. Bei Unit-Scope wirkt V04 nicht zurück. Die alte Version korrigierte V03 ohne eigenen Schalter. Ohne gesetzte NR-Codes: [Fall 13](#beispiel-13).",
+  "Bei **NR zurück + FALSE** belegen die späteren Auslassungen Bearbeitung; V02 wird Omission. Bei **NR zurück + TRUE** werden diese Auslassungen selbst NR, sodass V02 NR bleibt.",
+  "Mit FALSE bleiben alle Auslassungen bei 0 Punkten. Mit TRUE wird das gesamte Testlet NR. Eine beantwortete Variable ist dafür nicht erforderlich.",
+  "Testlet-Scope trennt T1 und T2. Bei Booklet-Scope bleibt V01 auch mit TRUE Omission; eatPrepTBA mit NR-Korrektur macht außerdem V02 zur Omission. Die Box erhält das vorhandene NR bei V02.",
+  "Bei Testlet-Scope wird die ergänzte V01 zur Auslassung; V03 und V04 werden NR. Im **Box-Standard mit Unit-Scope** fehlt in U1 spätere Bearbeitung: V01 wird dort NR.",
+  "Das gesamte Design wird NR. **id_used = FALSE** bleibt erhalten, weil keine ursprüngliche Antwortzeile mit Kodierstatus vorliegt. NULL ergänzt nur Zeilen mit leeren Kodierfeldern.",
+  "Bei Testlet- oder Booklet-Scope belegen Invalid und Kodierfehler mit Antwortwert spätere Bearbeitung: V02 bleibt Auslassung; **NR zurück** korrigiert V03. Bei Unit-Scope gilt mit TRUE dagegen: V02 wird NR, V03 bleibt NR. Invalid und Kodierfehler bleiben erhalten.",
+  "Die alte Version vergibt für NO_CODING **-94**, die aktuelle **-93**. Die Box lässt die analytischen Felder offen (†): Es fehlen ein numerisches Ergebnis und eine auflösbare Missing-Art. Der Status bleibt NO_CODING. Negative IDs können zwischen Versionen ihre Bedeutung ändern.",
+  "eatPrepTBA verwendet das eigene Schema: V02 erhält mit FALSE -199 / O / 0, mit TRUE -196 / N / 0.5. Die alte Version ignorierte das Schema. Die Box übersetzt vorhandene Codes nicht: -99 passt nicht zum neuen Profil und bleibt mit Diagnose (†) erhalten. Die ergänzte V03 erhält auch dort -196 / N / 0.5; ihr Status bleibt NA.",
+  "Wie [Fall 2](#beispiel-2), aber die NR-Zeilen enthalten noch keinen Code. V02 belegt spätere Bearbeitung in derselben Unit: Die Box vergibt für V01 sowohl bei Unit- als auch bei Testlet-Scope **-99 / O / 0**. V03 bleibt am Ende **-96 / N / NA**. Das gilt jeweils mit FALSE und, soweit erlaubt, TRUE.",
+  "Wie [Fall 3](#beispiel-3), aber die NR-Zeilen enthalten noch keinen Code. Für V03 ergibt die Box bei **Unit-Scope -96 / N / NA**, bei **Testlet-Scope -99 / O / 0**: V04 liegt später im selben Testlet. Die abschließenden V05 und V06 bleiben NR. FALSE und TRUE liefern hier dieselben Ergebnisse; Box Unit erlaubt nur FALSE.",
+  "Die Seiten zeigen V01 bis V09 in dieser Reihenfolge. Die Itemliste ordnet dagegen V02, V04, V05, V06, V01, V03, V07, V08, V09. Nur V02 wurde beantwortet. **eatPrepTBA folgt den Seiten: V01 erhält -99 / O / 0. Die Box folgt der Itemliste: V01 erhält -96 / N / NA.** Der Hybridmodus meldet verworfene Beziehungen in `order_conflicts` und läuft weiter. Die hier unterdrückte Warnung erscheint beim normalen Aufruf.",
+  "V01 liegt auf Seite 1, V02 auf Seite 2. V03 wird aus V01 berechnet, steht in der Itemliste aber hinter V02. Die Hybridreihenfolge bewertet die Basisquellen zuerst; diese beiden Bedeutungen der Position erzeugen keinen künstlichen Konflikt mehr. V02 belegt spätere Bearbeitung nach V01, deshalb erhält V01 **-99 / O / 0**. Das vorhandene gültige Ergebnis von V03 bleibt erhalten."
+)
+
+stopifnot(length(titles) == length(cases), length(notes) == length(cases))
+for (i in seq_along(titles)) {
+  rows <- cases[[as.character(i)]]
+  output <- results[[as.character(i)]]
+  cat("\n\n## ", i, ". ", titles[[i]], " {#beispiel-", i, "}\n\n", sep = "")
+  if (i == 11L) {
+    cat("Nur dieser Fall verwendet ein eigenes Schema: **NR = -196 mit Score 0.5**, ",
+        "**Omission = -199 mit Score 0**. Der halbe Punkt dient nur dazu, ",
+        "die Profilübernahme sichtbar zu machen.\n\n", sep = "")
+  }
+  print_comparison(rows, output)
+  cat(notes[[i]], "\n\n")
+  cat("<details>\n<summary>Weitere Optionen: Unit, Booklet und nur ergänzen</summary>\n\n")
+  print_comparison(rows, output, extra = TRUE)
+  cat("</details>\n\n")
+}
+```
+
+Für den Ablauf mit eigenen Daten zurück zum
+[Standard-Workflow](standard-workflow.html#fehlende-antworten-ergänzen-und-einordnen).

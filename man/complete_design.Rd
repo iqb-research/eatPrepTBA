@@ -2,7 +2,7 @@
 % Please edit documentation in R/complete_design.R
 \name{complete_design}
 \alias{complete_design}
-\title{Complete design with coded responses}
+\title{Complete the expected response design}
 \usage{
 complete_design(
   coded,
@@ -11,28 +11,165 @@ complete_design(
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
   missings = NULL,
-  recode_omissions_to_not_reached = FALSE
+  recode_omissions_to_not_reached = FALSE,
+  order_overrides = NULL,
+  item_selection = NULL,
+  use_variable_names_for_recoding = FALSE,
+  diagnostics = c("compact", "full", "none"),
+  missing_policy = c("eatPrepTBA", "coding_box"),
+  order_method = NULL,
+  not_reached_scope = NULL,
+  recode_existing_not_reached = FALSE,
+  derived_not_reached = NULL,
+  input_missings = NULL,
+  unknown_variables = c("exclude", "error"),
+  progress = interactive()
 )
 }
 \arguments{
-\item{coded}{Tibble. Response data coded with \code{\link[=code_responses]{code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
+\item{coded}{Tibble of coded responses, as returned by \code{\link[=code_responses]{code_responses()}}
+with \code{prepare = TRUE}.}
 
-\item{units}{Tibble. Unit data retrieved from the IQB Studio after setting the argument \code{unit_definition = TRUE} for \code{\link[=get_units]{get_units()}} -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save some time.}
+\item{units}{Tibble of Studio units. Prepared \code{unit_codes} can be reused.
+Retrieve unit definitions to use page and element locations for ordering,
+and metadata to obtain the Studio item mapping. Only units referenced by
+\code{design} are prepared and checked; unused units are ignored.}
 
-\item{design}{Tibble. Design retrieved from Testcenter via \code{\link[=get_design]{get_design()}} or an object formatted in the same way.}
+\item{design}{Tibble returned by \code{\link[=get_design]{get_design()}}, or an equivalent design.
+Both unit-level and variable-level designs are supported. All active coding
+variables of every supplied unit occurrence are completed, even when the
+supplied design lists only a subset of variables. Confirmed deactivated
+variables (\code{BASE_NO_VALUE}) listed in a variable-level design are excluded
+with a warning; the unit occurrences and their active variables are retained.}
 
-\item{identifiers}{Character. Contains person identifiers of the dataset \code{coded}. Defaults to \code{c("group_id", "login_name", "login_code")} which corresponds to the identifiers of the IQB Testcenter.}
+\item{identifiers}{Character vector of person identifiers. Defaults to the
+Testcenter identifiers \code{group_id}, \code{login_name}, and \code{login_code}.}
 
-\item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
+\item{overwrite}{Logical. With \code{FALSE} (default), reuse existing \code{unit_codes}.
+With \code{TRUE}, rebuild these prepared variable and coding tables from the
+\code{coding_scheme} already stored in \code{units}. Nothing is downloaded, and the
+supplied objects are not modified. Rebuilding can take longer and only
+restores definitions present in the stored schemes.}
 
-\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
+\item{missings}{Optional missing-value scheme with \code{code_id}, \code{code_status},
+\code{code_score}, and \code{code_type}. Used only when missing classification is
+enabled. The scheme never fills or changes the technical \code{code_status}.}
 
-\item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a testlet? Defaults to \code{FALSE}.}
+\item{recode_omissions_to_not_reached}{\code{FALSE} (default), \code{TRUE}, or \code{NULL}.
+\code{FALSE} adds expected positions and classifies missings while preserving
+omissions and existing numerical not-reached codes. \code{TRUE} additionally recodes trailing omissions to not
+reached. \code{NULL} only completes the design: supplied coding fields remain
+unchanged and newly inserted coding fields remain missing. No positions
+are computed in that mode.}
 
+\item{order_overrides}{Optional local basis-variable ordering table with
+\code{unit_key}, \code{variable_id}, and \code{local_order}, optionally restricted by booklet
+and unit occurrence. Available in the eatPrepTBA rule set.}
+
+\item{item_selection}{Optional Studio item-variable selection. It masks
+item positions without renumbering them, and does not filter response rows
+or the universe used for classification.}
+
+\item{use_variable_names_for_recoding}{Logical. Explicitly trust natural
+variable-name order for missing classification. Defaults to \code{FALSE}.
+Known physical positions and manual overrides remain usable in either mode.}
+
+\item{diagnostics}{Character. \code{"compact"} prints a summary of actual changes
+in this call; \code{"full"} adds counts by booklet/testlet/unit occurrence;
+\code{"none"} suppresses the summary. Added rows and changes to existing rows
+are counted separately, regardless of earlier \code{response_present} values.}
+
+\item{missing_policy}{Rule set: \code{"eatPrepTBA"} (default) or \code{"coding_box"}.
+The latter reproduces the Coding Box item resolver at commit
+\verb{39468e5a28a24dc9ec860aee46daf8d4ed5c8682} on the expected long-format rows.}
+
+\item{order_method}{\code{NULL} selects \code{"hybrid"} for eatPrepTBA and \code{"vomd"}
+for Coding Box. Explicit alternatives are \code{"vomd"}, \code{"structure"} (unit
+pages and elements), or \code{"hybrid"} (physical order first, supplemented by
+compatible VOMD relationships). Conflicting lower-priority relationships
+are discarded with a warning and recorded in \code{order_conflicts}.
+Always-visible pages do not establish physical before/after relations.
+Coding Box requires VOMD and does not permit overrides or trusted names.}
+
+\item{not_reached_scope}{\code{NULL} selects \code{"testlet"} for eatPrepTBA and
+\code{"unit"} for Coding Box. Explicit alternatives are \code{"unit"}, \code{"testlet"},
+and \code{"booklet"}. Coding Box forbids trailing-omission recoding in Unit scope.}
+
+\item{recode_existing_not_reached}{Logical, default \code{FALSE}. In eatPrepTBA,
+optionally correct existing numerical not-reached codes before proven later
+work to omission. Uncoded technical NOT_REACHED is classified in either mode.}
+
+\item{derived_not_reached}{\code{NULL} selects \code{"recode"} for eatPrepTBA and
+\code{"preserve"} for Coding Box. \code{"recode"} replaces valid or invalid derived
+results when all known basis sources are demonstrably not reached in the
+trailing region. \code{"preserve"} retains existing numerical derived results.}
+
+\item{input_missings}{Optional input schema with \code{code_type} and \code{code_id},
+for eatPrepTBA. Output remapping through \code{missings} retains recognition of
+nonconflicting standard incoming IDs. Ambiguous input IDs require an
+explicit schema. Coding Box recognizes its selected output profile exactly.}
+
+\item{unknown_variables}{What to do with design variables absent from active
+unit metadata and not confirmed as deactivated: \code{"exclude"} (default)
+omits them and their responses with a warning naming
+the affected unit/variable pairs. Unit occurrences and all active variables
+are retained. Use \code{"error"} to stop instead and check unexpected differences.
+Units without any active variable metadata still cause an error.}
+
+\item{progress}{Logical. Show progress for preparation, completion, ordering,
+and missing classification? Defaults to \code{interactive()}. RGui uses one
+Windows progress window; other sessions use throttled console updates.
+Counts refer to the current phase; elapsed times are measured. Independent of
+\code{diagnostics}, which controls the final change report.}
 }
 \value{
-A tibble.
+A tibble with completed response rows and \code{response_present}.
+With \code{FALSE} or \code{TRUE}, also includes \code{variable_order}, \code{item_order},
+\code{order_group}, \code{order_source}, \code{position_group}, \code{position_source}, and
+the original analytical input fields. Attributes \code{missing_policy} and
+\code{missing_diagnostics} record effective options and row-aligned diagnostics.
+When ordering conflicts were resolved, \code{order_conflicts} records the
+rejected relations and their metadata sources.
 }
 \description{
-This function automatically completes missings for coded responses.
+Completes coded responses with the expected variables of each booklet.
+Expected positions are shared by everyone assigned the same booklet.
+Missing classification runs separately per person within the selected scope.
+}
+\details{
+The technical \code{code_status} is always preserved, including \code{NA}. The logical
+\code{response_present} records whether a row originated in the response data,
+rather than inferring its origin from possibly missing coding fields. An
+existing presence marker is retained when completing again. \code{id_used} retains
+its historical meaning: at least one supplied technical status is nonmissing
+for that person.
+
+VOMD items and their required source closure provide activity evidence;
+eatPrepTBA additionally includes every active basis variable. Unlinked basis
+variables receive a display index but establish only Unit-level comparisons
+when no within-Unit location is known. A dense index does not resolve unknown
+presentation relationships. Coding Box leaves variables outside its item and
+uniquely anchored source universe unchanged.
+
+When missing classification is enabled, Coding Box requires every VOMD item
+mapping to resolve to an active variable. A mapping to a deactivated variable
+still causes an error after that variable is excluded from the design.
+Correct the Studio item mapping and reload the metadata. eatPrepTBA continues
+and records unresolved mappings in the \code{vomd_unresolved} attribute.
+
+eatPrepTBA gives source evidence priority when considering a derived result
+for not-reached replacement, preventing that result from anchoring itself.
+Otherwise existing derived results also count as activity. Coding-error and
+no-coding results count as activity in eatPrepTBA only with a stored value;
+Coding Box follows its own technical-status and numerical-result rules.
+Uncertain ordering and incomplete sources retain existing analytical results
+and expose unresolved diagnostics rather than inventing a score.
+
+The original analytical fields are retained as \code{code_id_input},
+\code{code_score_input}, and \code{code_type_input}. Subsequent classification starts
+from these fields, so changing rule sets or profiles restores original input.
+Deliberate edits to the analytical input must also update the corresponding
+input fields or remove all three input fields before reclassification.
+Classification precedes item selection and never widens the response table
+or creates missing-by-design rows outside the supplied design.
 }

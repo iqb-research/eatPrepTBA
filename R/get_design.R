@@ -82,7 +82,10 @@ setMethod("get_design",
                 unit_key, unit_codes
               ) %>%
               tidyr::unnest(unit_codes) %>%
-              dplyr::select(unit_key, variable_id)
+              dplyr::filter(if ("variable_source_type" %in% names(.)) {
+                is.na(variable_source_type) | variable_source_type != "BASE_NO_VALUE"
+              } else TRUE) %>%
+              dplyr::distinct(unit_key, variable_id)
 
             cli::cli_h3("Merging set of {.testtaker-label testtakers} and {.booklet-label booklets} with {.unit-label units}")
             testtakers_booklets %>%

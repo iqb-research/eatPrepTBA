@@ -323,6 +323,15 @@ Unit-Zeit.
 
 ## Bearbeitungszeiten und Unit-Ladezeiten
 
+Die hier ausgewerteten Zeitstempel beschreiben beobachtete Abläufe.
+Die Positionsbestimmung und Missing-Klassifikation in `complete_design()`
+verwenden dagegen die erwartete Reihenfolge aus Testheft, VOMD und Quellenbaum,
+optional ergänzt durch Unit-Struktur, ohne Log-Zeitstempel.
+Ein später Log-Eintrag oder eine angezeigte Seite ist für sich kein Beleg
+für eine beantwortete Variable. Die Unterschiede und die Behandlung
+von Auslassungen zeigt die Vignette
+[Variablenreihenfolge und Missing-Klassifikation](missing-classification.html).
+
 Für Zeitintervalle auf Unit- und Seitenebene ist weiterhin
 `estimate_unit_times()` die zentrale Funktion. Sie berechnet unter anderem:
 
