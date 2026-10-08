@@ -127,6 +127,26 @@ design <- get_design(testcenter, units = units, mode = "run-hot-return")
 `mode` muss zum Anmeldemodus der Erhebung passen. `units` muss alle relevanten
 Aufgaben enthalten; Antworten und Design müssen dieselbe Erhebung abdecken.
 
+`get_design()` berücksichtigt nur aktive Variablen, auch wenn vorhandene
+`unit_codes` mit `filter_has_codes = FALSE` vorbereitet wurden. Enthält ein
+älteres oder selbst erstelltes Design noch nachweislich deaktivierte Variablen
+(`BASE_NO_VALUE`), schließt `complete_design()` diese mit einer Warnung aus.
+Die Unit-Vorkommen und alle aktiven Variablen bleiben erhalten. Aktive Variablen
+ohne numerische Codes sind allein deswegen nicht deaktiviert.
+
+Bei tatsächlich unbekannten Designvariablen bricht `complete_design()` weiterhin
+ab und nennt die betroffenen Unit-/Variablen-Schlüssel. Prüfe dann, ob Design und
+`units` dieselben Unit-Versionen, Variablenaliase und Variablen-IDs
+verwenden. Sind nur die vorbereiteten `unit_codes` veraltet, baue sie aus den
+zur Durchführung passenden Roh-Kodierschemata neu auf und erstelle damit das
+Design erneut:
+
+```{r rebuild-design, eval=FALSE}
+# Nur wenn units die passenden Roh-Kodierschemata enthält:
+units <- add_coding_scheme(units, overwrite = TRUE)
+design <- get_design(testcenter, units = units, mode = "run-hot-return")
+```
+
 ## 3. Automatisch kodieren und Ergebnis prüfen
 
 [`code_responses()`](../reference/code_responses.html) nutzt das R-Paket

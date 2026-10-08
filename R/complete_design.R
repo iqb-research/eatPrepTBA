@@ -9,7 +9,9 @@
 #' @param design Tibble returned by [get_design()], or an equivalent design.
 #'   Both unit-level and variable-level designs are supported. All active coding
 #'   variables of every supplied unit occurrence are completed, even when the
-#'   supplied design lists only a subset of variables.
+#'   supplied design lists only a subset of variables. Confirmed deactivated
+#'   variables (`BASE_NO_VALUE`) listed in a variable-level design are excluded
+#'   with a warning; the unit occurrences and their active variables are retained.
 #' @param identifiers Character vector of person identifiers. Defaults to the
 #'   Testcenter identifiers `group_id`, `login_name`, and `login_code`.
 #' @param overwrite Logical. Rebuild existing `unit_codes`? Defaults to `FALSE`.
@@ -158,7 +160,7 @@ complete_design <- function(coded,
   row_metadata <- metadata %>%
     dplyr::select(-dplyr::any_of(c("source_ids", "basis_sources", "sources_known")))
   completed <- complete_design_rows(design, row_metadata, occurrence_keys,
-                                    code_fields)
+                                    code_fields, prepared_units)
 
   # Unit aliases normally disambiguate repeated units. If they do not, require
   # the occurrence columns in coded instead of attaching one response twice.
@@ -243,7 +245,8 @@ complete_design <- function(coded,
 
 # Complete all active variables, propagating unit-level design columns while
 # retaining variable-specific design columns only on their original variables.
-complete_design_rows <- function(design, metadata, occurrence_keys, code_fields) {
+complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
+                                 units = NULL) {
   metadata_fields <- setdiff(names(metadata), c("unit_key", "variable_id"))
   design <- design %>%
     dplyr::select(-dplyr::any_of(c(
@@ -251,7 +254,11 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields)
     )))
   unknown_units <- setdiff(unique(design$unit_key), unique(metadata$unit_key))
   if (length(unknown_units)) {
-    cli::cli_abort("No active variable metadata for design units: {unknown_units}.")
+    cli::cli_abort(c(
+      "No active variable metadata for design units: {unknown_units}.",
+      "i" = "Check that these units are present in {.arg units} and contain active coding variables.",
+      "i" = "If existing {.field unit_codes} are outdated, rebuild them with {.code add_coding_scheme(units, overwrite = TRUE)} using the matching Studio coding schemes."
+    ))
   }
   variable_keys <- c(occurrence_keys, "variable_id")
   if ("variable_id" %in% names(design)) {
@@ -259,9 +266,29 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields)
       cli::cli_abort("{.arg design} contains duplicate variable/occurrence keys.")
     }
     unknown <- design %>%
+      dplyr::distinct(.data$unit_key, .data$variable_id) %>%
       dplyr::anti_join(metadata, by = c("unit_key", "variable_id"))
     if (nrow(unknown)) {
-      cli::cli_abort("Design variables absent from active unit metadata: {unique(paste(unknown$unit_key, unknown$variable_id, sep = '/'))}.")
+      inactive <- complete_design_inactive_variables(units, unknown)
+      unknown <- dplyr::anti_join(unknown, inactive,
+                                  by = c("unit_key", "variable_id"))
+      if (nrow(unknown)) {
+        cli::cli_abort(c(
+          "Design variables absent from active unit metadata: {paste(unknown$unit_key, unknown$variable_id, sep = '/')}.",
+          "i" = "These variables are not confirmed as deactivated ({.val BASE_NO_VALUE}).",
+          "i" = "Check that {.arg design} and {.arg units} use the same Studio unit versions and variable aliases.",
+          "i" = "If {.field unit_codes} are outdated, rebuild them with {.code add_coding_scheme(units, overwrite = TRUE)}, then recreate the design using those units.",
+          "i" = "Inspect the affected keys with {.code rlang::last_error()$variables} and the available active keys with {.code rlang::last_error()$available_variables}."
+        ), class = "eatPrepTBA_design_metadata_error", variables = unknown,
+        available_variables = dplyr::distinct(metadata, .data$unit_key,
+                                               .data$variable_id))
+      }
+      if (nrow(inactive)) {
+        cli::cli_warn(c(
+          "Excluded deactivated design variables ({.val BASE_NO_VALUE}): {paste(inactive$unit_key, inactive$variable_id, sep = '/')}.",
+          "i" = "These variables are omitted from the completed data and missing classification. Unit occurrences and all active variables are retained."
+        ), class = "eatPrepTBA_inactive_design_variables", variables = inactive)
+      }
     }
   }
   extra_columns <- setdiff(names(design), variable_keys)
@@ -287,4 +314,47 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields)
       )
   }
   expanded
+}
+
+# Confirm exclusions against the chosen cache, consulting the original scheme
+# only for aliases that are absent from that cache. Missing codes alone do not
+# establish deactivation, and a bad raw scheme must not invalidate a usable cache.
+complete_design_inactive_variables <- function(units, requested) {
+  empty <- requested[0, c("unit_key", "variable_id"), drop = FALSE]
+  if (is.null(units) || !nrow(requested)) return(empty)
+  candidates <- vector("list", nrow(units))
+  for (i in seq_len(nrow(units))) {
+    key <- as.character(units$unit_key[[i]])
+    ids <- requested$variable_id[requested$unit_key == key]
+    if (!length(ids)) next
+    cached <- if ("unit_codes" %in% names(units)) units$unit_codes[[i]] else NULL
+    if (is.null(cached)) cached <- tibble::tibble()
+    definition_columns <- c("variable_id", "variable_source_type")
+    definitions <- dplyr::select(cached, dplyr::any_of(definition_columns))
+    cached_ids <- if ("variable_id" %in% names(cached)) as.character(cached$variable_id) else character()
+    if (any(!ids %in% cached_ids) && "coding_scheme" %in% names(units)) {
+      raw <- tryCatch(
+        suppressMessages(prepare_coding_scheme(units$coding_scheme[[i]],
+                                               filter_has_codes = FALSE)),
+        error = function(error) NULL
+      )
+      if (!is.null(raw) && "variable_id" %in% names(raw)) {
+        definitions <- dplyr::bind_rows(definitions,
+          dplyr::select(raw[!raw$variable_id %in% cached_ids, , drop = FALSE],
+                        dplyr::any_of(definition_columns)))
+      }
+    }
+    if (!all(c("variable_id", "variable_source_type") %in% names(definitions))) next
+    candidates[[i]] <- tibble::tibble(
+      unit_key = key, variable_id = as.character(definitions$variable_id),
+      variable_source_type = as.character(definitions$variable_source_type)
+    ) %>% dplyr::filter(.data$variable_id %in% ids)
+  }
+  definitions <- dplyr::bind_rows(candidates)
+  if (!nrow(definitions)) return(empty)
+  definitions %>%
+    dplyr::group_by(.data$unit_key, .data$variable_id) %>%
+    dplyr::filter(all(.data$variable_source_type %in% "BASE_NO_VALUE")) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct(.data$unit_key, .data$variable_id)
 }

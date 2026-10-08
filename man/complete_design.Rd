@@ -36,7 +36,9 @@ and metadata to obtain the Studio item mapping. Only units referenced by
 \item{design}{Tibble returned by \code{\link[=get_design]{get_design()}}, or an equivalent design.
 Both unit-level and variable-level designs are supported. All active coding
 variables of every supplied unit occurrence are completed, even when the
-supplied design lists only a subset of variables.}
+supplied design lists only a subset of variables. Confirmed deactivated
+variables (\code{BASE_NO_VALUE}) listed in a variable-level design are excluded
+with a warning; the unit occurrences and their active variables are retained.}
 
 \item{identifiers}{Character vector of person identifiers. Defaults to the
 Testcenter identifiers \code{group_id}, \code{login_name}, and \code{login_code}.}

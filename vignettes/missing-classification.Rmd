@@ -24,6 +24,17 @@ nur die Units des vollständig übergebenen `design` auf und prüft deren Metada
 Alle aktiven Variablen und benötigten Quellen dieser Units bleiben einbezogen;
 widersprüchliche Metadaten verwendeter Units werden weiterhin zurückgewiesen.
 
+Nachweislich deaktivierte Designvariablen (`BASE_NO_VALUE`) werden mit einer
+Warnung ausgeschlossen; ihre Unit-Vorkommen und alle aktiven Variablen bleiben
+erhalten. `get_design()` nimmt solche Variablen auch aus bereits vorbereiteten
+`unit_codes` nicht ins Design auf. Aktive Variablen ohne numerische Codes werden
+weiterhin berücksichtigt. Tatsächlich unbekannte Variablen bleiben ein Fehler:
+Die Meldung nennt die betroffenen Schlüssel und verweist auf Unit-Versionen,
+Variablenaliase und Kodierschemata. Veraltete `unit_codes` lassen sich mit
+`add_coding_scheme(units, overwrite = TRUE)` erneuern, sofern die passenden
+Roh-Kodierschemata vorliegen; anschließend muss das Design mit denselben Units
+neu erstellt werden. Der [Standard-Workflow](standard-workflow.html) zeigt dies.
+
 Zwei Regelwerke stehen zur Verfügung. Der Standard `missing_policy = "eatPrepTBA"`
 prüft vorhandene Ableitungen anhand ihrer Quellen. `missing_policy = "coding_box"`
 bildet die Missing-Logik des Itemmatrix-Exports der Kodierbox nach; es erstellt

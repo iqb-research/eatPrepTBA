@@ -35,6 +35,11 @@
   empty designs. Malformed unused units no longer block completion; used units
   retain all active variables and required sources, and conflicting metadata
   for these units still raises an error.
+* Exclude confirmed deactivated variables (`BASE_NO_VALUE`) consistently from
+  designs and completion, including cached `unit_codes` prepared with
+  `filter_has_codes = FALSE`. `complete_design()` warns about deactivated
+  variables in supplied designs and provides recovery guidance for genuinely
+  unknown variables. Active variables without numerical codes remain included.
 * Retain numerical `code_id` and `code_score` columns when the autocoder omits
   them for an unclassified batch. Partial manual missing profiles retain
   unspecified standard mappings in `code_responses()`.
