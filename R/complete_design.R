@@ -46,7 +46,9 @@
 #'   `39468e5a28a24dc9ec860aee46daf8d4ed5c8682` on the expected long-format rows.
 #' @param order_method `NULL` selects `"hybrid"` for eatPrepTBA and `"vomd"`
 #'   for Coding Box. Explicit alternatives are `"vomd"`, `"structure"` (unit
-#'   pages and elements), or `"hybrid"` (consistent VOMD and structure constraints).
+#'   pages and elements), or `"hybrid"` (physical order first, supplemented by
+#'   compatible VOMD relationships). Conflicting lower-priority relationships
+#'   are discarded with a warning and recorded in `order_conflicts`.
 #'   Always-visible pages do not establish physical before/after relations.
 #'   Coding Box requires VOMD and does not permit overrides or trusted names.
 #' @param not_reached_scope `NULL` selects `"testlet"` for eatPrepTBA and
@@ -70,7 +72,9 @@
 #'   are retained. Use `"error"` to stop instead and check unexpected differences.
 #'   Units without any active variable metadata still cause an error.
 #' @param progress Logical. Show progress for preparation, completion, ordering,
-#'   and missing classification? Defaults to `interactive()`. Independent of
+#'   and missing classification? Defaults to `interactive()`. RGui uses one
+#'   Windows progress window; other sessions use throttled console updates.
+#'   Counts refer to the current phase; elapsed times are measured. Independent of
 #'   `diagnostics`, which controls the final change report.
 #'
 #' @description
@@ -120,6 +124,8 @@
 #'   `order_group`, `order_source`, `position_group`, `position_source`, and
 #'   the original analytical input fields. Attributes `missing_policy` and
 #'   `missing_diagnostics` record effective options and row-aligned diagnostics.
+#'   When ordering conflicts were resolved, `order_conflicts` records the
+#'   rejected relations and their metadata sources.
 #' @export
 complete_design <- function(coded,
                             units,
@@ -145,6 +151,8 @@ complete_design <- function(coded,
   checkmate::assert_character(identifiers, min.len = 1L, any.missing = FALSE)
   checkmate::assert_flag(overwrite)
   checkmate::assert_flag(progress)
+  progress_session <- missing_progress_session_start(progress)
+  on.exit(missing_progress_session_done(progress_session), add = TRUE)
   checkmate::assert_flag(use_variable_names_for_recoding)
   if (!is.null(recode_omissions_to_not_reached)) {
     checkmate::assert_flag(recode_omissions_to_not_reached)
@@ -171,6 +179,24 @@ complete_design <- function(coded,
     coded$response_present <- rep(TRUE, nrow(coded))
   }
 
+  settings <- NULL
+  if (!is.null(recode_omissions_to_not_reached)) {
+    missing_policy <- match.arg(missing_policy)
+    settings <- missing_policy_settings(missing_policy, order_method, not_reached_scope,
+      recode_existing_not_reached, derived_not_reached,
+      use_variable_names_for_recoding, order_overrides, input_missings)
+    if (settings$missing_policy == "coding_box" && settings$not_reached_scope == "unit" &&
+        recode_omissions_to_not_reached) {
+      cli::cli_abort("The coding_box policy does not allow trailing-omission recoding in unit scope.")
+    }
+  }
+  join_keys <- c(identifiers, ".booklet_merge", "unit_key", "unit_alias", "variable_id",
+    intersect(c("booklet_no", "testlet_no", "unit_booklet_no"), names(coded)))
+  coded$.booklet_merge <- stringr::str_to_upper(coded$booklet_id)
+  if (anyDuplicated(coded[join_keys])) {
+    cli::cli_abort("{.arg coded} contains duplicate response keys. Supply one row per variable and unit occurrence.")
+  }
+
   cli_setting()
   phase <- missing_progress_start("Preparing unit metadata", enabled = progress)
   units <- design_order_units_for_keys(units, design$unit_key)
@@ -180,25 +206,35 @@ complete_design <- function(coded,
   } else units
   metadata <- design_order_metadata(prepared_units, progress = progress)
   missing_progress_done(phase)
+  complete_design_validate_design(design, metadata, occurrence_keys,
+                                  prepared_units, unknown_variables)
+  positions <- NULL
+  if (!is.null(settings)) {
+    # Presentation relationships are shared across people. Validate and compute
+    # them on unit occurrences before allocating the completed response table.
+    static_design <- dplyr::distinct(design[setdiff(occurrence_keys, identifiers)])
+    positions <- get_design_order(static_design, prepared_units,
+      order_overrides = order_overrides, item_selection = item_selection,
+      order_method = settings$order_method,
+      use_variable_names_for_recoding = use_variable_names_for_recoding,
+      metadata = metadata, progress = progress)
+    unresolved <- attr(positions, "vomd_unresolved", exact = TRUE)
+    if (settings$missing_policy == "coding_box" && !is.null(unresolved) && nrow(unresolved)) {
+      cli::cli_abort("The coding_box policy cannot resolve {nrow(unresolved)} VOMD item mappings to active coding variables. Correct the metadata first.")
+    }
+  }
   phase <- missing_progress_start("Completing response rows", enabled = progress)
   # The dependency graph stays on the unit table, rather than being copied to
   # every person's response rows.
   row_metadata <- metadata %>%
     dplyr::select(-dplyr::any_of(c("source_ids", "basis_sources", "sources_known")))
   completed <- complete_design_rows(design, row_metadata, occurrence_keys,
-                                    code_fields, prepared_units, unknown_variables)
+                                    code_fields, prepared_units, unknown_variables,
+                                    validate = FALSE)
 
   # Unit aliases normally disambiguate repeated units. If they do not, require
   # the occurrence columns in coded instead of attaching one response twice.
-  join_keys <- c(identifiers, ".booklet_merge", "unit_key", "unit_alias",
-                 "variable_id",
-                 intersect(c("booklet_no", "testlet_no", "unit_booklet_no"),
-                           names(coded)))
   completed$.booklet_merge <- stringr::str_to_upper(completed$booklet_id)
-  coded$.booklet_merge <- stringr::str_to_upper(coded$booklet_id)
-  if (anyDuplicated(coded[join_keys])) {
-    cli::cli_abort("{.arg coded} contains duplicate response keys. Supply one row per variable and unit occurrence.")
-  }
   ambiguous <- completed %>%
     dplyr::select(dplyr::all_of(join_keys)) %>%
     dplyr::filter(duplicated(.) | duplicated(., fromLast = TRUE)) %>%
@@ -231,29 +267,20 @@ complete_design <- function(coded,
   if (is.null(recode_omissions_to_not_reached)) {
     if (diagnostics != "none") {
       phase <- missing_progress_start("Summarising changes", enabled = progress)
-      report <- missing_change_report(before, completed, added = added, classified = FALSE)
+      report <- missing_change_report(before, completed, added = added, classified = FALSE,
+                                      detail = diagnostics == "full")
       missing_progress_done(phase)
       emit_missing_report(report, diagnostics, source = "complete_design")
     }
     return(completed)
   }
 
-  missing_policy <- match.arg(missing_policy)
-  settings <- missing_policy_settings(missing_policy, order_method, not_reached_scope,
-    recode_existing_not_reached, derived_not_reached,
-    use_variable_names_for_recoding, order_overrides, input_missings)
   completed <- completed %>%
     dplyr::select(-dplyr::any_of(c(
       "variable_order", "item_order", "order_group", "order_source", "item_order_source", "item_id",
       "position_group", "position_source", "item_position", "analysis_included",
       "box_position", "box_included", "box_is_item"
     )))
-  positions <- get_design_order(completed, prepared_units,
-                                order_overrides = order_overrides,
-                                item_selection = item_selection,
-                                order_method = settings$order_method,
-                                use_variable_names_for_recoding = use_variable_names_for_recoding,
-                                metadata = metadata, progress = progress)
   phase <- missing_progress_start("Classifying missings", enabled = progress)
   out <- recode_missings_impl(
     completed, prepared_units, positions = positions,
@@ -270,7 +297,8 @@ complete_design <- function(coded,
   if (diagnostics != "none") {
     phase <- missing_progress_start("Summarising changes", enabled = progress)
     report <- missing_change_report(before, out$data, added = added,
-                                    reasons = out$reasons, basis = out$basis)
+                                    reasons = out$reasons, basis = out$basis,
+                                    detail = diagnostics == "full")
     missing_progress_done(phase)
     emit_missing_report(report, diagnostics, source = "complete_design")
     emit_missing_policy_report(out)
@@ -281,12 +309,44 @@ complete_design <- function(coded,
 # Complete all active variables, propagating unit-level design columns while
 # retaining variable-specific design columns only on their original variables.
 complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
-                                 units = NULL, unknown_variables = "exclude") {
+                                 units = NULL, unknown_variables = "exclude",
+                                 validate = TRUE) {
   metadata_fields <- setdiff(names(metadata), c("unit_key", "variable_id"))
   design <- design %>%
     dplyr::select(-dplyr::any_of(c(
       metadata_fields, code_fields, "response_present", "id_used"
     )))
+  if (validate) complete_design_validate_design(design, metadata, occurrence_keys,
+                                                units, unknown_variables)
+  variable_keys <- c(occurrence_keys, "variable_id")
+  extra_columns <- setdiff(names(design), variable_keys)
+  variable_only <- grepl("^(variable_|item_|order_)", extra_columns)
+  unit_columns <- extra_columns[!variable_only & vapply(extra_columns, function(column) {
+    counts <- design %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(occurrence_keys))) %>%
+      dplyr::summarise(.count = dplyr::n_distinct(.data[[column]]),
+                       .groups = "drop")
+    all(counts$.count <= 1L)
+  }, logical(1))]
+  occurrences <- design %>%
+    dplyr::select(dplyr::all_of(c(occurrence_keys, unit_columns))) %>%
+    dplyr::distinct()
+  expanded <- occurrences %>%
+    dplyr::left_join(metadata, by = "unit_key", relationship = "many-to-many")
+  variable_columns <- setdiff(extra_columns, unit_columns)
+  if (length(variable_columns)) {
+    expanded <- expanded %>%
+      dplyr::left_join(
+        design %>% dplyr::select(dplyr::all_of(c(variable_keys, variable_columns))),
+        by = variable_keys, relationship = "one-to-one"
+      )
+  }
+  expanded
+}
+
+# Validate identities and exclusions before any person-by-variable expansion.
+complete_design_validate_design <- function(design, metadata, occurrence_keys,
+                                            units = NULL, unknown_variables = "exclude") {
   unknown_units <- setdiff(unique(design$unit_key), unique(metadata$unit_key))
   if (length(unknown_units)) {
     cli::cli_abort(c(
@@ -333,29 +393,7 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
       }
     }
   }
-  extra_columns <- setdiff(names(design), variable_keys)
-  variable_only <- grepl("^(variable_|item_|order_)", extra_columns)
-  unit_columns <- extra_columns[!variable_only & vapply(extra_columns, function(column) {
-    counts <- design %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(occurrence_keys))) %>%
-      dplyr::summarise(.count = dplyr::n_distinct(.data[[column]]),
-                       .groups = "drop")
-    all(counts$.count <= 1L)
-  }, logical(1))]
-  occurrences <- design %>%
-    dplyr::select(dplyr::all_of(c(occurrence_keys, unit_columns))) %>%
-    dplyr::distinct()
-  expanded <- occurrences %>%
-    dplyr::left_join(metadata, by = "unit_key", relationship = "many-to-many")
-  variable_columns <- setdiff(extra_columns, unit_columns)
-  if (length(variable_columns)) {
-    expanded <- expanded %>%
-      dplyr::left_join(
-        design %>% dplyr::select(dplyr::all_of(c(variable_keys, variable_columns))),
-        by = variable_keys, relationship = "one-to-one"
-      )
-  }
-  expanded
+  invisible(NULL)
 }
 
 # Confirm exclusions against the chosen cache, consulting the original scheme

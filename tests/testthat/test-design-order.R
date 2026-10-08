@@ -140,27 +140,30 @@ test_that("unconfirmed display ranks and element identifiers do not prove preced
                    matrix(FALSE, 0, 0))
 })
 
-test_that("confirming names rejects conflicts with known physical precedence", {
+test_that("confirming names warns and retains known physical precedence", {
   metadata <- eatPrepTBA:::design_order_metadata(
     order_test_units(c("V1", "V2"), page = c(2, 1))
   )
-  expect_error(eatPrepTBA:::design_order_precedence(
+  expect_warning(before <- eatPrepTBA:::design_order_precedence(
     metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
-  ), "unit.*U1.*V2.*V1")
-  expect_error(eatPrepTBA:::design_order_precedence(
-    metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
-  ), "order_overrides")
+  ), "Order conflict in unit.*U1")
+  expect_true(before[2, 1])
+  expect_false(before[1, 2])
 
   metadata$variable_page <- 1
   metadata$variable_section <- list(2, 1)
-  expect_error(eatPrepTBA:::design_order_precedence(
+  expect_warning(before <- eatPrepTBA:::design_order_precedence(
     metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
-  ), "conflicts with physical metadata")
+  ), "Retained structure")
+  expect_true(before[2, 1])
+  expect_false(before[1, 2])
   metadata$variable_section <- list(0, 0)
   metadata$variable_element <- list(2, 1)
-  expect_error(eatPrepTBA:::design_order_precedence(
+  expect_warning(before <- eatPrepTBA:::design_order_precedence(
     metadata, c(2L, 1L), use_variable_names_for_recoding = TRUE
-  ), "conflicts with physical metadata")
+  ), "Retained structure")
+  expect_true(before[2, 1])
+  expect_false(before[1, 2])
 })
 
 test_that("complete occurrence overrides establish precedence independently of names", {
@@ -358,8 +361,9 @@ test_that("VOMD positions ignore unrelated physical order and item selection", {
   structure <- eatPrepTBA:::get_design_order(order_test_design(), units, order_method = "structure")
   expect_identical(structure$variable_id, c("C", "B", "A"))
   expect_identical(structure$item_order, c(3L, 1L, 2L))
-  expect_error(eatPrepTBA:::get_design_order(order_test_design(), units,
-    order_method = "hybrid"), "VOMD order conflicts")
+  expect_warning(hybrid <- eatPrepTBA:::get_design_order(order_test_design(), units,
+    order_method = "hybrid"), "Order conflict")
+  expect_identical(hybrid$variable_id, c("C", "B", "A"))
 })
 
 test_that("shared hidden sources stay unlocated while direct mapped sources keep their anchor", {

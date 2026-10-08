@@ -3,7 +3,7 @@
 missing_change_report <- function(before, after,
                                   added = rep(FALSE, nrow(after)),
                                   reasons = rep(NA_character_, nrow(after)),
-                                  classified = TRUE, basis = NULL) {
+                                  classified = TRUE, basis = NULL, detail = TRUE) {
   checkmate::assert_data_frame(before)
   checkmate::assert_data_frame(after, nrows = nrow(before))
   fields <- c("code_type", "code_id", "code_score", "code_status")
@@ -13,6 +13,7 @@ missing_change_report <- function(before, after,
   checkmate::assert_character(reasons, len = nrow(after))
   checkmate::assert_subset(reasons[!is.na(reasons)], c("order", "sources"))
   checkmate::assert_flag(classified)
+  checkmate::assert_flag(detail)
   checkmate::assert_logical(basis, len = nrow(after), any.missing = FALSE,
                             null.ok = TRUE)
 
@@ -71,7 +72,9 @@ missing_change_report <- function(before, after,
   # Never carry person identifiers or response values into printed diagnostics.
   unit_keys <- intersect(c("booklet_id", "testlet_no", "unit_booklet_no",
                             "unit_key", "unit_alias"), names(after))
-  if (length(unit_keys)) {
+  if (!detail) {
+    by_unit <- tibble::tibble()
+  } else if (length(unit_keys)) {
     by_unit <- dplyr::bind_cols(tibble::as_tibble(after[unit_keys]), flags) %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(unit_keys))) %>%
       dplyr::summarise(dplyr::across(dplyr::all_of(names(flags)), sum),

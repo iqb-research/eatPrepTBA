@@ -15,6 +15,8 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   checkmate::assert_flag(recode_omissions_to_not_reached)
   checkmate::assert_flag(recode_existing_not_reached)
   checkmate::assert_flag(progress)
+  progress_session <- missing_progress_session_start(progress)
+  on.exit(missing_progress_session_done(progress_session), add = TRUE)
   not_reached_scope <- match.arg(not_reached_scope, c("unit", "testlet", "booklet"))
   derived_not_reached <- match.arg(derived_not_reached, c("recode", "preserve"))
   assert_cols(data, c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key",
@@ -27,15 +29,22 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   checkmate::assert_numeric(data$code_id)
   checkmate::assert_numeric(data$code_score)
   n <- nrow(data)
-  meta <- dplyr::left_join(data[c("unit_key", "variable_id")], metadata,
-                          by = c("unit_key", "variable_id"), relationship = "many-to-one")
-  source_type <- if ("variable_source_type" %in% names(meta)) as.character(meta$variable_source_type) else rep(NA_character_, n)
-  basis <- !is.na(source_type) & grepl("^(BASE|BASIS)", source_type)
-  if ("variable_level" %in% names(meta)) {
-    basis <- basis | (is.na(source_type) & !is.na(meta$variable_level) & meta$variable_level == 0)
+  # Keep source lists on the small static table. The person-expanded table
+  # needs only integer references, not a repeated copy of every metadata field.
+  metadata_keys <- metadata[c("unit_key", "variable_id")]
+  metadata_keys$.metadata_row <- seq_len(nrow(metadata))
+  metadata_row <- dplyr::left_join(data[c("unit_key", "variable_id")], metadata_keys,
+                                  by = c("unit_key", "variable_id"), relationship = "many-to-one")$.metadata_row
+  static_source_type <- if ("variable_source_type" %in% names(metadata)) as.character(metadata$variable_source_type) else rep(NA_character_, nrow(metadata))
+  static_basis <- !is.na(static_source_type) & grepl("^(BASE|BASIS)", static_source_type)
+  if ("variable_level" %in% names(metadata)) {
+    static_basis <- static_basis | (is.na(static_source_type) & !is.na(metadata$variable_level) & metadata$variable_level == 0)
   }
-  source_ids <- if ("source_ids" %in% names(meta)) meta$source_ids else meta$basis_sources
-  source_ids[basis] <- rep(list(character()), sum(basis))
+  source_type <- static_source_type[metadata_row]
+  basis <- static_basis[metadata_row] %in% TRUE
+  source_ids <- if ("source_ids" %in% names(metadata)) metadata$source_ids else metadata$basis_sources
+  source_ids[static_basis] <- rep(list(character()), sum(static_basis))
+  source_count <- lengths(source_ids)[metadata_row]
   included <- basis | if ("analysis_included" %in% names(data)) data$analysis_included %in% TRUE else rep(TRUE, n)
   present <- if ("response_present" %in% names(data)) data$response_present %in% TRUE else rep(TRUE, n)
   has_value <- if (is.list(data$value)) vapply(data$value, function(value) {
@@ -109,29 +118,47 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   local_sources <- vector("list", length(occurrence_rows))
   static_cache <- new.env(parent = emptyenv())
   static_fields <- intersect(c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias"), names(data))
+  occurrence_starts <- vapply(occurrence_rows, `[[`, integer(1), 1L)
+  static_keys <- data[occurrence_starts, static_fields, drop = FALSE]
+  static_keys$booklet_id <- toupper(static_keys$booklet_id)
+  static_ids <- dplyr::group_indices(dplyr::group_by(static_keys, dplyr::across(dplyr::everything())))
   unit_rank <- as.integer(dplyr::dense_rank(tibble::tibble(
     testlet_no = ifelse(is.na(data$testlet_no), Inf, data$testlet_no),
     unit_booklet_no = data$unit_booklet_no
   )))
   if (is.null(precedence)) precedence <- attr(data, "design_precedence")
+  # Standard precedence has the same occurrence keys throughout. Match it in
+  # one join; retain the original matching loop for partial/custom key sets.
+  indexed_precedence <- length(precedence) > 0L && all(vapply(precedence,
+    function(entry) identical(nrow(entry$keys), 1L) && setequal(names(entry$keys), static_fields) &&
+      all(vapply(static_fields, function(column) identical(class(entry$keys[[column]]),
+                                                          class(static_keys[[column]])), logical(1))), logical(1)))
+  if (indexed_precedence) {
+    precedence_keys <- dplyr::bind_rows(lapply(precedence, `[[`, "keys"))
+    precedence_keys$booklet_id <- toupper(precedence_keys$booklet_id)
+    precedence_keys$.precedence_row <- seq_along(precedence)
+    precedence_keys <- dplyr::distinct(precedence_keys, dplyr::across(dplyr::all_of(static_fields)), .keep_all = TRUE)
+    precedence_rows <- dplyr::left_join(static_keys, precedence_keys, by = static_fields,
+                                       relationship = "many-to-one")$.precedence_row
+  }
   progress_id <- missing_progress_start("Prepare source relationships", length(occurrence_rows), progress)
   on.exit(missing_progress_done(progress_id), add = TRUE)
   for (k in seq_along(occurrence_rows)) {
     rows <- occurrence_rows[[k]]
     ids <- data$variable_id[rows]
     if (anyDuplicated(ids)) cli::cli_abort("Duplicate variable occurrences in eatPrepTBA input.")
-    cache_key <- paste(c(vapply(static_fields, function(column) {
-      value <- data[[column]][[rows[[1L]]]]
-      if (column == "booklet_id") value <- toupper(value)
-      as.character(value)
-    }, character(1)), ids), collapse = "\r")
-    cached <- exists(cache_key, envir = static_cache, inherits = FALSE)
-    cached_order <- if (cached) get(cache_key, envir = static_cache, inherits = FALSE) else NULL
+    cache_key <- as.character(static_ids[[k]])
+    cache_entries <- if (exists(cache_key, envir = static_cache, inherits = FALSE))
+      get(cache_key, envir = static_cache, inherits = FALSE) else list()
+    cached_at <- which(vapply(cache_entries, function(entry) identical(entry$ids, ids), logical(1)))
+    cached <- length(cached_at) > 0L
+    cached_order <- if (cached) cache_entries[[cached_at[[1L]]]] else NULL
     before <- if (cached) cached_order$before else
       matrix(FALSE, length(rows), length(rows))
     known_order <- FALSE
     if (!cached && length(precedence)) {
-      for (entry in precedence) {
+      entries <- if (indexed_precedence) precedence[stats::na.omit(precedence_rows[[k]])] else precedence
+      for (entry in entries) {
         fields <- intersect(names(entry$keys), names(data))
         matches <- vapply(fields, function(column) {
           a <- entry$keys[[column]][[1L]]
@@ -157,19 +184,20 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
       }
     }
     if (!cached) {
-      source_indices <- lapply(source_ids[rows], match, table = ids)
+      source_indices <- lapply(source_ids[metadata_row[rows]], match, table = ids)
       basis_indices <- rep(list(integer()), length(rows))
       for (at in which(!basis[rows])) {
         i <- rows[[at]]
-        if (!isTRUE(meta$sources_known[[i]])) next
-        sources <- meta$basis_sources[[i]]
+        m <- metadata_row[[i]]
+        if (is.na(m) || !isTRUE(metadata$sources_known[[m]])) next
+        sources <- metadata$basis_sources[[m]]
         matched <- match(sources, ids)
         if (length(sources) && !anyNA(sources) && !anyNA(matched) && all(basis[rows[matched]])) {
           basis_indices[[at]] <- matched
         }
       }
-      cached_order <- list(before = before, sources = source_indices, bases = basis_indices)
-      assign(cache_key, cached_order, envir = static_cache)
+      cached_order <- list(ids = ids, before = before, sources = source_indices, bases = basis_indices)
+      assign(cache_key, c(cache_entries, list(cached_order)), envir = static_cache)
     }
     local_before[[k]] <- before
     local_sources[[k]] <- cached_order$sources
@@ -213,9 +241,12 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
     order_progress <- missing_progress_start("Find last reached positions", length(scope_rows), progress)
     on.exit(missing_progress_done(order_progress), add = TRUE)
     for (rows in scope_rows) {
-      missing_progress_update(order_progress)
       anchors <- rows[activity[rows]]
-      if (!length(anchors)) { tail[rows] <- TRUE; next }
+      if (!length(anchors)) {
+        tail[rows] <- TRUE
+        missing_progress_update(order_progress)
+        next
+      }
       last_unit <- max(unit_rank[anchors])
       before_work[rows[unit_rank[rows] < last_unit]] <- TRUE
       tail[rows[unit_rank[rows] > last_unit]] <- TRUE
@@ -232,6 +263,7 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
         tail[local_rows] <- colSums(relation[anchor_at, at, drop = FALSE]) == length(anchor_at)
       }
       before_work[anchors] <- TRUE
+      missing_progress_update(order_progress)
     }
     list(before = before_work, tail = tail)
   }
@@ -313,7 +345,7 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
         j <- rows[child]
         if (is.na(j)) return(list(state = "error", failure = "derived-source-unresolved", valid = FALSE, missing = TRUE))
         if (!basis[[j]] && !numeric_result[[j]] &&
-            !raw_types[[j]] %in% protected_process_types && length(source_ids[[j]])) {
+            !raw_types[[j]] %in% protected_process_types && isTRUE(source_count[[j]] > 0L)) {
           return(resolve_sources(child, c(path, at)))
         }
         list(state = states[[j]], failure = if (states[[j]] == "error") "derived-source-unresolved" else NA_character_,

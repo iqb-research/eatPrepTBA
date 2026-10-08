@@ -34,8 +34,8 @@ library(tidyr)
 
 Die Units müssen zur eingesetzten Testversion passen. `metadata = TRUE`
 liefert die Item-Verknüpfungen und deren VOMD-Reihenfolge. `unit_definition = TRUE`
-liefert zusätzlich die Seiteninformationen. Die Standardklassifikation verbindet
-die VOMD-Itemfolge und den Ableitungsbaum mit vorhandenen Strukturinformationen
+liefert zusätzlich die Seiteninformationen. Die Standardklassifikation priorisiert
+bekannte Seiten-/Elementpositionen und ergänzt passende Item- und Quellenbeziehungen
 (Hybridreihenfolge). Ohne zusätzliche Strukturinformationen bleiben die
 VOMD-/Quellenbeziehungen maßgeblich.
 
@@ -314,9 +314,10 @@ Der voreingestellte Unit-Scope ist dafür nicht erlaubt. `"testlet"` prüft je
 Testheftabschnitt; `"booklet"` würde das ganze Testheft betrachten.
 
 Die Box verwendet die VOMD-Reihenfolge und erhält vorhandene numerische
-Ableitungsergebnisse. eatPrepTBA ergänzt die Reihenfolge um Strukturinformationen
+Ableitungsergebnisse. eatPrepTBA gibt bekannten Seiten-/Elementpositionen Vorrang
 und prüft Ableitungen anhand ihrer Ausgangsantworten. Deshalb können sich die
-Ergebnisse beider Regelwerke unterscheiden.
+Ergebnisse beider Regelwerke unterscheiden. Die Itemliste kann von der
+tatsächlichen Seitenfolge abweichen; Box-Kompatibilität prüft das nicht.
 
 ### Mit dem gewählten Ergebnis weiterarbeiten
 
@@ -342,26 +343,24 @@ Der Status dokumentiert das ursprüngliche technische Ergebnis.
 |:--|:--|:--|
 | `missing_policy` | `"eatPrepTBA"`: Quellenprüfung auch bei vorhandenen Ableitungscodes | `"coding_box"`: vollständige Alternative nach Kodierbox-Referenzstand `39468e5`, mit Erhalt vorhandener numerischer Ableitungsergebnisse. |
 | `recode_omissions_to_not_reached` | `FALSE`: bestehende Auslassungen erhalten | `TRUE`: auch abschließende Auslassungen zu nicht erreicht ändern. `NULL`: nur fehlende Zeilen ergänzen, neue Kodierfelder `NA` lassen. |
-| `order_method` | `NULL`, effektiv `"hybrid"`: VOMD-Itemfolge und Quellenbaum, ergänzt um kompatible Unitstruktur | `"vomd"`: nur VOMD und Quellenbaum; `"structure"`: Unitstruktur verwenden. Im Kodierbox-Modus gilt `"vomd"`. |
+| `order_method` | `NULL`, effektiv `"hybrid"`: bekannte Seiten-/Elementfolge hat Vorrang; passende Itembeziehungen ergänzen sie | `"vomd"`: nur VOMD und Quellenbaum; `"structure"`: Unitstruktur verwenden. Im Kodierbox-Modus gilt `"vomd"`. |
 | `not_reached_scope` | `NULL`, effektiv `"testlet"` | `"unit"` oder `"booklet"`; im Kodierbox-Modus ist der Standard Unit. |
 | `recode_existing_not_reached` | `FALSE`: vorhandene numerische NR schützen | `TRUE`: bei gesicherter späterer Bearbeitung zu Omission korrigieren. |
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | `"preserve"`: vorhandene numerische Ableitungen erhalten; das allein ist kein vollständiger Kodierbox-Modus. |
 | `use_variable_names_for_recoding` | `FALSE`: Namen belegen keine Rekodierungsreihenfolge | `TRUE`: bestätigen, dass Namen auch die Bearbeitungsreihenfolge zuverlässig angeben. |
 
-**Zur Reihenfolge:** Standardmäßig bestimmt die VOMD-Itemliste die Itemfolge;
-der Quellenbaum ergänzt die benötigten Basisvariablen und Ableitungen.
-Die Hybridreihenfolge ergänzt kompatible Seiten- und Elementpositionen, etwa
-zwischen den Basisquellen desselben Items. Sie beschreibt die erwartete Folge;
-Zeitstempel gehen nicht ein. Für ausdrücklich dauerhaft sichtbare Seiten
-werden keine Strukturbeziehungen ergänzt. Ohne weitere Informationen beweist
-ein eindeutiger `variable_order` keine Reihenfolge innerhalb einer Itemgruppe.
-Eine dortige Omission bleibt bei beantworteten Gruppenmitgliedern erhalten.
-`order_method = "vomd"` verzichtet auf die Strukturergänzung. Widersprechen
-sich VOMD und Unitstruktur, bricht die Hybridbestimmung ab; eine geprüfte
-Reihenfolge kann mit `order_overrides` vorgegeben werden. Namen dürfen erst mit
-`use_variable_names_for_recoding = TRUE` eine analytische Reihenfolge belegen.
-Bei nicht belegter Reihenfolge bleiben Entscheidungen konservativ;
-neu ergänzte Zeilen können zunächst ohne Einordnung bleiben.
+**Zur Reihenfolge:** Geprüfte `order_overrides` haben Vorrang, danach bekannte
+Seiten-/Elementpositionen. Die Itemliste ergänzt nur passende Beziehungen.
+Widersprüche werden mit einer Warnung aufgelöst; Einzelheiten stehen in
+`attr(design_coded, "order_conflicts")`. Itemnummer und Variablenname müssen
+nicht der Seitenfolge entsprechen. Namen dürfen erst mit
+`use_variable_names_for_recoding = TRUE` zusätzliche Beziehungen belegen.
+Unklare Beziehungen werden nicht zur Rekodierung verwendet.
+
+Die Struktur beschreibt die erwartete Folge, keinen gemessenen Verlauf.
+Innerhalb einer Seite gilt weiterhin die Elementfolge; gleichzeitig sichtbare
+Elemente wurden deshalb nicht zwingend nacheinander bearbeitet. Dauerhaft
+sichtbare Seiten belegen keine physische Vorher-/Nachher-Beziehung.
 
 **Zu Ableitungen:** Basisvariablen sind direkte Antworten. Ableitungen werden
 aus anderen Variablen berechnet, zum Beispiel als Summe. Items einschließlich
@@ -391,6 +390,10 @@ Für einen Vergleich der Varianten am einfachsten jeweils bei `coded` beginnen.
 </details>
 
 ### Den Änderungsbericht prüfen
+
+In RGui erscheint bei `progress = TRUE` ein Fortschrittsfenster mit Arbeitsschritt,
+Zähler und Laufzeit. In interaktiven Sitzungen ist die Anzeige standardmäßig an.
+Sie ist unabhängig vom abschließenden Bericht.
 
 Der Standardbericht zählt neue Zeilen und Änderungen an vorhandenen Zeilen
 getrennt. Er zeigt die Änderungen dieses Aufrufs. Eine unveränderte Wiederholung

@@ -22,7 +22,7 @@ inputs <- read.csv(
                 code_type = "character", legacy_code_status = "character",
                 legacy_code_type = "character")
 ) |> tibble::as_tibble()
-stopifnot(nrow(inputs) == 55L, identical(unique(inputs$case_id), 1:13),
+stopifnot(nrow(inputs) == 67L, identical(unique(inputs$case_id), 1:15),
           !anyDuplicated(inputs[c("case_id", "unit_key", "variable_id")]))
 
 type_labels <- c(FULL_CREDIT = "A", MISSING_BY_OMISSION = "O",
@@ -58,9 +58,22 @@ make_fixture <- function(rows) {
       variable_element = seq_along(ids) - 1L,
       variable_page_always_visible = FALSE
     )
+    if (rows$case_id[[1L]] == 14L) codes$variable_page <- seq_along(ids)
+    if (rows$case_id[[1L]] == 15L) {
+      codes$variable_page <- c(1L, 2L, NA_integer_)
+      codes$variable_source_type <- c("BASE", "BASE", "SUM_CODE")
+      codes$variable_level <- c(0L, 0L, 1L)
+      codes$derive_sources <- list(character(), character(), "ref_V01")
+    }
+    items <- tibble::tibble(variable_id = ids,
+      item_id = paste0(key, "_", ids), item_no = seq_along(ids))
+    if (rows$case_id[[1L]] == 14L) {
+      items <- tibble::tibble(variable_id = ids[c(2, 4, 5, 6, 1, 3, 7, 8, 9)],
+        item_id = paste0(key, "_I", c("02", "03", "04", "05", "09", "11", "12", "13", "14")),
+        item_no = seq_along(ids))
+    }
     tibble::tibble(unit_key = key, unit_codes = list(codes),
-      items_list = list(tibble::tibble(variable_id = ids,
-        item_id = paste0(key, "_", ids), item_no = seq_along(ids))))
+      items_list = list(items))
   }))
   coded <- rows |> filter(response_present) |>
     select(unit_key, variable_id, value, code_status, code_id, code_type, code_score) |>
@@ -95,8 +108,10 @@ calculate <- function(rows) {
   fixture <- make_fixture(rows)
   lapply(names(configs), function(key) {
     lapply(variants[[key]], function(mode) {
-      result <- do.call(complete_design, c(fixture, configs[[key]], list(
-        recode_omissions_to_not_reached = mode, diagnostics = "none")))
+      result <- withCallingHandlers(
+        do.call(complete_design, c(fixture, configs[[key]], list(
+          recode_omissions_to_not_reached = mode, diagnostics = "none"))),
+        eatPrepTBA_order_conflict = function(w) invokeRestart("muffleWarning"))
       at <- match(paste(rows$unit_key, rows$variable_id),
                   paste(result$unit_key, result$variable_id))
       stopifnot(nrow(result) == nrow(rows), !anyNA(at))
@@ -181,7 +196,7 @@ details { margin: 1em 0; }
 summary { cursor: pointer; font-weight: bold; }
 </style>
 
-13 Fälle zeigen, wie `complete_design()` fehlende Antworten einordnet.
+15 Fälle zeigen, wie `complete_design()` fehlende Antworten einordnet.
 **Alte Version** bezeichnet **eatPrepTBA 0.9.8.9001**; die übrigen Spalten
 zeigen die Optionen von **eatPrepTBA `r as.character(packageVersion("eatPrepTBA"))`**.
 
@@ -235,10 +250,12 @@ Bei späterer Antwort in einer anderen Unit desselben Testlets zeigt
 Die letzten vier Spalten stehen jeweils unter **Weitere Optionen**.
 Breite Tabellen lassen sich seitlich scrollen. „Box Unit“ erlaubt nur FALSE.
 
-Alle Fälle verwenden eine Person, ein Testheft und direkte Antworten
-(Basisvariablen). VOMD- und Elementreihenfolge sind bekannt und stimmen überein.
-Ableitungs- und Reihenfolgeoptionen erzeugen hier keine Unterschiede.
-Diese Themen erklärt die [Missing-Vignette](missing-classification.html).
+Alle Fälle verwenden eine Person und ein Testheft. In Fall 1–13 liegen die
+Basisvariablen einer Unit auf derselben Seite; bekannte Element- und Itemfolge
+stimmen überein. Die Elementfolge ist hier eine Modellannahme, kein Zeitnachweis.
+[Fall 14](#beispiel-14) zeigt abweichende Seiten- und Itemfolgen,
+[Fall 15](#beispiel-15) eine Ableitung. Einzelheiten erklärt die
+[Missing-Vignette](missing-classification.html).
 
 <details>
 <summary>Beispielaufrufe</summary>
@@ -281,7 +298,9 @@ titles <- c(
   "NO_CODING im Versionsvergleich",
   "Eigenes Missing-Schema",
   "NR-Status ohne Code: spätere Antwort in derselben Unit",
-  "NR-Status ohne Code: spätere Antwort in einer anderen Unit"
+  "NR-Status ohne Code: spätere Antwort in einer anderen Unit",
+  "Seitenfolge und Itemliste widersprechen sich",
+  "Eine Ableitung hat eine andere Itemposition als ihre Quelle"
 )
 notes <- c(
   "V02 liegt vor der Antwort auf V03 und bleibt Auslassung. V04 liegt danach und wird nur mit TRUE zu NR. Vorhandene NR bleiben erhalten.",
@@ -296,7 +315,9 @@ notes <- c(
   "Die alte Version vergibt für NO_CODING **-94**, die aktuelle **-93**. Die Box lässt die analytischen Felder offen (†): Es fehlen ein numerisches Ergebnis und eine auflösbare Missing-Art. Der Status bleibt NO_CODING. Negative IDs können zwischen Versionen ihre Bedeutung ändern.",
   "eatPrepTBA verwendet das eigene Schema: V02 erhält mit FALSE -199 / O / 0, mit TRUE -196 / N / 0.5. Die alte Version ignorierte das Schema. Die Box übersetzt vorhandene Codes nicht: -99 passt nicht zum neuen Profil und bleibt mit Diagnose (†) erhalten. Die ergänzte V03 erhält auch dort -196 / N / 0.5; ihr Status bleibt NA.",
   "Wie [Fall 2](#beispiel-2), aber die NR-Zeilen enthalten noch keinen Code. V02 belegt spätere Bearbeitung in derselben Unit: Die Box vergibt für V01 sowohl bei Unit- als auch bei Testlet-Scope **-99 / O / 0**. V03 bleibt am Ende **-96 / N / NA**. Das gilt jeweils mit FALSE und, soweit erlaubt, TRUE.",
-  "Wie [Fall 3](#beispiel-3), aber die NR-Zeilen enthalten noch keinen Code. Für V03 ergibt die Box bei **Unit-Scope -96 / N / NA**, bei **Testlet-Scope -99 / O / 0**: V04 liegt später im selben Testlet. Die abschließenden V05 und V06 bleiben NR. FALSE und TRUE liefern hier dieselben Ergebnisse; Box Unit erlaubt nur FALSE."
+  "Wie [Fall 3](#beispiel-3), aber die NR-Zeilen enthalten noch keinen Code. Für V03 ergibt die Box bei **Unit-Scope -96 / N / NA**, bei **Testlet-Scope -99 / O / 0**: V04 liegt später im selben Testlet. Die abschließenden V05 und V06 bleiben NR. FALSE und TRUE liefern hier dieselben Ergebnisse; Box Unit erlaubt nur FALSE.",
+  "Die Seiten zeigen V01 bis V09 in dieser Reihenfolge. Die Itemliste ordnet dagegen V02, V04, V05, V06, V01, V03, V07, V08, V09. Nur V02 wurde beantwortet. **eatPrepTBA folgt den Seiten: V01 erhält -99 / O / 0. Die Box folgt der Itemliste: V01 erhält -96 / N / NA.** Der Hybridmodus meldet verworfene Beziehungen in `order_conflicts` und läuft weiter. Die hier unterdrückte Warnung erscheint beim normalen Aufruf.",
+  "V01 liegt auf Seite 1, V02 auf Seite 2. V03 wird aus V01 berechnet, steht in der Itemliste aber hinter V02. Die Hybridreihenfolge bewertet die Basisquellen zuerst; diese beiden Bedeutungen der Position erzeugen keinen künstlichen Konflikt mehr. V02 belegt spätere Bearbeitung nach V01, deshalb erhält V01 **-99 / O / 0**. Das vorhandene gültige Ergebnis von V03 bleibt erhalten."
 )
 
 stopifnot(length(titles) == length(cases), length(notes) == length(cases))

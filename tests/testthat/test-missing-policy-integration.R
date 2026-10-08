@@ -104,12 +104,14 @@ test_that("unknown-page work remains evidence across known unit boundaries", {
   expect_equal(out$code_score, c(0, 1))
 })
 
-test_that("confirmed names conflict explicitly and complete overrides resolve them", {
+test_that("confirmed names preserve physical order and complete overrides take precedence", {
   f <- policy_fixture(c("FULL_CREDIT", "MISSING_BY_OMISSION", "MISSING_NOT_REACHED"),
                        page = c(2L, NA_integer_, 1L))
-  expect_error(legacy_complete_design(f$coded, f$units, f$design,
+  expect_warning(safe <- legacy_complete_design(f$coded, f$units, f$design,
                                use_variable_names_for_recoding = TRUE, diagnostics = "none"),
-                "conflicts with physical metadata")
+                "Order conflict")
+  expect_equal(safe$code_type, c("FULL_CREDIT", "MISSING_BY_OMISSION", "MISSING_BY_OMISSION"))
+  expect_equal(safe$code_score, c(1, 0, 0))
   override <- tibble::tibble(unit_key = "U1", variable_id = c("V1", "V2", "V3"), local_order = 1:3)
   out <- legacy_complete_design(f$coded, f$units, f$design, order_overrides = override,
                           use_variable_names_for_recoding = TRUE,

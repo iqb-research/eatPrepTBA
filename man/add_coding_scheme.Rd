@@ -19,7 +19,9 @@ add_coding_scheme(
 \item{overwrite}{Logical. Should potentially existing \code{unit_codes} be overwritten? Defaults to \code{FALSE}.}
 
 \item{progress}{Logical. Show progress while preparing coding schemes?
-Defaults to \code{TRUE}; display is handled by \code{cli}.}
+Defaults to \code{TRUE}. RGui uses one Windows progress window; other
+environments receive throttled console updates. Counts and elapsed time
+refer to the named preparation step.}
 }
 \value{
 A tibble.

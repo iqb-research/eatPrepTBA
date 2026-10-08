@@ -4,7 +4,9 @@
 #' @param filter_has_codes Logical. Only returns variables that were not deactivated. Defaults to `TRUE`.
 #' @param overwrite Logical. Should potentially existing `unit_codes` be overwritten? Defaults to `FALSE`.
 #' @param progress Logical. Show progress while preparing coding schemes?
-#'   Defaults to `TRUE`; display is handled by `cli`.
+#'   Defaults to `TRUE`. RGui uses one Windows progress window; other
+#'   environments receive throttled console updates. Counts and elapsed time
+#'   refer to the named preparation step.
 #'
 #' @description
 #' Returns the `units` object with added column `unit_codes`. The routine can also propose variable pages if [get_units()] was called with `unit_definition = TRUE`. Please note that no other operation except for filtering or `add_metadata()` should be applied to the `units`.
@@ -19,6 +21,8 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
   checkmate::assert_logical(filter_has_codes, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_flag(progress)
+  progress_session <- missing_progress_session_start(progress)
+  on.exit(missing_progress_session_done(progress_session), add = TRUE)
 
   # Conserve attributes
   unit_attributes <- attributes(units)
@@ -40,6 +44,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
   }
 
   if (length(unit_keys) > 0) {
+    coding_progress <- missing_progress_start("Preparing coding schemes", length(unit_keys), progress)
     units_coding <-
       units %>%
       dplyr::select(
@@ -56,18 +61,10 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
       # dplyr::slice(9) %>%  #%>% .$coding_scheme %>% .[[1]] -> coding_scheme
       dplyr::mutate(
         coding_scheme = purrr::imap(coding_scheme, function(coding_scheme, i) {
-          # print(i)
-          prepare_coding_scheme(coding_scheme, filter_has_codes = filter_has_codes)
-        },
-        .progress = if (progress) list(
-          type ="custom",
-          extra = list(
-            unit_keys = pad_ids(unit_keys)
-          ),
-          format = "Preparing coding scheme for {.unit-key {cli::pb_extra$unit_keys[cli::pb_current+1]}} ({cli::pb_current}/{cli::pb_total}): {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}",
-          format_done = "Prepared {cli::pb_total} coding scheme{?s} in {cli::pb_elapsed}.",
-          clear = FALSE
-        ) else FALSE)
+          prepared <- prepare_coding_scheme(coding_scheme, filter_has_codes = filter_has_codes)
+          missing_progress_update(coding_progress, status = unit_keys[[i]])
+          prepared
+        })
       ) %>%
       tidyr::unnest(coding_scheme) %>%
       tidyr::nest(
@@ -77,6 +74,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
           "rule_set_no", "rule_set_operator", "rule_set_array_position",
           "rule_operator", "rule_fragment_position", "rule_method", "rule_parameter"))
       )
+    missing_progress_done(coding_progress)
 
     if (nrow(units_coding) == 0L) {
       units_return <-
@@ -93,6 +91,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
     }
 
     # Derive sources from coding scheme
+    source_progress <- missing_progress_start("Connecting variable sources", enabled = progress)
     units_ds <-
       units_coding %>%
       dplyr::select(
@@ -190,7 +189,9 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
           "variable_source_page_always_visible")))
     }
 
+    missing_progress_done(source_progress)
     # Add unit variables
+    metadata_progress <- missing_progress_start("Joining variable metadata", enabled = progress)
     units_uv <-
       units %>%
       dplyr::distinct(
@@ -251,6 +252,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
     add_attributes <- setdiff(names(unit_attributes), names(attributes(units_return)))
     attributes(units_return) <- c(attributes(units_return), unit_attributes[add_attributes])
 
+    missing_progress_done(metadata_progress)
     return(units_return)
   } else {
     units

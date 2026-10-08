@@ -15,7 +15,8 @@ recode_missings <- function(data, units, positions = NULL,
     missing_policy, order_method, not_reached_scope,
     recode_existing_not_reached, derived_not_reached, input_missings)
   if (diagnostics != "none") {
-    report <- missing_change_report(data, out$data, reasons = out$reasons, basis = out$basis)
+    report <- missing_change_report(data, out$data, reasons = out$reasons, basis = out$basis,
+                                    detail = diagnostics == "full")
     emit_missing_report(report, diagnostics, source = "recode_missings")
     emit_missing_policy_report(out)
   }
@@ -127,6 +128,8 @@ recode_missings_impl <- function(data, units, positions = NULL,
   checkmate::assert_tibble(positions, null.ok = TRUE)
   checkmate::assert_character(identifiers, any.missing = FALSE, min.len = 1L)
   checkmate::assert_flag(recode_omissions_to_not_reached)
+  progress_session <- missing_progress_session_start(progress)
+  on.exit(missing_progress_session_done(progress_session), add = TRUE)
   settings <- missing_policy_settings(missing_policy, order_method, not_reached_scope,
     recode_existing_not_reached, derived_not_reached, use_variable_names_for_recoding,
     input_missings = input_missings)
@@ -151,6 +154,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   assert_cols(positions, c(design_keys, "variable_order"), "positions")
   precedence <- attr(positions, "design_precedence", exact = TRUE)
   unresolved <- attr(positions, "vomd_unresolved", exact = TRUE)
+  order_conflicts <- attr(positions, "order_conflicts", exact = TRUE)
   if (settings$missing_policy == "coding_box" && !is.null(unresolved) && nrow(unresolved)) {
     cli::cli_abort("The coding_box policy cannot resolve {nrow(unresolved)} VOMD item mappings to active coding variables. Correct the metadata first.")
   }
@@ -191,8 +195,10 @@ recode_missings_impl <- function(data, units, positions = NULL,
     (is.na(metadata$variable_source_type) & metadata$variable_level %in% 0), c("unit_key", "variable_id")]
   occurrence_rows <- dplyr::group_rows(dplyr::group_by(keys,
     dplyr::across(dplyr::all_of(setdiff(names(keys), "variable_id")))))
+  bases_by_unit <- split(bases$variable_id, as.character(bases$unit_key))
   for (rows in occurrence_rows) {
-    missing_bases <- setdiff(bases$variable_id[bases$unit_key == result$unit_key[rows[1]]], result$variable_id[rows])
+    missing_bases <- setdiff(bases_by_unit[[as.character(result$unit_key[rows[1]])]],
+                             result$variable_id[rows])
     if (length(missing_bases)) cli::cli_abort("The complete data table is missing expected basis variables {missing_bases}; classify before filtering to items.")
   }
   profile <- missing_output_profile(missings)
@@ -213,6 +219,11 @@ recode_missings_impl <- function(data, units, positions = NULL,
   attr(out$data, "missing_policy") <- settings
   attr(out$data, "missing_diagnostics") <- tibble::tibble(row = seq_len(nrow(out$data)), reason = out$diagnostics)
   attr(out$data, "vomd_unresolved") <- unresolved
+  if (!is.null(order_conflicts) && nrow(order_conflicts)) {
+    attr(out$data, "order_conflicts") <- order_conflicts
+  } else {
+    attr(out$data, "order_conflicts") <- NULL
+  }
   out$settings <- settings
   out
 }

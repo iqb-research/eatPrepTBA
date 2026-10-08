@@ -85,7 +85,9 @@ The latter reproduces the Coding Box item resolver at commit
 
 \item{order_method}{\code{NULL} selects \code{"hybrid"} for eatPrepTBA and \code{"vomd"}
 for Coding Box. Explicit alternatives are \code{"vomd"}, \code{"structure"} (unit
-pages and elements), or \code{"hybrid"} (consistent VOMD and structure constraints).
+pages and elements), or \code{"hybrid"} (physical order first, supplemented by
+compatible VOMD relationships). Conflicting lower-priority relationships
+are discarded with a warning and recorded in \code{order_conflicts}.
 Always-visible pages do not establish physical before/after relations.
 Coding Box requires VOMD and does not permit overrides or trusted names.}
 
@@ -115,7 +117,9 @@ are retained. Use \code{"error"} to stop instead and check unexpected difference
 Units without any active variable metadata still cause an error.}
 
 \item{progress}{Logical. Show progress for preparation, completion, ordering,
-and missing classification? Defaults to \code{interactive()}. Independent of
+and missing classification? Defaults to \code{interactive()}. RGui uses one
+Windows progress window; other sessions use throttled console updates.
+Counts refer to the current phase; elapsed times are measured. Independent of
 \code{diagnostics}, which controls the final change report.}
 }
 \value{
@@ -124,6 +128,8 @@ With \code{FALSE} or \code{TRUE}, also includes \code{variable_order}, \code{ite
 \code{order_group}, \code{order_source}, \code{position_group}, \code{position_source}, and
 the original analytical input fields. Attributes \code{missing_policy} and
 \code{missing_diagnostics} record effective options and row-aligned diagnostics.
+When ordering conflicts were resolved, \code{order_conflicts} records the
+rejected relations and their metadata sources.
 }
 \description{
 Completes coded responses with the expected variables of each booklet.

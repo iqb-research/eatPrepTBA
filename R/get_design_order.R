@@ -14,7 +14,8 @@
 #'   variable positions remain those of the complete design.
 #' @param order_method Internal ordering policy: `"vomd"` uses Studio item
 #'   list positions and source dependencies, `"structure"` uses unit positions,
-#'   and `"hybrid"` supplements VOMD with compatible structural relationships.
+#'   and `"hybrid"` supplements physical positions with compatible VOMD
+#'   relationships. Complete overrides take precedence over either source.
 #' @param use_variable_names_for_recoding Whether names may resolve otherwise
 #'   unknown relationships. Names always provide deterministic display ranks.
 #'
@@ -26,7 +27,11 @@
 #' Studio `item_order` property. Unique hidden sources share their owning item's
 #' group; shared or unassigned sources remain unlocated within the unit.
 #' Structure mode uses pages and numeric section/element paths. Hybrid mode
-#' supplements VOMD relations and reports contradictory structural metadata.
+#' retains those relations and supplements them with compatible item positions.
+#' Contradictory lower-priority relationships are discarded with one warning per
+#' unit and recorded in the `order_conflicts` attribute. Names never reverse
+#' known positions, even when enabled. Derived presentation anchors come from
+#' their basis sources; their own item-list positions are kept separately.
 #' Derived variables follow their sources in the deterministic display order.
 #'
 #' `variable_order` is a unique, consecutive integer within each booklet.
@@ -51,6 +56,8 @@ get_design_order <- function(design, units, overwrite = FALSE,
                              metadata = NULL, progress = FALSE) {
   order_method <- match.arg(order_method)
   checkmate::assert_flag(use_variable_names_for_recoding)
+  progress_session <- missing_progress_session_start(progress)
+  on.exit(missing_progress_session_done(progress_session), add = TRUE)
   occurrence_keys <- c("booklet_id", "testlet_no", "unit_booklet_no",
                        "unit_key", "unit_alias")
   assert_cols(design, occurrence_keys, "design")
@@ -92,6 +99,7 @@ get_design_order <- function(design, units, overwrite = FALSE,
   overrides <- design_order_validate_overrides(order_overrides, occurrences, metadata)
   tables <- vector("list", nrow(occurrences))
   precedence <- vector("list", nrow(occurrences))
+  conflicts <- vector("list", nrow(occurrences))
   position_cache <- new.env(parent = emptyenv())
   ordering_progress <- missing_progress_start("Ordering units", nrow(occurrences), progress)
   for (i in seq_len(nrow(occurrences))) {
@@ -110,6 +118,7 @@ get_design_order <- function(design, units, overwrite = FALSE,
     precedence[[i]] <- list(keys = occurrence,
                             variable_ids = current$variable_id,
                             before = attr(current, "before"))
+    conflicts[[i]] <- attr(current, "order_conflicts", exact = TRUE)
     keys <- occurrence[rep(1L, nrow(current)), , drop = FALSE]
     tables[[i]] <- dplyr::bind_cols(keys, current[setdiff(names(current), "unit_key")])
     missing_progress_update(ordering_progress)
@@ -148,6 +157,9 @@ get_design_order <- function(design, units, overwrite = FALSE,
   out <- design_order_items(out, item_selection)
   attr(out, "design_precedence") <- precedence
   attr(out, "vomd_unresolved") <- unresolved_items
+  conflicts <- dplyr::distinct(dplyr::bind_rows(design_order_empty_conflicts(), conflicts))
+  attr(out, "order_conflicts") <- conflicts
+  design_order_warn_conflicts(conflicts)
   out
 }
 
@@ -206,55 +218,7 @@ design_order_metadata <- function(units, overwrite = FALSE, progress = FALSE) {
   raw <- raw[is.na(raw$variable_source_type) | raw$variable_source_type != "BASE_NO_VALUE", , drop = FALSE]
   if (!nrow(raw)) return(design_order_empty_metadata())
   raw$variable_ref <- dplyr::coalesce(as.character(raw$variable_ref), raw$variable_id)
-  groups <- dplyr::group_split(dplyr::group_by(raw, .data$unit_key, .data$variable_id))
-  metadata_progress <- missing_progress_start("Variable metadata", length(groups), progress)
-  merged <- purrr::map(groups, function(group) {
-    missing_progress_update(metadata_progress)
-    scalar <- function(column, unknown = NA) {
-      values <- unique(group[[column]][!is.na(group[[column]])])
-      if (length(values) == 1L) values[[1L]] else unknown
-    }
-    for (column in c("variable_ref", "variable_source_type", "variable_level")) {
-      if (length(unique(stats::na.omit(group[[column]]))) > 1L) {
-        cli::cli_abort("Conflicting {.field {column}} for unit/variable {group$unit_key[[1L]]} / {group$variable_id[[1L]]}.")
-      }
-    }
-    refs <- character()
-    if ("derive_sources" %in% names(group)) {
-      refs <- as.character(unlist(group$derive_sources, use.names = FALSE))
-    }
-    if (!length(refs) && "variable_sources" %in% names(group)) {
-      sources <- dplyr::bind_rows(group$variable_sources)
-      if (nrow(sources)) {
-        if ("variable_source_direct" %in% names(sources) && any(sources$variable_source_direct %in% TRUE)) {
-          sources <- sources[sources$variable_source_direct %in% TRUE, , drop = FALSE]
-        }
-        if ("variable_source_ref" %in% names(sources)) {
-          refs <- as.character(sources$variable_source_ref)
-        } else if ("variable_source_id" %in% names(sources)) {
-          # Alias-only legacy metadata is resolved explicitly in the unit graph.
-          refs <- paste0(".alias:", as.character(sources$variable_source_id))
-        }
-      }
-    }
-    refs <- unique(refs[!is.na(refs) & nzchar(refs) & refs != ".alias:NA"])
-    path <- function(column) {
-      values <- unique(lapply(seq_len(nrow(group)), function(i) group[[column]][[i]]))
-      values <- Filter(function(value) length(value) && !all(is.na(value)), values)
-      if (length(values) == 1L) values[[1L]] else NA_integer_
-    }
-    tibble::tibble(unit_key = group$unit_key[[1L]], variable_id = group$variable_id[[1L]],
-                   variable_ref = as.character(scalar("variable_ref", NA_character_)),
-                   variable_source_type = as.character(scalar("variable_source_type", NA_character_)),
-                   variable_level = as.integer(scalar("variable_level", NA_integer_)),
-                   variable_page = suppressWarnings(as.numeric(scalar("variable_page", NA_real_))),
-                   variable_section = list(path("variable_section")),
-                   variable_element = list(path("variable_element")),
-                   variable_page_always_visible = as.logical(scalar("variable_page_always_visible")),
-                   .source_refs = list(refs))
-  })
-  out <- dplyr::bind_rows(merged)
-  missing_progress_done(metadata_progress)
+  out <- design_order_metadata_merge(raw, progress = progress)
   out$source_ids <- vector("list", nrow(out))
   out$basis_sources <- vector("list", nrow(out))
   out$sources_known <- rep(FALSE, nrow(out))
@@ -405,127 +369,296 @@ design_order_vomd_metadata <- function(metadata, units) {
 # never itself proof that it follows those sources physically.
 design_order_expand_precedence <- function(metadata, basis_before) {
   basis <- which(design_order_is_base(metadata))
-  leaves <- lapply(seq_len(nrow(metadata)), function(i) {
-    if (i %in% basis) return(match(i, basis))
+  if (length(basis) == nrow(metadata)) return(basis_before)
+  derived <- setdiff(seq_len(nrow(metadata)), basis)
+  leaves <- lapply(derived, function(i) {
     if (!metadata$sources_known[[i]]) return(integer())
-    match(metadata$basis_sources[[i]], metadata$variable_id[basis])
+    at <- match(metadata$basis_sources[[i]], metadata$variable_id[basis])
+    if (anyNA(at)) integer() else unique(at)
   })
   before <- matrix(FALSE, nrow(metadata), nrow(metadata))
-  for (i in seq_len(nrow(metadata))) for (j in seq_len(nrow(metadata))) {
-    if (i == j || !length(leaves[[i]]) || !length(leaves[[j]]) ||
-        anyNA(leaves[[i]]) || anyNA(leaves[[j]])) next
-    before[i, j] <- all(vapply(leaves[[i]], function(source) {
-      any(basis_before[source, leaves[[j]]])
-    }, logical(1)))
+  before[basis, basis] <- basis_before
+  # First locate every target relative to the bases. Then a derived variable
+  # precedes a target only if each of its sources precedes that target. This
+  # avoids a per-pair R callback for the overwhelmingly common base/base case.
+  for (j in which(lengths(leaves) > 0L)) {
+    before[basis, derived[[j]]] <- rowSums(basis_before[, leaves[[j]], drop = FALSE]) > 0L
   }
+  for (i in which(lengths(leaves) > 0L)) {
+    before[derived[[i]], ] <- colSums(before[basis[leaves[[i]]], , drop = FALSE]) == length(leaves[[i]])
+  }
+  diag(before) <- FALSE
   before
 }
 
-design_order_transitive <- function(before, unit_key) {
-  if (nrow(before)) for (k in seq_len(nrow(before))) {
-    before <- before | outer(before[, k], before[k, ], `&`)
+# A topological sort also detects cycles without constructing all paths.
+design_order_topological <- function(before, priority = seq_len(nrow(before))) {
+  n <- nrow(before)
+  pending <- rep(TRUE, n)
+  predecessors <- colSums(before)
+  emitted <- integer(n)
+  count <- 0L
+  while (count < n) {
+    available <- which(pending & predecessors == 0L)
+    if (!length(available)) break
+    i <- available[[which.min(priority[available])]]
+    count <- count + 1L
+    emitted[[count]] <- i
+    pending[[i]] <- FALSE
+    predecessors <- predecessors - before[i, ]
   }
-  if (any(diag(before))) {
-    cli::cli_abort("VOMD order conflicts with physical metadata or variable-name order in unit {unit_key}. Use explicit {.arg order_overrides} to resolve the conflict.")
+  emitted[seq_len(count)]
+}
+
+# Build a DAG's closure a row at a time. In a dense sequential order the first
+# successor already contains the whole remaining suffix; do not re-union it
+# once for every descendant or allocate an n-by-n outer product at every node.
+design_order_transitive <- function(before, unit_key, topological = NULL) {
+  if (is.null(topological)) topological <- design_order_topological(before)
+  if (length(topological) != nrow(before)) {
+    cli::cli_abort("Conflicting trusted ordering metadata in unit {unit_key}.")
   }
-  before
+  result <- matrix(FALSE, nrow(before), ncol(before))
+  for (i in rev(topological)) {
+    pending <- topological[before[i, topological]]
+    while (length(pending)) {
+      next_node <- pending[[1L]]
+      result[i, ] <- result[i, ] | result[next_node, ]
+      result[i, next_node] <- TRUE
+      pending <- pending[!result[i, pending]]
+    }
+  }
+  result
+}
+
+# Iterative Tarjan traversal: large units must not exhaust R's recursion stack.
+design_order_components <- function(before) {
+  n <- nrow(before)
+  adjacent <- lapply(seq_len(n), function(i) which(before[i, ]))
+  index <- low <- component <- parent <- integer(n)
+  cursor <- rep(1L, n)
+  on_stack <- rep(FALSE, n)
+  stack <- integer(n)
+  depth <- clock <- components <- 0L
+  for (root in seq_len(n)) {
+    if (index[[root]]) next
+    current <- root
+    repeat {
+      if (!index[[current]]) {
+        clock <- clock + 1L
+        index[[current]] <- low[[current]] <- clock
+        depth <- depth + 1L
+        stack[[depth]] <- current
+        on_stack[[current]] <- TRUE
+      }
+      children <- adjacent[[current]]
+      if (cursor[[current]] <= length(children)) {
+        child <- children[[cursor[[current]]]]
+        cursor[[current]] <- cursor[[current]] + 1L
+        if (!index[[child]]) {
+          parent[[child]] <- current
+          current <- child
+        } else if (on_stack[[child]]) {
+          low[[current]] <- min(low[[current]], index[[child]])
+        }
+        next
+      }
+      if (low[[current]] == index[[current]]) {
+        components <- components + 1L
+        repeat {
+          child <- stack[[depth]]
+          depth <- depth - 1L
+          on_stack[[child]] <- FALSE
+          component[[child]] <- components
+          if (child == current) break
+        }
+      }
+      predecessor <- parent[[current]]
+      if (!predecessor) break
+      low[[predecessor]] <- min(low[[predecessor]], low[[current]])
+      current <- predecessor
+    }
+  }
+  component
+}
+
+design_order_empty_conflicts <- function() {
+  tibble::tibble(unit_key = character(), before_variable_id = character(),
+    after_variable_id = character(), discarded_source = character(),
+    retained_source = character(), reason = character())
+}
+
+# Apply one complete priority tier at once. When several lower-priority edges
+# jointly form a cycle, drop ALL edges from that tier within the component.
+# Greedily accepting them one by one would make results depend on row order.
+design_order_add_priority <- function(higher, lower, metadata, source, retained) {
+  lower <- lower & !higher
+  conflicts <- design_order_empty_conflicts()
+  if (!any(lower)) return(list(before = higher, added = lower, conflicts = conflicts))
+  combined <- higher | lower
+  sorted <- design_order_topological(combined)
+  if (length(sorted) != nrow(combined)) {
+    components <- design_order_components(combined)
+    rejected <- lower & outer(components, components, `==`)
+    pairs <- which(rejected, arr.ind = TRUE)
+    conflicts <- tibble::tibble(
+      unit_key = rep(metadata$unit_key[[1L]], nrow(pairs)),
+      before_variable_id = metadata$variable_id[pairs[, 1L]],
+      after_variable_id = metadata$variable_id[pairs[, 2L]],
+      discarded_source = rep(source, nrow(pairs)),
+      retained_source = rep(retained, nrow(pairs)),
+      reason = ifelse(higher[cbind(pairs[, 2L], pairs[, 1L])],
+        "contradicts_higher_priority", "indirect_cycle"))
+    lower[rejected] <- FALSE
+    combined <- higher | lower
+    sorted <- design_order_topological(combined)
+  }
+  list(before = design_order_transitive(combined, metadata$unit_key[[1L]], sorted),
+    added = lower, conflicts = conflicts)
+}
+
+design_order_warn_conflicts <- function(conflicts) {
+  for (key in unique(conflicts$unit_key)) {
+    current <- conflicts[conflicts$unit_key == key, , drop = FALSE]
+    examples <- paste0(current$before_variable_id, " -> ", current$after_variable_id)
+    examples <- paste(utils::head(examples, 3L), collapse = ", ")
+    discarded <- paste(unique(current$discarded_source), collapse = "/")
+    retained <- paste(unique(current$retained_source), collapse = "/")
+    cli::cli_warn(c(
+      "Order conflict in unit {.val {key}}: ignored {nrow(current)} lower-priority {discarded} relationship{?s} ({examples}).",
+      "i" = "Retained {retained} relationships; unresolved pairs are not used for NR recoding. Inspect {.code attr(result, 'order_conflicts')}."
+    ), class = "eatPrepTBA_order_conflict")
+  }
+  invisible(NULL)
 }
 
 design_order_position_unit <- function(metadata, override, method, use_names) {
-  base <- which(design_order_is_base(metadata))
+  is_base <- design_order_is_base(metadata)
+  base <- which(is_base)
   n <- nrow(metadata)
   raw <- metadata
+  basis <- raw[base, , drop = FALSE]
+  conflicts <- design_order_empty_conflicts()
   group <- raw$box_position
   source <- ifelse(raw$box_is_item, "vomd_item",
                     ifelse(raw$box_included, "vomd_source", "unit_only"))
-  vomd <- outer(group, group, `<`)
-  vomd[is.na(vomd)] <- FALSE
-  physical <- design_order_precedence(raw[base, , drop = FALSE], seq_along(base))
-  structural <- design_order_expand_precedence(raw, physical)
   if (!is.null(override)) {
     out <- design_order_unit(raw, override)
     ranks <- override$local_order[match(raw$variable_id[base], override$variable_id)]
     before <- design_order_expand_precedence(raw, outer(ranks, ranks, `<`))
     group <- out$order_group[match(raw$variable_id, out$variable_id)]
     source[] <- "override"
-  } else if (method == "structure") {
-    out <- design_order_unit(raw)
-    before <- structural
-    group <- out$order_group[match(raw$variable_id, out$variable_id)]
-    source <- out$order_source[match(raw$variable_id, out$variable_id)]
-    # No page/path means no intra-unit location, even if names supply a rank.
-    located <- !is.na(raw$variable_page) & is.finite(raw$variable_page) & raw$variable_page >= 0
-    group[!located & design_order_is_base(raw)] <- NA_real_
-    if (use_names) {
-      named <- design_order_precedence(raw[base, , drop = FALSE], seq_along(base),
-                                        use_variable_names_for_recoding = TRUE)
-      before <- design_order_expand_precedence(raw, named)
-      group[base] <- design_order_natural_rank(raw$variable_id[base])
-      source[base] <- "naming_trusted"
-    }
   } else {
-    before <- vomd
-    if (method == "hybrid") {
-      before <- design_order_transitive(before | structural, raw$unit_key[[1L]])
-      supplemented <- rowSums(structural & !vomd) + colSums(structural & !vomd) > 0L
-      source[supplemented] <- ifelse(is.na(group[supplemented]), "structure", "vomd_structure")
+    if (method == "vomd") {
+      # Box presentation positions intentionally remain independent of pages.
+      before <- outer(group, group, `<`)
+      before[is.na(before)] <- FALSE
+      basis_before <- before[base, base, drop = FALSE]
+    } else {
+      # Resolve competing evidence only among bases. Combining a derived item's
+      # own VOMD anchor with its source anchor creates artificial contradictions.
+      basis_before <- design_order_precedence(basis, seq_along(base))
+      source <- ifelse(is_base, "unit_only", "derived_sources")
+      located <- is.finite(basis$variable_page) & basis$variable_page >= 0 &
+        !basis$variable_page_always_visible %in% TRUE
+      source[base[located]] <- "structure"
+      if (method == "hybrid") {
+        vomd <- outer(basis$box_position, basis$box_position, `<`)
+        vomd[is.na(vomd)] <- FALSE
+        merged <- design_order_add_priority(basis_before, vomd, basis, "vomd", "structure")
+        basis_before <- merged$before
+        conflicts <- dplyr::bind_rows(conflicts, merged$conflicts)
+        supplemented <- base[rowSums(merged$added) + colSums(merged$added) > 0L]
+        source[supplemented] <- ifelse(source[supplemented] == "structure", "structure_vomd", "vomd")
+      }
     }
     if (use_names && length(base)) {
       naming <- design_order_natural_rank(raw$variable_id[base])
-      known <- before[base, base, drop = FALSE]
-      eligible <- !known & !t(known)
-      named <- outer(naming, naming, `<`) & eligible
-      before <- design_order_transitive(before | design_order_expand_precedence(raw, named), raw$unit_key[[1L]])
-      named_ids <- base[rowSums(named) + colSums(named) > 0L]
+      merged <- design_order_add_priority(basis_before, outer(naming, naming, `<`),
+        basis, "naming", if (method == "structure") "structure" else if (method == "hybrid") "structure/vomd" else "vomd")
+      basis_before <- merged$before
+      conflicts <- dplyr::bind_rows(conflicts, merged$conflicts)
+      named_ids <- base[rowSums(merged$added) + colSums(merged$added) > 0L]
       source[named_ids] <- paste0(source[named_ids], "_naming_trusted")
+      if (method == "vomd") {
+        # Preserve explicit VOMD semantics, including mapped derivations. New
+        # name relations are accepted only if they also fit these anchors.
+        expanded <- design_order_expand_precedence(raw, merged$added)
+        mapped <- design_order_add_priority(before, expanded, raw, "naming", "vomd")
+        before <- mapped$before
+        conflicts <- dplyr::bind_rows(conflicts, mapped$conflicts)
+      }
+    }
+    if (method != "vomd") {
+      before <- design_order_expand_precedence(raw, basis_before)
+      group <- rep(NA_real_, n)
+      known <- rowSums(basis_before) + colSums(basis_before) > 0L | located
+      if (method == "hybrid") known <- known | basis$box_included
+      group[base[known]] <- colSums(basis_before)[known] + 1
+      for (i in which(!is_base)) {
+        leaves <- match(raw$basis_sources[[i]], raw$variable_id)
+        if (raw$sources_known[[i]] && length(leaves) && !anyNA(leaves) && !anyNA(group[leaves])) {
+          group[[i]] <- max(group[leaves])
+        } else if (!raw$sources_known[[i]]) {
+          source[[i]] <- "derived_unresolved"
+        }
+      }
+    }
+    if (method == "structure") {
+      # Keep structural display provenance and equal-position groups stable.
+      out <- design_order_unit(raw)
+      group <- out$order_group[match(raw$variable_id, out$variable_id)]
+      structural_source <- out$order_source[match(raw$variable_id, out$variable_id)]
+      structural_source[grepl("naming_trusted", source, fixed = TRUE)] <- source[grepl("naming_trusted", source, fixed = TRUE)]
+      source <- structural_source
+      group[base[!located]] <- NA_real_
+      if (use_names) group[base] <- colSums(basis_before) + 1
+      out$order_source <- source[match(out$variable_id, raw$variable_id)]
+    } else {
+      out <- NULL
     }
     # Dense ranks are deterministic and dependency-safe, while groups and the
     # separate relation matrix retain the actual uncertainty.
-    pending <- seq_len(n)
-    emitted <- integer()
-    natural <- design_order_natural_rank(raw$variable_id)
-    priority <- group
-    priority[is.na(priority)] <- Inf
-    while (length(pending)) {
-      available <- pending[vapply(pending, function(j) {
-        # Calculation dependencies and item presentation can disagree; a
-        # displayed derivation must not block its own later mapped source.
-        predecessors <- which(before[, j] & design_order_is_base(raw))
-        deps <- match(raw$source_ids[[j]], raw$variable_id)
-        !any(predecessors %in% pending) &&
-          (design_order_is_base(raw)[[j]] ||
-             (raw$sources_known[[j]] && all(!is.na(deps)) && all(deps %in% emitted)))
-      }, logical(1))]
-      if (!length(available)) break
-      j <- available[order(priority[available], natural[available])[[1L]]]
-      emitted <- c(emitted, j)
-      pending <- pending[pending != j]
-      # Calculation order is a separate display convention: insert every
-      # newly available derivation immediately after its final source, even
-      # when its VOMD item occupies a later presentation position.
-      repeat {
-        ready <- pending[vapply(pending, function(k) {
-          deps <- match(raw$source_ids[[k]], raw$variable_id)
-          !design_order_is_base(raw)[[k]] && raw$sources_known[[k]] &&
-            length(deps) > 0L && !anyNA(deps) && all(deps %in% emitted)
-        }, logical(1))]
-        if (!length(ready)) break
-        k <- ready[order(priority[ready], natural[ready])[[1L]]]
-        emitted <- c(emitted, k)
-        pending <- pending[pending != k]
+    if (is.null(out)) {
+      pending <- which(!is_base)
+      emitted <- integer()
+      natural <- design_order_natural_rank(raw$variable_id)
+      # Unknown pages are interleaved by name for display, never pushed to the
+      # end by an artificial Inf location. Analytical evidence stays separate.
+      priority <- if (method == "vomd") group else rep(0, n)
+      priority[is.na(priority)] <- Inf
+      display_rank <- order(order(priority, natural))
+      local <- design_order_topological(before[base, base, drop = FALSE], display_rank[base])
+      dependencies <- lapply(raw$source_ids, match, table = raw$variable_id)
+      for (j in base[local]) {
+        emitted <- c(emitted, j)
+        # Calculation order is a separate display convention: insert every
+        # newly available derivation immediately after its final source.
+        repeat {
+          ready <- pending[vapply(pending, function(k) {
+            deps <- dependencies[[k]]
+            raw$sources_known[[k]] && length(deps) > 0L &&
+              !anyNA(deps) && all(deps %in% emitted)
+          }, logical(1))]
+          if (!length(ready)) break
+          k <- ready[[which.min(display_rank[ready])]]
+          emitted <- c(emitted, k)
+          pending <- pending[pending != k]
+        }
       }
+      if (length(pending)) emitted <- c(emitted, pending[order(priority[pending], natural[pending])])
+      out <- raw[emitted, , drop = FALSE]
+      out$variable_order <- seq_along(emitted)
+      out$order_group <- as.integer(group[emitted])
+      out$order_source <- source[emitted]
     }
-    if (length(pending)) emitted <- c(emitted, pending[order(priority[pending], natural[pending])])
-    out <- raw[emitted, , drop = FALSE]
-    out$variable_order <- seq_along(emitted)
-    out$order_group <- as.integer(group[emitted])
-    out$order_source <- source[emitted]
   }
   index <- match(out$variable_id, raw$variable_id)
   out$position_group <- as.numeric(group[index])
   out$position_source <- source[index]
   out$analysis_included <- raw$analysis_included[index]
   attr(out, "before") <- before[index, index, drop = FALSE]
+  attr(out, "order_conflicts") <- conflicts
   out
 }
 
@@ -608,17 +741,10 @@ design_order_precedence <- function(metadata, variable_order, order_source = NUL
 
   if (use_variable_names_for_recoding) {
     naming <- design_order_natural_rank(metadata$variable_id)
-    named_before <- outer(naming, naming, `<`)
-    conflict <- which(before & !named_before, arr.ind = TRUE)
-    if (nrow(conflict)) {
-      first <- conflict[1L, 1L]
-      second <- conflict[1L, 2L]
-      cli::cli_abort(c(
-        "Variable-name order conflicts with physical metadata in unit {.val {metadata$unit_key[[first]]}}: {.val {metadata$variable_id[[first]]}} precedes {.val {metadata$variable_id[[second]]}} physically but follows it by name.",
-        "i" = "Resolve the conflict with a complete {.arg order_overrides} table instead of confirming variable-name order."
-      ))
-    }
-    return(named_before)
+    merged <- design_order_add_priority(before, outer(naming, naming, `<`),
+      metadata, "naming", "structure")
+    design_order_warn_conflicts(merged$conflicts)
+    return(merged$before)
   }
   before
 }

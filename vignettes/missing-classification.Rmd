@@ -22,7 +22,8 @@ Analytische Umklassifikationen betreffen `code_type`, `code_id` und `code_score`
 `units` darf zusätzliche Workspace-Units enthalten. `complete_design()` bereitet
 nur die Units des vollständig übergebenen `design` auf und prüft deren Metadaten.
 Alle aktiven Variablen und benötigten Quellen dieser Units bleiben einbezogen;
-widersprüchliche Metadaten verwendeter Units werden weiterhin zurückgewiesen.
+Mehrdeutige Variablenkennungen werden zurückgewiesen. Abweichende
+Reihenfolgeangaben werden dagegen nach ihrer Verlässlichkeit gewichtet.
 
 Nachweislich deaktivierte Designvariablen (`BASE_NO_VALUE`) werden mit einer
 Warnung ausgeschlossen; ihre Unit-Vorkommen und alle aktiven Variablen bleiben
@@ -54,7 +55,7 @@ aktuellen Optionen der historischen Version `.9001` gegenüber.
 | Argument | Standard im eatPrepTBA-Regelwerk | Bedeutung |
 |:--|:--|:--|
 | `recode_omissions_to_not_reached` | `FALSE` | Bestehende Auslassungen erhalten; `TRUE` klassifiziert zusätzlich abschließende Auslassungen als NR. `NULL` ergänzt ausschließlich fehlende Zeilen. |
-| `order_method` | `NULL`, effektiv `"hybrid"` | Itemfolge aus Studio/VOMD plus Ableitungsbaum, ergänzt um kompatible Unitstruktur. `"vomd"` verwendet ausschließlich VOMD und Quellenbaum; `"structure"` verwendet die Unitstruktur. |
+| `order_method` | `NULL`, effektiv `"hybrid"` | Bekannte Seiten-/Elementfolge hat Vorrang; passende VOMD-Beziehungen ergänzen sie. `"vomd"` verwendet ausschließlich VOMD und Quellenbaum; `"structure"` verwendet die Unitstruktur. |
 | `not_reached_scope` | `NULL`, effektiv `"testlet"` | Grenze innerhalb eines Testlets bestimmen. Alternativen: `"unit"` und `"booklet"`. |
 | `recode_existing_not_reached` | `FALSE` | Vorhandene numerisch kodierte NR erhalten. `TRUE` erlaubt bei belegter späterer Bearbeitung die Rückklassifikation zu Omission. |
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | Vorhandene gültige und Invalid-Ableitungen bei ausschließlich belegten NR-Quellen im Schlussbereich zu NR machen. `"preserve"` erhält diese Ergebnisse. |
@@ -63,9 +64,11 @@ aktuellen Optionen der historischen Version `.9001` gegenüber.
 | `unknown_variables` | `"exclude"` | Designvariablen ohne aktive Metadaten samt Antworten ausschließen und melden; `"error"` bricht stattdessen ab. |
 | `progress` | `interactive()` | In interaktiven R-Sitzungen Fortschritt anzeigen; `TRUE` schaltet ihn ausdrücklich ein, `FALSE` aus. |
 
-Die Fortschrittsanzeige zeigt die aktuelle Arbeitsphase und bei Schleifen die
-bereits bearbeiteten Einheiten. `diagnostics` steuert unabhängig davon den
-abschließenden Änderungsbericht.
+In RGui zeigt ein Windows-Fenster die Arbeitsphase, den Zähler und die Laufzeit.
+Andere R-Umgebungen erhalten gedrosselte Konsolenmeldungen. Die Zähler gelten
+für den aktuellen Schritt. `diagnostics` steuert unabhängig davon den
+abschließenden Änderungsbericht. Metadaten und Reihenfolge werden vor der
+Erweiterung auf alle Personen vorbereitet und anschließend wiederverwendet.
 
 `missing_policy = "coding_box"` wählt VOMD-Reihenfolge, Unit-Scope und den Erhalt
 vorhandener numerischer Ableitungsergebnisse. Es ist ein vollständiges Regelwerk,
@@ -286,10 +289,10 @@ classified_false %>%
 Basisquellen werden vor ihren Ableitungen in den Index eingeordnet.
 Mehrere Ableitungen nach derselben letzten Quelle erhalten eindeutige Indizes.
 Ein eindeutiger Index beweist aber für sich keine physische Reihenfolge.
-`01a` und `01b` gehören zur selben VOMD-Positionsgruppe (`position_group`),
-auch bei Hybrid. Im Beispiel ergänzt die Hybridreihenfolge eine separate
-Ordnungsbeziehung anhand ihrer Elementpositionen; `position_source` nennt
-die verwendeten Grundlagen. Der folgende Aufruf zeigt zum Vergleich
+`01a` und `01b` gehören zur selben VOMD-Positionsgruppe. Im Hybridmodus
+unterscheiden ihre Elementpositionen die analytischen Positionen
+(`position_group`); `position_source` nennt die verwendeten Grundlagen.
+Die Itemzuordnung bleibt separat erhalten. Der folgende Aufruf zeigt zum Vergleich
 ausdrücklich die reine VOMD-Reihenfolge:
 
 ```{r vomd-positions}
@@ -326,16 +329,28 @@ hybrid <- complete_design(
 )
 ```
 
-Die voreingestellte Hybridvariante nutzt VOMD und Ableitungsbaum und ergänzt
-fehlende Ordnungsbeziehungen durch Unitstruktur, Seiten und Elemente.
+Die voreingestellte Hybridvariante priorisiert bekannte Seiten-/Elementpositionen
+der Basisvariablen. VOMD ergänzt nur dazu passende Beziehungen. Die analytische
+Position einer Ableitung ergibt sich aus ihren Quellen; ihre Itemnummer liefert
+keine zusätzliche, gegenläufige Reihenfolge.
 `order_method = "hybrid"` ist im Aufruf oben deshalb optional. Hier kann die
 bekannte Elementfolge belegen, dass `U1/02a` vor `U1/02b` liegt. Die optionale
 Rückklassifikation vorhandener NR kann dann `U1/02a` zur Omission machen.
 Die Struktur beschreibt die erwartete Reihenfolge, nicht den tatsächlichen
 Bearbeitungsverlauf. Für ausdrücklich dauerhaft sichtbare Seiten ergänzt
-die Hybridvariante keine physischen Beziehungen. Widersprüchliche VOMD- und
-Strukturangaben führen zu einem Abbruch; ein vollständiger, geprüfter Override
-kann die Reihenfolge vorgeben.
+die Hybridvariante keine physischen Beziehungen. Widersprechende nachrangige
+Angaben werden mit einer Warnung verworfen. `attr(hybrid, "order_conflicts")`
+nennt Unit, Variablen und Herkunft der verworfenen Beziehung. Ein vollständiger,
+geprüfter Override kann die Reihenfolge vorgeben.
+
+Innerhalb einer Seite wird weiterhin die Elementfolge verwendet. Sie beschreibt
+die räumliche Anordnung, nicht den Zeitpunkt der Bearbeitung. Unbekannte Seiten
+erhalten keine erfundene Position am Ende. Gemeinsam genutzte Quellen werden
+keinem beliebigen Item zugeordnet.
+
+Die Box verwendet die Reihenfolge in der VOMD-Itemliste. Weicht diese von der
+Seitenfolge ab, können auch die NR-Ergebnisse abweichen. Die Vergleichsvignette
+zeigt das an [einem Beispiel](missing-examples.html#beispiel-14).
 
 `order_method = "structure"` verwendet stattdessen die Unitstruktur.
 Mit `use_variable_names_for_recoding = TRUE` dürfen vertrauenswürdige Namen
