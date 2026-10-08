@@ -140,18 +140,19 @@ Item in `items_list` noch auf eine deaktivierte Variable, bricht die
 Missing-Klassifikation ab. Korrigiere die Zuordnung in Studio und lade die
 Metadaten neu. Mehr dazu unter [Missing-Klassifikation](missing-classification.html).
 
-Bei tatsächlich unbekannten Designvariablen bricht `complete_design()` weiterhin
-ab und nennt die betroffenen Unit-/Variablen-Schlüssel. Prüfe dann, ob Design und
-`units` dieselben Unit-Versionen, Variablenaliase und Variablen-IDs
-verwenden. Sind nur die vorbereiteten `unit_codes` veraltet, baue sie aus den
-zur Durchführung passenden Roh-Kodierschemata neu auf und erstelle damit das
-Design erneut:
+**Überzählige Designvariablen entfallen standardmäßig:** Mit
+`unknown_variables = "exclude"` schließt `complete_design()` Variablen aus,
+die in den aktiven Unit-Metadaten fehlen, und nennt sie in einer Warnung.
+Auch deren Antworten entfallen. Unit-Vorkommen und aktive Variablen bleiben
+erhalten. Für eine strenge Prüfung mit Abbruch wähle `unknown_variables = "error"`.
 
-```{r rebuild-design, eval=FALSE}
-# Nur wenn units die passenden Roh-Kodierschemata enthält:
-units <- add_coding_scheme(units, overwrite = TRUE)
-design <- get_design(testcenter, units = units, mode = "run-hot-return")
-```
+**Sollen die Variablen erhalten bleiben?** Prüfe, ob Design und `units` zur
+gleichen Erhebung gehören. Mit `overwrite = TRUE` bereitet `complete_design()`
+die bereits in `units$coding_scheme` gespeicherten Kodierschemata lokal neu auf.
+Das braucht keinen Serverzugang; dein vorhandenes Design bleibt verwendbar.
+Es hilft nur, wenn die passenden Definitionen im gespeicherten Schema enthalten
+sind. Im Normalfall lässt du `overwrite = FALSE`, damit die vorbereiteten
+Tabellen wiederverwendet werden.
 
 </details>
 

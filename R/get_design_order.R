@@ -47,7 +47,8 @@
 get_design_order <- function(design, units, overwrite = FALSE,
                              order_overrides = NULL, item_selection = NULL,
                              order_method = c("vomd", "structure", "hybrid"),
-                             use_variable_names_for_recoding = FALSE) {
+                             use_variable_names_for_recoding = FALSE,
+                             metadata = NULL, progress = FALSE) {
   order_method <- match.arg(order_method)
   checkmate::assert_flag(use_variable_names_for_recoding)
   occurrence_keys <- c("booklet_id", "testlet_no", "unit_booklet_no",
@@ -71,7 +72,9 @@ get_design_order <- function(design, units, overwrite = FALSE,
   occurrences <- dplyr::arrange(occurrences, .data$booklet_id, .data$testlet_no,
                                 .data$unit_booklet_no, .data$unit_key, .data$unit_alias)
   units <- design_order_units_for_keys(units, occurrences$unit_key)
-  metadata <- design_order_metadata(units, overwrite = overwrite)
+  if (is.null(metadata) || overwrite) {
+    metadata <- design_order_metadata(units, overwrite = overwrite, progress = progress)
+  }
   metadata <- design_order_vomd_metadata(metadata, units)
   unresolved_items <- attr(metadata, "vomd_unresolved")
   unknown_units <- setdiff(occurrences$unit_key, metadata$unit_key)
@@ -89,17 +92,29 @@ get_design_order <- function(design, units, overwrite = FALSE,
   overrides <- design_order_validate_overrides(order_overrides, occurrences, metadata)
   tables <- vector("list", nrow(occurrences))
   precedence <- vector("list", nrow(occurrences))
+  position_cache <- new.env(parent = emptyenv())
+  ordering_progress <- missing_progress_start("Ordering units", nrow(occurrences), progress)
   for (i in seq_len(nrow(occurrences))) {
     occurrence <- occurrences[i, , drop = FALSE]
-    current <- metadata[metadata$unit_key == occurrence$unit_key, , drop = FALSE]
-    current <- design_order_position_unit(current, overrides[[i]], order_method,
-                                          use_variable_names_for_recoding)
+    key <- occurrence$unit_key[[1L]]
+    # An unmodified unit has the same local order in every booklet. Overrides
+    # remain occurrence-specific and are deliberately not reused.
+    if (is.null(overrides[[i]]) && exists(key, envir = position_cache, inherits = FALSE)) {
+      current <- get(key, envir = position_cache, inherits = FALSE)
+    } else {
+      current <- metadata[metadata$unit_key == key, , drop = FALSE]
+      current <- design_order_position_unit(current, overrides[[i]], order_method,
+                                            use_variable_names_for_recoding)
+      if (is.null(overrides[[i]])) assign(key, current, envir = position_cache)
+    }
     precedence[[i]] <- list(keys = occurrence,
                             variable_ids = current$variable_id,
                             before = attr(current, "before"))
     keys <- occurrence[rep(1L, nrow(current)), , drop = FALSE]
     tables[[i]] <- dplyr::bind_cols(keys, current[setdiff(names(current), "unit_key")])
+    missing_progress_update(ordering_progress)
   }
+  missing_progress_done(ordering_progress)
   if (!length(tables)) {
     out <- dplyr::bind_cols(occurrences, metadata[0, setdiff(names(metadata), "unit_key")])
     out$variable_order <- integer()
@@ -146,7 +161,7 @@ design_order_units_for_keys <- function(units, unit_keys) {
 
 # Prepare one row per active variable, preserving original source references.
 # This helper also accepts its own prepared result to avoid repeated work.
-design_order_metadata <- function(units, overwrite = FALSE) {
+design_order_metadata <- function(units, overwrite = FALSE, progress = FALSE) {
   checkmate::assert_flag(overwrite)
   assert_cols(units, "unit_key", "units")
   if (!nrow(units)) return(design_order_empty_metadata())
@@ -163,7 +178,8 @@ design_order_metadata <- function(units, overwrite = FALSE) {
     return(prepared)
   }
   if (overwrite || !"unit_codes" %in% names(units)) {
-    units <- add_coding_scheme(units, filter_has_codes = TRUE, overwrite = overwrite)
+    units <- add_coding_scheme(units, filter_has_codes = TRUE, overwrite = overwrite,
+                              progress = progress)
   }
   assert_cols(units, "unit_codes", "units")
   rows <- purrr::map2(units$unit_key, units$unit_codes, function(key, codes) {
@@ -191,7 +207,9 @@ design_order_metadata <- function(units, overwrite = FALSE) {
   if (!nrow(raw)) return(design_order_empty_metadata())
   raw$variable_ref <- dplyr::coalesce(as.character(raw$variable_ref), raw$variable_id)
   groups <- dplyr::group_split(dplyr::group_by(raw, .data$unit_key, .data$variable_id))
+  metadata_progress <- missing_progress_start("Variable metadata", length(groups), progress)
   merged <- purrr::map(groups, function(group) {
+    missing_progress_update(metadata_progress)
     scalar <- function(column, unknown = NA) {
       values <- unique(group[[column]][!is.na(group[[column]])])
       if (length(values) == 1L) values[[1L]] else unknown
@@ -236,6 +254,7 @@ design_order_metadata <- function(units, overwrite = FALSE) {
                    .source_refs = list(refs))
   })
   out <- dplyr::bind_rows(merged)
+  missing_progress_done(metadata_progress)
   out$source_ids <- vector("list", nrow(out))
   out$basis_sources <- vector("list", nrow(out))
   out$sources_known <- rep(FALSE, nrow(out))

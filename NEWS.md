@@ -31,6 +31,14 @@
 
 ## bug fixes
 
+* Reuse prepared variable metadata, unit ordering, and source lookups within
+  `complete_design()` to reduce repeated work. Add optional `progress` display
+  for preparation and classification, enabled by default in interactive sessions.
+* Exclude design variables absent from active unit metadata by default with
+  `unknown_variables = "exclude"`; warn with their keys while retaining unit
+  occurrences and active variables. Use `"error"` for strict validation.
+  Clarify that `overwrite = TRUE`
+  rebuilds locally stored coding schemes without requiring a download.
 * Prepare and validate only units referenced by the supplied design, including
   empty designs. Malformed unused units no longer block completion; used units
   retain all active variables and required sources, and conflicting metadata

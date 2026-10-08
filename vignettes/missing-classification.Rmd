@@ -28,12 +28,15 @@ Nachweislich deaktivierte Designvariablen (`BASE_NO_VALUE`) werden mit einer
 Warnung ausgeschlossen; ihre Unit-Vorkommen und alle aktiven Variablen bleiben
 erhalten. `get_design()` nimmt solche Variablen auch aus bereits vorbereiteten
 `unit_codes` nicht ins Design auf. Aktive Variablen ohne numerische Codes werden
-weiterhin berücksichtigt. Tatsächlich unbekannte Variablen bleiben ein Fehler:
-Die Meldung nennt die betroffenen Schlüssel und verweist auf Unit-Versionen,
-Variablenaliase und Kodierschemata. Veraltete `unit_codes` lassen sich mit
-`add_coding_scheme(units, overwrite = TRUE)` erneuern, sofern die passenden
-Roh-Kodierschemata vorliegen; anschließend muss das Design mit denselben Units
-neu erstellt werden. Der [Standard-Workflow](standard-workflow.html) zeigt dies.
+weiterhin berücksichtigt. Designvariablen ohne aktive Unit-Metadaten werden
+standardmäßig samt Antworten ausgeschlossen (`unknown_variables = "exclude"`);
+eine Warnung nennt die betroffenen Variablen. Unit-Vorkommen und aktive Variablen
+bleiben erhalten. Mit `unknown_variables = "error"` bricht die Funktion stattdessen ab.
+
+`overwrite = TRUE` erstellt die vorbereiteten `unit_codes` neu aus den lokal
+gespeicherten Kodierschemata. Das erfordert keinen Download und kein neues
+Design, kann aber länger dauern. Es hilft bei veralteten vorbereiteten Tabellen,
+sofern die passenden Definitionen im gespeicherten Schema vorhanden sind.
 
 Zwei Regelwerke stehen zur Verfügung. Der Standard `missing_policy = "eatPrepTBA"`
 prüft vorhandene Ableitungen anhand ihrer Quellen. `missing_policy = "coding_box"`
@@ -57,6 +60,12 @@ aktuellen Optionen der historischen Version `.9001` gegenüber.
 | `derived_not_reached` | `NULL`, effektiv `"recode"` | Vorhandene gültige und Invalid-Ableitungen bei ausschließlich belegten NR-Quellen im Schlussbereich zu NR machen. `"preserve"` erhält diese Ergebnisse. |
 | `use_variable_names_for_recoding` | `FALSE` | Namen stabilisieren den eindeutigen Index; erst `TRUE` erlaubt sie als Beleg für die Reihenfolge. |
 | `diagnostics` | `"compact"` | Änderungsbericht; `"full"` zeigt Details, `"none"` unterdrückt die Ausgabe. |
+| `unknown_variables` | `"exclude"` | Designvariablen ohne aktive Metadaten samt Antworten ausschließen und melden; `"error"` bricht stattdessen ab. |
+| `progress` | `interactive()` | In interaktiven R-Sitzungen Fortschritt anzeigen; `TRUE` schaltet ihn ausdrücklich ein, `FALSE` aus. |
+
+Die Fortschrittsanzeige zeigt die aktuelle Arbeitsphase und bei Schleifen die
+bereits bearbeiteten Einheiten. `diagnostics` steuert unabhängig davon den
+abschließenden Änderungsbericht.
 
 `missing_policy = "coding_box"` wählt VOMD-Reihenfolge, Unit-Scope und den Erhalt
 vorhandener numerischer Ableitungsergebnisse. Es ist ein vollständiges Regelwerk,

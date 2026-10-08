@@ -3,18 +3,22 @@
 #' @param units Tibble. Contains units retrieved from [get_units()].
 #' @param filter_has_codes Logical. Only returns variables that were not deactivated. Defaults to `TRUE`.
 #' @param overwrite Logical. Should potentially existing `unit_codes` be overwritten? Defaults to `FALSE`.
+#' @param progress Logical. Show progress while preparing coding schemes?
+#'   Defaults to `TRUE`; display is handled by `cli`.
 #'
 #' @description
 #' Returns the `units` object with added column `unit_codes`. The routine can also propose variable pages if [get_units()] was called with `unit_definition = TRUE`. Please note that no other operation except for filtering or `add_metadata()` should be applied to the `units`.
 #'
 #' @return A tibble.
 #' @export
-add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE) {
+add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE,
+                              progress = TRUE) {
   cli_setting()
   # input validation
   checkmate::assert_tibble(units)
   checkmate::assert_logical(filter_has_codes, len = 1)
   checkmate::assert_logical(overwrite, len = 1)
+  checkmate::assert_flag(progress)
 
   # Conserve attributes
   unit_attributes <- attributes(units)
@@ -55,7 +59,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
           # print(i)
           prepare_coding_scheme(coding_scheme, filter_has_codes = filter_has_codes)
         },
-        .progress = list(
+        .progress = if (progress) list(
           type ="custom",
           extra = list(
             unit_keys = pad_ids(unit_keys)
@@ -63,7 +67,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
           format = "Preparing coding scheme for {.unit-key {cli::pb_extra$unit_keys[cli::pb_current+1]}} ({cli::pb_current}/{cli::pb_total}): {cli::pb_bar} {cli::pb_percent} | ETA: {cli::pb_eta}",
           format_done = "Prepared {cli::pb_total} coding scheme{?s} in {cli::pb_elapsed}.",
           clear = FALSE
-        ))
+        ) else FALSE)
       ) %>%
       tidyr::unnest(coding_scheme) %>%
       tidyr::nest(

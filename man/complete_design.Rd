@@ -21,7 +21,9 @@ complete_design(
   not_reached_scope = NULL,
   recode_existing_not_reached = FALSE,
   derived_not_reached = NULL,
-  input_missings = NULL
+  input_missings = NULL,
+  unknown_variables = c("exclude", "error"),
+  progress = interactive()
 )
 }
 \arguments{
@@ -43,7 +45,11 @@ with a warning; the unit occurrences and their active variables are retained.}
 \item{identifiers}{Character vector of person identifiers. Defaults to the
 Testcenter identifiers \code{group_id}, \code{login_name}, and \code{login_code}.}
 
-\item{overwrite}{Logical. Rebuild existing \code{unit_codes}? Defaults to \code{FALSE}.}
+\item{overwrite}{Logical. With \code{FALSE} (default), reuse existing \code{unit_codes}.
+With \code{TRUE}, rebuild these prepared variable and coding tables from the
+\code{coding_scheme} already stored in \code{units}. Nothing is downloaded, and the
+supplied objects are not modified. Rebuilding can take longer and only
+restores definitions present in the stored schemes.}
 
 \item{missings}{Optional missing-value scheme with \code{code_id}, \code{code_status},
 \code{code_score}, and \code{code_type}. Used only when missing classification is
@@ -100,6 +106,17 @@ trailing region. \code{"preserve"} retains existing numerical derived results.}
 for eatPrepTBA. Output remapping through \code{missings} retains recognition of
 nonconflicting standard incoming IDs. Ambiguous input IDs require an
 explicit schema. Coding Box recognizes its selected output profile exactly.}
+
+\item{unknown_variables}{What to do with design variables absent from active
+unit metadata and not confirmed as deactivated: \code{"exclude"} (default)
+omits them and their responses with a warning naming
+the affected unit/variable pairs. Unit occurrences and all active variables
+are retained. Use \code{"error"} to stop instead and check unexpected differences.
+Units without any active variable metadata still cause an error.}
+
+\item{progress}{Logical. Show progress for preparation, completion, ordering,
+and missing classification? Defaults to \code{interactive()}. Independent of
+\code{diagnostics}, which controls the final change report.}
 }
 \value{
 A tibble with completed response rows and \code{response_present}.

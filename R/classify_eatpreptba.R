@@ -6,13 +6,15 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
                                 not_reached_scope = "testlet",
                                 recode_existing_not_reached = FALSE,
                                 derived_not_reached = "recode",
-                                identifiers = c("group_id", "login_name", "login_code")) {
+                                identifiers = c("group_id", "login_name", "login_code"),
+                                progress = FALSE) {
   checkmate::assert_tibble(data)
   checkmate::assert_tibble(metadata)
   checkmate::assert_tibble(profile)
   checkmate::assert_data_frame(input_profile)
   checkmate::assert_flag(recode_omissions_to_not_reached)
   checkmate::assert_flag(recode_existing_not_reached)
+  checkmate::assert_flag(progress)
   not_reached_scope <- match.arg(not_reached_scope, c("unit", "testlet", "booklet"))
   derived_not_reached <- match.arg(derived_not_reached, c("recode", "preserve"))
   assert_cols(data, c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key",
@@ -36,10 +38,9 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   source_ids[basis] <- rep(list(character()), sum(basis))
   included <- basis | if ("analysis_included" %in% names(data)) data$analysis_included %in% TRUE else rep(TRUE, n)
   present <- if ("response_present" %in% names(data)) data$response_present %in% TRUE else rep(TRUE, n)
-  has_value <- vapply(seq_len(n), function(i) {
-    value <- if (is.list(data$value)) data$value[[i]] else data$value[i]
+  has_value <- if (is.list(data$value)) vapply(data$value, function(value) {
     length(value) > 0L && any(!is.na(value))
-  }, logical(1))
+  }, logical(1), USE.NAMES = FALSE) else !is.na(data$value[seq_len(n)])
   numeric_result <- !is.na(data$code_id) | !is.na(data$code_score)
   omission <- "MISSING_BY_OMISSION"
   nr <- "MISSING_NOT_REACHED"
@@ -96,6 +97,7 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
     if ("unit_alias" %in% names(data)) scope_keys$unit_alias <- data$unit_alias
   }
   group_ids <- dplyr::group_indices(dplyr::group_by(scope_keys, dplyr::across(dplyr::everything())))
+  scope_rows <- split(seq_len(n), group_ids)
   occurrence_keys <- person_keys
   for (column in intersect(c("testlet_no", "unit_booklet_no", "unit_key", "unit_alias"), names(data))) {
     occurrence_keys[[column]] <- data[[column]]
@@ -104,24 +106,28 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   occurrence_rows <- split(seq_len(n), occurrences)
   basis_rows <- rep(list(integer()), n)
   local_before <- vector("list", length(occurrence_rows))
+  local_sources <- vector("list", length(occurrence_rows))
   static_cache <- new.env(parent = emptyenv())
+  static_fields <- intersect(c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias"), names(data))
   unit_rank <- as.integer(dplyr::dense_rank(tibble::tibble(
     testlet_no = ifelse(is.na(data$testlet_no), Inf, data$testlet_no),
     unit_booklet_no = data$unit_booklet_no
   )))
   if (is.null(precedence)) precedence <- attr(data, "design_precedence")
+  progress_id <- missing_progress_start("Prepare source relationships", length(occurrence_rows), progress)
+  on.exit(missing_progress_done(progress_id), add = TRUE)
   for (k in seq_along(occurrence_rows)) {
     rows <- occurrence_rows[[k]]
     ids <- data$variable_id[rows]
     if (anyDuplicated(ids)) cli::cli_abort("Duplicate variable occurrences in eatPrepTBA input.")
-    static_fields <- intersect(c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias"), names(data))
     cache_key <- paste(c(vapply(static_fields, function(column) {
       value <- data[[column]][[rows[[1L]]]]
       if (column == "booklet_id") value <- toupper(value)
       as.character(value)
     }, character(1)), ids), collapse = "\r")
     cached <- exists(cache_key, envir = static_cache, inherits = FALSE)
-    before <- if (cached) get(cache_key, envir = static_cache, inherits = FALSE) else
+    cached_order <- if (cached) get(cache_key, envir = static_cache, inherits = FALSE) else NULL
+    before <- if (cached) cached_order$before else
       matrix(FALSE, length(rows), length(rows))
     known_order <- FALSE
     if (!cached && length(precedence)) {
@@ -150,29 +156,40 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
         before[is.na(before)] <- FALSE
       }
     }
-    if (!cached) assign(cache_key, before, envir = static_cache)
-    local_before[[k]] <- before
-    for (i in rows[!basis[rows]]) {
-      if (!isTRUE(meta$sources_known[[i]])) next
-      sources <- meta$basis_sources[[i]]
-      matched <- match(sources, ids)
-      if (length(sources) && !anyNA(sources) && !anyNA(matched) && all(basis[rows[matched]])) {
-        basis_rows[[i]] <- rows[matched]
+    if (!cached) {
+      source_indices <- lapply(source_ids[rows], match, table = ids)
+      basis_indices <- rep(list(integer()), length(rows))
+      for (at in which(!basis[rows])) {
+        i <- rows[[at]]
+        if (!isTRUE(meta$sources_known[[i]])) next
+        sources <- meta$basis_sources[[i]]
+        matched <- match(sources, ids)
+        if (length(sources) && !anyNA(sources) && !anyNA(matched) && all(basis[rows[matched]])) {
+          basis_indices[[at]] <- matched
+        }
       }
+      cached_order <- list(before = before, sources = source_indices, bases = basis_indices)
+      assign(cache_key, cached_order, envir = static_cache)
     }
+    local_before[[k]] <- before
+    local_sources[[k]] <- cached_order$sources
+    basis_rows[rows] <- lapply(cached_order$bases, function(at) rows[at])
     # All sources needed by an item participate, including ambiguous shared
     # sources. Such a source can still establish work in its unit without a
     # fabricated intra-unit position.
-    roots <- if ("box_is_item" %in% names(data)) rows[data$box_is_item[rows] %in% TRUE] else rows[included[rows]]
-    visit <- function(i, path = integer()) {
-      if (i %in% path) return(invisible(NULL))
-      included[[i]] <<- TRUE
-      children <- rows[match(source_ids[[i]], ids)]
-      for (child in children[!is.na(children)]) visit(child, c(path, i))
-      invisible(NULL)
+    if (any(!included[rows])) {
+      pending <- which(if ("box_is_item" %in% names(data)) data$box_is_item[rows] %in% TRUE else included[rows])
+      visited <- rep(FALSE, length(rows))
+      while (length(pending)) {
+        visited[pending] <- TRUE
+        children <- unlist(cached_order$sources[pending], use.names = FALSE)
+        pending <- unique(children[!is.na(children) & !visited[children]])
+      }
+      included[rows[visited]] <- TRUE
     }
-    for (i in roots) visit(i)
+    missing_progress_update(progress_id)
   }
+  missing_progress_done(progress_id)
   normal_activity <- normal_activity | (included & !basis & !normal_activity &
                                         (valid | raw_types %in% invalid |
                                            (has_value & !raw_types %in% c(omission, nr, "MISSING_BY_DESIGN")) |
@@ -193,7 +210,10 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
 
   evaluate_order <- function(activity) {
     before_work <- tail <- rep(FALSE, n)
-    for (rows in split(seq_len(n), group_ids)) {
+    order_progress <- missing_progress_start("Find last reached positions", length(scope_rows), progress)
+    on.exit(missing_progress_done(order_progress), add = TRUE)
+    for (rows in scope_rows) {
+      missing_progress_update(order_progress)
       anchors <- rows[activity[rows]]
       if (!length(anchors)) { tail[rows] <- TRUE; next }
       last_unit <- max(unit_rank[anchors])
@@ -277,21 +297,24 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
   states <- unname(missing_states[types])
   states[is.na(states) & valid] <- "valid"
   states[is.na(states)] <- "error"
-  for (rows in occurrence_rows) {
-    ids <- data$variable_id[rows]
-    resolve_sources <- function(i, path = integer()) {
-      if (i %in% path) return(list(state = "error", failure = "derived-cycle", valid = FALSE, missing = TRUE))
-      sources <- source_ids[[i]]
+  progress_id <- missing_progress_start("Classify derived missings", length(occurrence_rows), progress)
+  for (k in seq_along(occurrence_rows)) {
+    rows <- occurrence_rows[[k]]
+    source_indices <- local_sources[[k]]
+    resolve_sources <- function(at, path = integer()) {
+      if (at %in% path) return(list(state = "error", failure = "derived-cycle", valid = FALSE, missing = TRUE))
+      i <- rows[[at]]
+      sources <- source_indices[[at]]
       if (!length(sources)) {
         return(list(state = states[[i]], failure = if (states[[i]] == "error") "derived-source-unresolved" else NA_character_,
                     valid = states[[i]] == "valid", missing = !states[[i]] %in% c("valid", "error")))
       }
-      children <- lapply(sources, function(id) {
-        j <- rows[match(id, ids)]
+      children <- lapply(sources, function(child) {
+        j <- rows[child]
         if (is.na(j)) return(list(state = "error", failure = "derived-source-unresolved", valid = FALSE, missing = TRUE))
         if (!basis[[j]] && !numeric_result[[j]] &&
             !raw_types[[j]] %in% protected_process_types && length(source_ids[[j]])) {
-          return(resolve_sources(j, c(path, i)))
+          return(resolve_sources(child, c(path, at)))
         }
         list(state = states[[j]], failure = if (states[[j]] == "error") "derived-source-unresolved" else NA_character_,
              valid = states[[j]] == "valid", missing = !states[[j]] %in% c("valid", "error"))
@@ -307,9 +330,10 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
            valid = any(vapply(children, `[[`, logical(1), "valid")),
            missing = any(vapply(children, `[[`, logical(1), "missing")))
     }
-    for (i in rows[!basis[rows] & included[rows] & !numeric_result[rows] &
-                   !raw_types[rows] %in% protected_process_types]) {
-      resolved <- resolve_sources(i)
+    for (at in which(!basis[rows] & included[rows] & !numeric_result[rows] &
+                   !raw_types[rows] %in% protected_process_types)) {
+      i <- rows[[at]]
+      resolved <- resolve_sources(at)
       category <- resolved$state
       if (source_type[[i]] %in% c("SUM_CODE", "SUM_SCORE", "CONCAT_CODE") &&
           category == "valid" && resolved$valid && resolved$missing && is.na(resolved$failure)) {
@@ -331,7 +355,9 @@ classify_eatpreptba <- function(data, metadata, profile, input_profile = profile
         diagnostics[[i]] <- if (category == "valid") "derived-result-missing" else resolved$failure
       }
     }
+    missing_progress_update(progress_id)
   }
+  missing_progress_done(progress_id)
   # Source information that is insufficient to justify a change must not erase
   # an existing result, including a positive or invalid derived result.
   for (i in which(included & !basis & numeric_result & (valid | raw_types %in% invalid) & !overridden)) {

@@ -39,12 +39,12 @@ variable_metadata_fixture <- function(cache = "all") {
 }
 
 variable_metadata_call <- function(fixture, policy = "eatPrepTBA", recode = FALSE,
-                                   overwrite = FALSE) {
+                                   overwrite = FALSE, unknown_variables = "exclude") {
   complete_design(
     fixture$coded, fixture$units, fixture$design, identifiers = "login_code",
     missing_policy = policy, not_reached_scope = "testlet",
     recode_omissions_to_not_reached = recode,
-    overwrite = overwrite, diagnostics = "none"
+    overwrite = overwrite, diagnostics = "none", unknown_variables = unknown_variables
   )
 }
 
@@ -202,8 +202,9 @@ test_that("unknown design variables report distinct pairs and actionable repairs
   )
   for (policy in c("eatPrepTBA", "coding_box")) {
     for (recode in list(NULL, FALSE, TRUE)) {
-      error <- tryCatch(variable_metadata_call(f, policy = policy, recode = recode),
-                        error = identity)
+      error <- tryCatch(variable_metadata_call(
+        f, policy = policy, recode = recode, unknown_variables = "error"
+      ), error = identity)
       expect_s3_class(error, "error")
       expect_match(conditionMessage(error), "U1/TYPO", fixed = TRUE)
       expect_match(conditionMessage(error), "overwrite", ignore.case = TRUE)
@@ -222,7 +223,8 @@ test_that("an unusable raw scheme cannot prove that an unknown alias is inactive
   for (raw_scheme in c("malformed raw JSON", NA_character_, "")) {
     f <- variable_metadata_fixture("active")
     f$units$coding_scheme <- raw_scheme
-    error <- tryCatch(variable_metadata_call(f), error = identity)
+    error <- tryCatch(variable_metadata_call(f, unknown_variables = "error"),
+                      error = identity)
     expect_s3_class(error, "eatPrepTBA_design_metadata_error")
     expect_match(conditionMessage(error), "U1/V_OFF", fixed = TRUE)
     expect_equal(error$variables,
@@ -230,11 +232,115 @@ test_that("an unusable raw scheme cannot prove that an unknown alias is inactive
   }
 })
 
+test_that("explicit unknown exclusion preserves active responses and all occurrences", {
+  f <- variable_metadata_fixture("active")
+  f$units$coding_scheme <- "Unavailable raw scheme"
+  f$design$variable_id[f$design$variable_id == "V_OFF"] <- "V_UNKNOWN"
+  f$design$variable_note[f$design$variable_id == "V_UNKNOWN"] <- "Excluded variable"
+  excluded_response <- dplyr::mutate(
+    f$coded, variable_id = "V_UNKNOWN", value = "Excluded response",
+    code_id = 99, code_type = "RESIDUAL", code_score = 0
+  )
+  f$coded <- dplyr::bind_rows(f$coded, excluded_response)
+  for (policy in c("eatPrepTBA", "coding_box")) {
+    for (recode in list(NULL, FALSE, TRUE)) {
+      expect_error(variable_metadata_call(
+        f, policy = policy, recode = recode, unknown_variables = "error"
+      ), class = "eatPrepTBA_design_metadata_error")
+      captured <- variable_metadata_warnings(variable_metadata_call(
+        f, policy = policy, recode = recode, unknown_variables = "exclude"
+      ))
+      expect_length(captured$warnings, 1L)
+      warning <- captured$warnings[[1L]]
+      expect_s3_class(warning, "eatPrepTBA_excluded_design_variables")
+      expect_match(conditionMessage(warning), "U1/V_UNKNOWN", fixed = TRUE)
+      expect_equal(warning$variables,
+                   tibble::tibble(unit_key = "U1", variable_id = "V_UNKNOWN"))
+      out <- captured$value
+      expect_equal(out$variable_id, rep("V1", 4L))
+      expect_setequal(paste(out$login_code, out$unit_alias),
+                      c("P1 first", "P2 first", "P1 second", "P2 second"))
+      expect_equal(out$booklet_label, rep("Booklet 1", 4L))
+      expect_equal(out$testlet_label[out$unit_alias == "second"], rep("Testlet 2", 2L))
+      expect_equal(out$session_label[out$unit_alias == "second"], rep("Session 2", 2L))
+      expect_equal(sum(out$response_present), 1L)
+      expect_equal(out$variable_note[out$response_present], "Active variable")
+      expect_true(all(is.na(out$variable_note[!out$response_present])))
+      expect_equal(out$value[out$response_present], "A")
+      expect_equal(out$code_status[out$response_present], "CODING_COMPLETE")
+      expect_equal(out$code_id[out$response_present], 1)
+      expect_equal(out$code_score[out$response_present], 1)
+      expect_true(all(is.na(out$code_status[!out$response_present])))
+      if (is.null(recode)) {
+        expect_true(all(is.na(out$code_id[!out$response_present])))
+        expect_true(all(is.na(out$code_type[!out$response_present])))
+      } else {
+        expect_true(all(out$code_id[!out$response_present] == -96))
+        expect_true(all(out$code_type[!out$response_present] == "MISSING_NOT_REACHED"))
+      }
+    }
+  }
+})
+
+test_that("the public default excludes unknown variables and retains unit occurrences", {
+  f <- variable_metadata_fixture("active")
+  f$units$coding_scheme <- "Unavailable raw scheme"
+  f$design$variable_id[f$design$variable_id == "V_OFF"] <- "V_UNKNOWN"
+  captured <- variable_metadata_warnings(complete_design(
+    f$coded, f$units, f$design, identifiers = "login_code",
+    recode_omissions_to_not_reached = TRUE, not_reached_scope = "testlet",
+    diagnostics = "none"
+  ))
+  expect_length(captured$warnings, 1L)
+  expect_s3_class(captured$warnings[[1L]], "eatPrepTBA_excluded_design_variables")
+  expect_equal(captured$warnings[[1L]]$variables,
+               tibble::tibble(unit_key = "U1", variable_id = "V_UNKNOWN"))
+  out <- captured$value
+  expect_equal(out$variable_id, rep("V1", 4L))
+  expect_setequal(paste(out$login_code, out$unit_alias),
+                  c("P1 first", "P2 first", "P1 second", "P2 second"))
+  expect_equal(sum(out$response_present), 1L)
+  expect_equal(out$value[out$response_present], "A")
+  expect_equal(out$code_id[out$response_present], 1)
+  expect_true(all(out$code_type[!out$response_present] == "MISSING_NOT_REACHED"))
+})
+
+test_that("confirmed inactive and explicitly excluded variables have distinct warnings", {
+  f <- variable_metadata_fixture()
+  f$design <- dplyr::bind_rows(
+    f$design, dplyr::mutate(f$design[1L, ], variable_id = "V_UNKNOWN")
+  )
+  captured <- variable_metadata_warnings(variable_metadata_call(
+    f, unknown_variables = "exclude"
+  ))
+  expect_length(captured$warnings, 2L)
+  expect_s3_class(captured$warnings[[1L]], "eatPrepTBA_inactive_design_variables")
+  expect_equal(captured$warnings[[1L]]$variables,
+               tibble::tibble(unit_key = "U1", variable_id = "V_OFF"))
+  expect_s3_class(captured$warnings[[2L]], "eatPrepTBA_excluded_design_variables")
+  expect_equal(captured$warnings[[2L]]$variables,
+               tibble::tibble(unit_key = "U1", variable_id = "V_UNKNOWN"))
+  expect_equal(captured$value$variable_id, rep("V1", 4L))
+  expect_error(variable_metadata_call(f, unknown_variables = "error"),
+               class = "eatPrepTBA_design_metadata_error")
+})
+
+test_that("unknown exclusion cannot bypass absent active unit metadata", {
+  f <- variable_metadata_fixture()
+  f$units$unit_codes[[1L]] <- f$units$unit_codes[[1L]][2L, ]
+  f$design <- f$design[2L, ]
+  expect_error(variable_metadata_call(f, unknown_variables = "exclude"),
+               "No active variable metadata.*U1")
+  expect_error(variable_metadata_call(f, unknown_variables = "drop"),
+               "arg.*should be one of")
+})
+
 test_that("an active variable omitted by stale cache is not treated as inactive", {
   f <- variable_metadata_fixture("active")
   f$units$coding_scheme <- variable_metadata_scheme("V2", "BASE")
   f$design <- dplyr::mutate(f$design[1L, ], variable_id = "V2")
-  error <- tryCatch(variable_metadata_call(f), error = identity)
+  error <- tryCatch(variable_metadata_call(f, unknown_variables = "error"),
+                    error = identity)
   expect_s3_class(error, "error")
   expect_match(conditionMessage(error), "U1/V2", fixed = TRUE)
   expect_match(conditionMessage(error), "overwrite", ignore.case = TRUE)

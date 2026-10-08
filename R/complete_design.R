@@ -14,7 +14,11 @@
 #'   with a warning; the unit occurrences and their active variables are retained.
 #' @param identifiers Character vector of person identifiers. Defaults to the
 #'   Testcenter identifiers `group_id`, `login_name`, and `login_code`.
-#' @param overwrite Logical. Rebuild existing `unit_codes`? Defaults to `FALSE`.
+#' @param overwrite Logical. With `FALSE` (default), reuse existing `unit_codes`.
+#'   With `TRUE`, rebuild these prepared variable and coding tables from the
+#'   `coding_scheme` already stored in `units`. Nothing is downloaded, and the
+#'   supplied objects are not modified. Rebuilding can take longer and only
+#'   restores definitions present in the stored schemes.
 #' @param missings Optional missing-value scheme with `code_id`, `code_status`,
 #'   `code_score`, and `code_type`. Used only when missing classification is
 #'   enabled. The scheme never fills or changes the technical `code_status`.
@@ -59,6 +63,15 @@
 #'   for eatPrepTBA. Output remapping through `missings` retains recognition of
 #'   nonconflicting standard incoming IDs. Ambiguous input IDs require an
 #'   explicit schema. Coding Box recognizes its selected output profile exactly.
+#' @param unknown_variables What to do with design variables absent from active
+#'   unit metadata and not confirmed as deactivated: `"exclude"` (default)
+#'   omits them and their responses with a warning naming
+#'   the affected unit/variable pairs. Unit occurrences and all active variables
+#'   are retained. Use `"error"` to stop instead and check unexpected differences.
+#'   Units without any active variable metadata still cause an error.
+#' @param progress Logical. Show progress for preparation, completion, ordering,
+#'   and missing classification? Defaults to `interactive()`. Independent of
+#'   `diagnostics`, which controls the final change report.
 #'
 #' @description
 #' Completes coded responses with the expected variables of each booklet.
@@ -124,10 +137,14 @@ complete_design <- function(coded,
                             not_reached_scope = NULL,
                             recode_existing_not_reached = FALSE,
                             derived_not_reached = NULL,
-                            input_missings = NULL) {
+                            input_missings = NULL,
+                            unknown_variables = c("exclude", "error"),
+                            progress = interactive()) {
   diagnostics <- match.arg(diagnostics)
+  unknown_variables <- match.arg(unknown_variables)
   checkmate::assert_character(identifiers, min.len = 1L, any.missing = FALSE)
   checkmate::assert_flag(overwrite)
+  checkmate::assert_flag(progress)
   checkmate::assert_flag(use_variable_names_for_recoding)
   if (!is.null(recode_omissions_to_not_reached)) {
     checkmate::assert_flag(recode_omissions_to_not_reached)
@@ -155,18 +172,21 @@ complete_design <- function(coded,
   }
 
   cli_setting()
+  phase <- missing_progress_start("Preparing unit metadata", enabled = progress)
   units <- design_order_units_for_keys(units, design$unit_key)
-  prepared_units <- if (nrow(units)) {
-    suppressMessages(add_coding_scheme(
-      units, overwrite = overwrite, filter_has_codes = TRUE))
+  prepared_units <- if (nrow(units) && (overwrite || !"unit_codes" %in% names(units))) {
+    add_coding_scheme(units, overwrite = overwrite, filter_has_codes = TRUE,
+                     progress = progress)
   } else units
-  metadata <- design_order_metadata(prepared_units)
+  metadata <- design_order_metadata(prepared_units, progress = progress)
+  missing_progress_done(phase)
+  phase <- missing_progress_start("Completing response rows", enabled = progress)
   # The dependency graph stays on the unit table, rather than being copied to
   # every person's response rows.
   row_metadata <- metadata %>%
     dplyr::select(-dplyr::any_of(c("source_ids", "basis_sources", "sources_known")))
   completed <- complete_design_rows(design, row_metadata, occurrence_keys,
-                                    code_fields, prepared_units)
+                                    code_fields, prepared_units, unknown_variables)
 
   # Unit aliases normally disambiguate repeated units. If they do not, require
   # the occurrence columns in coded instead of attaching one response twice.
@@ -206,10 +226,13 @@ complete_design <- function(coded,
   added <- is.na(completed[[marker]])
   completed[[marker]] <- NULL
   before <- completed
+  missing_progress_done(phase)
 
   if (is.null(recode_omissions_to_not_reached)) {
     if (diagnostics != "none") {
+      phase <- missing_progress_start("Summarising changes", enabled = progress)
       report <- missing_change_report(before, completed, added = added, classified = FALSE)
+      missing_progress_done(phase)
       emit_missing_report(report, diagnostics, source = "complete_design")
     }
     return(completed)
@@ -229,7 +252,9 @@ complete_design <- function(coded,
                                 order_overrides = order_overrides,
                                 item_selection = item_selection,
                                 order_method = settings$order_method,
-                                use_variable_names_for_recoding = use_variable_names_for_recoding)
+                                use_variable_names_for_recoding = use_variable_names_for_recoding,
+                                metadata = metadata, progress = progress)
+  phase <- missing_progress_start("Classifying missings", enabled = progress)
   out <- recode_missings_impl(
     completed, prepared_units, positions = positions,
     identifiers = identifiers, missings = missings,
@@ -238,11 +263,15 @@ complete_design <- function(coded,
     missing_policy = settings$missing_policy, order_method = settings$order_method,
     not_reached_scope = settings$not_reached_scope,
     recode_existing_not_reached = recode_existing_not_reached,
-    derived_not_reached = settings$derived_not_reached, input_missings = input_missings
+    derived_not_reached = settings$derived_not_reached, input_missings = input_missings,
+    metadata = metadata, progress = progress
   )
+  missing_progress_done(phase)
   if (diagnostics != "none") {
+    phase <- missing_progress_start("Summarising changes", enabled = progress)
     report <- missing_change_report(before, out$data, added = added,
                                     reasons = out$reasons, basis = out$basis)
+    missing_progress_done(phase)
     emit_missing_report(report, diagnostics, source = "complete_design")
     emit_missing_policy_report(out)
   }
@@ -252,7 +281,7 @@ complete_design <- function(coded,
 # Complete all active variables, propagating unit-level design columns while
 # retaining variable-specific design columns only on their original variables.
 complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
-                                 units = NULL) {
+                                 units = NULL, unknown_variables = "exclude") {
   metadata_fields <- setdiff(names(metadata), c("unit_key", "variable_id"))
   design <- design %>%
     dplyr::select(-dplyr::any_of(c(
@@ -263,7 +292,7 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
     cli::cli_abort(c(
       "No active variable metadata for design units: {unknown_units}.",
       "i" = "Check that these units are present in {.arg units} and contain active coding variables.",
-      "i" = "If existing {.field unit_codes} are outdated, rebuild them with {.code add_coding_scheme(units, overwrite = TRUE)} using the matching Studio coding schemes."
+      "i" = "If existing {.field unit_codes} are outdated, rerun with {.code overwrite = TRUE} to rebuild them from the locally stored {.field coding_scheme}; no download is needed."
     ))
   }
   variable_keys <- c(occurrence_keys, "variable_id")
@@ -278,12 +307,13 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
       inactive <- complete_design_inactive_variables(units, unknown)
       unknown <- dplyr::anti_join(unknown, inactive,
                                   by = c("unit_key", "variable_id"))
-      if (nrow(unknown)) {
+      if (nrow(unknown) && unknown_variables == "error") {
         cli::cli_abort(c(
           "Design variables absent from active unit metadata: {paste(unknown$unit_key, unknown$variable_id, sep = '/')}.",
           "i" = "These variables are not confirmed as deactivated ({.val BASE_NO_VALUE}).",
           "i" = "Check that {.arg design} and {.arg units} use the same Studio unit versions and variable aliases.",
-          "i" = "If {.field unit_codes} are outdated, rebuild them with {.code add_coding_scheme(units, overwrite = TRUE)}, then recreate the design using those units.",
+          "i" = "If {.field unit_codes} are outdated, rerun with {.code overwrite = TRUE} to rebuild them from the locally stored {.field coding_scheme}; no download is needed.",
+          "i" = "If these variables are intentionally excluded, use {.code unknown_variables = \"exclude\"} to omit them and their responses while retaining unit occurrences and active variables.",
           "i" = "Inspect the affected keys with {.code rlang::last_error()$variables} and the available active keys with {.code rlang::last_error()$available_variables}."
         ), class = "eatPrepTBA_design_metadata_error", variables = unknown,
         available_variables = dplyr::distinct(metadata, .data$unit_key,
@@ -294,6 +324,12 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
           "Excluded deactivated design variables ({.val BASE_NO_VALUE}): {paste(inactive$unit_key, inactive$variable_id, sep = '/')}.",
           "i" = "These variables are omitted from the completed data and missing classification. Unit occurrences and all active variables are retained."
         ), class = "eatPrepTBA_inactive_design_variables", variables = inactive)
+      }
+      if (nrow(unknown)) {
+        cli::cli_warn(c(
+          "Excluded {nrow(unknown)} unknown design variable{?s} with {.code unknown_variables = \"exclude\"}: {paste(unknown$unit_key, unknown$variable_id, sep = '/')}.",
+          "i" = "These variables and their responses are omitted from the completed data and missing classification. Unit occurrences and all active variables are retained."
+        ), class = "eatPrepTBA_excluded_design_variables", variables = unknown)
       }
     }
   }

@@ -120,7 +120,8 @@ recode_missings_impl <- function(data, units, positions = NULL,
                                  missing_policy = "eatPrepTBA", order_method = NULL,
                                  not_reached_scope = NULL,
                                  recode_existing_not_reached = FALSE,
-                                 derived_not_reached = NULL, input_missings = NULL) {
+                                 derived_not_reached = NULL, input_missings = NULL,
+                                 metadata = NULL, progress = FALSE) {
   checkmate::assert_tibble(data)
   checkmate::assert_tibble(units)
   checkmate::assert_tibble(positions, null.ok = TRUE)
@@ -144,7 +145,8 @@ recode_missings_impl <- function(data, units, positions = NULL,
   units <- design_order_units_for_keys(units, keys$unit_key)
   if (is.null(positions)) {
     positions <- get_design_order(data, units, order_method = settings$order_method,
-      use_variable_names_for_recoding = use_variable_names_for_recoding)
+      use_variable_names_for_recoding = use_variable_names_for_recoding,
+      metadata = metadata, progress = progress)
   }
   assert_cols(positions, c(design_keys, "variable_order"), "positions")
   precedence <- attr(positions, "design_precedence", exact = TRUE)
@@ -181,7 +183,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   if (nrow(dplyr::anti_join(expected, dplyr::distinct(keys[setdiff(names(keys), "variable_id")]), by = names(expected)))) {
     cli::cli_abort("The complete data table is missing unit occurrences from positions; classify before filtering to items.")
   }
-  metadata <- suppressMessages(design_order_metadata(units))
+  if (is.null(metadata)) metadata <- suppressMessages(design_order_metadata(units, progress = progress))
   assert_cols(metadata, c("unit_key", "variable_id", "variable_source_type", "variable_level", "basis_sources", "sources_known"), "units")
   if (anyDuplicated(metadata[c("unit_key", "variable_id")])) cli::cli_abort("units contains duplicate variable metadata.")
   if (nrow(dplyr::anti_join(result[c("unit_key", "variable_id")], metadata, by = c("unit_key", "variable_id")))) cli::cli_abort("units does not contain metadata for every variable in data.")
@@ -203,7 +205,8 @@ recode_missings_impl <- function(data, units, positions = NULL,
       recode_omissions_to_not_reached = recode_omissions_to_not_reached,
       not_reached_scope = settings$not_reached_scope,
       recode_existing_not_reached = recode_existing_not_reached,
-      derived_not_reached = settings$derived_not_reached, identifiers = identifiers)
+      derived_not_reached = settings$derived_not_reached, identifiers = identifiers,
+      progress = progress)
   }
   settings$recode_omissions_to_not_reached <- recode_omissions_to_not_reached
   settings$coding_box_reference <- if (settings$missing_policy == "coding_box") "39468e5a28a24dc9ec860aee46daf8d4ed5c8682" else NULL
