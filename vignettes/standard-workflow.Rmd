@@ -127,12 +127,18 @@ design <- get_design(testcenter, units = units, mode = "run-hot-return")
 `mode` muss zum Anmeldemodus der Erhebung passen. `units` muss alle relevanten
 Aufgaben enthalten; Antworten und Design müssen dieselbe Erhebung abdecken.
 
-`get_design()` berücksichtigt nur aktive Variablen, auch wenn vorhandene
-`unit_codes` mit `filter_has_codes = FALSE` vorbereitet wurden. Enthält ein
-älteres oder selbst erstelltes Design noch nachweislich deaktivierte Variablen
-(`BASE_NO_VALUE`), schließt `complete_design()` diese mit einer Warnung aus.
-Die Unit-Vorkommen und alle aktiven Variablen bleiben erhalten. Aktive Variablen
-ohne numerische Codes sind allein deswegen nicht deaktiviert.
+<details>
+<summary>Hilfe bei deaktivierten oder unbekannten Variablen</summary>
+
+`get_design()` berücksichtigt nur aktive Variablen. Deaktivierte Variablen
+(`BASE_NO_VALUE`) schließt `complete_design()` aus älteren Designs mit einer
+Warnung aus; die Unit-Vorkommen und alle aktiven Variablen bleiben erhalten.
+Fehlende numerische Codes allein bedeuten noch keine Deaktivierung.
+
+**Im Kodierbox-Modus müssen auch die Item-Zuordnungen passen:** Verweist ein
+Item in `items_list` noch auf eine deaktivierte Variable, bricht die
+Missing-Klassifikation ab. Korrigiere die Zuordnung in Studio und lade die
+Metadaten neu. Mehr dazu unter [Missing-Klassifikation](missing-classification.html).
 
 Bei tatsächlich unbekannten Designvariablen bricht `complete_design()` weiterhin
 ab und nennt die betroffenen Unit-/Variablen-Schlüssel. Prüfe dann, ob Design und
@@ -146,6 +152,8 @@ Design erneut:
 units <- add_coding_scheme(units, overwrite = TRUE)
 design <- get_design(testcenter, units = units, mode = "run-hot-return")
 ```
+
+</details>
 
 ## 3. Automatisch kodieren und Ergebnis prüfen
 

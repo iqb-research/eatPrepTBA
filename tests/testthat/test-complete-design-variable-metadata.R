@@ -112,6 +112,45 @@ test_that("inactive response rows never become active completed responses", {
   expect_equal(out$code_id[out$response_present], 1)
 })
 
+test_that("inactive VOMD references block Box classification but not completion", {
+  f <- variable_metadata_fixture()
+  f$units$items_list[[1L]] <- dplyr::bind_rows(
+    f$units$items_list[[1L]],
+    tibble::tibble(item_no = 2L, item_id = "I_OFF",
+                   variable_id = "V_OFF", variable_ref = "v_off")
+  )
+  for (policy in c("eatPrepTBA", "coding_box")) {
+    for (recode in list(NULL, FALSE, TRUE)) {
+      captured <- variable_metadata_warnings(tryCatch(
+        variable_metadata_call(f, policy = policy, recode = recode),
+        error = identity
+      ))
+      expect_length(captured$warnings, 1L)
+      expect_s3_class(captured$warnings[[1L]], "eatPrepTBA_inactive_design_variables")
+      out <- captured$value
+      if (policy == "coding_box" && !is.null(recode)) {
+        expect_s3_class(out, "error")
+        expect_match(conditionMessage(out),
+                     "coding_box policy cannot resolve 1 VOMD item mappings", fixed = TRUE)
+      } else {
+        expect_equal(out$variable_id, rep("V1", 4L))
+        expect_equal(sum(out$response_present), 1L)
+        expect_equal(out$code_id[out$response_present], 1)
+        if (is.null(recode)) {
+          expect_true(all(is.na(out$code_type[!out$response_present])))
+          expect_null(attr(out, "vomd_unresolved"))
+        } else {
+          expect_true(all(out$code_type[!out$response_present] == "MISSING_NOT_REACHED"))
+          expect_equal(attr(out, "vomd_unresolved"), tibble::tibble(
+            unit_key = "U1", item_id = "I_OFF", variable_id = "V_OFF",
+            variable_ref = "v_off", item_position = 2
+          ))
+        }
+      }
+    }
+  }
+})
+
 test_that("BASE variables without numerical codes remain active", {
   f <- variable_metadata_fixture()
   f$design <- f$design[1L, ]

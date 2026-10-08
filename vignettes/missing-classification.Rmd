@@ -65,6 +65,13 @@ Rekodierung verlangt die Kodierbox einen Testlet- oder Testheft-Scope:
 `TRUE` zusammen mit `not_reached_scope = "unit"` ist dort nicht erlaubt.
 Optionen, die dem Box-Regelwerk widersprechen, werden nicht still übernommen.
 
+**Item-Zuordnungen im Kodierbox-Modus prüfen:** Jede Zuordnung in `items_list`
+muss auf eine aktive Variable zeigen. Verweist ein Item noch auf eine
+deaktivierte Variable, bricht die Missing-Klassifikation ab – auch wenn diese
+schon aus dem Design entfernt wurde. Korrigiere die Zuordnung in Studio und
+lade die Metadaten neu. Im eatPrepTBA-Modus läuft die Verarbeitung weiter;
+solche Zuordnungen stehen im Ergebnisattribut `vomd_unresolved`.
+
 ## Beispieldaten
 
 Eine Person bearbeitet zwei Units im selben Testlet. Jede Unit besitzt zwei

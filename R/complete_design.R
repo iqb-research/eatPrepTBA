@@ -80,6 +80,12 @@
 #' presentation relationships. Coding Box leaves variables outside its item and
 #' uniquely anchored source universe unchanged.
 #'
+#' When missing classification is enabled, Coding Box requires every VOMD item
+#' mapping to resolve to an active variable. A mapping to a deactivated variable
+#' still causes an error after that variable is excluded from the design.
+#' Correct the Studio item mapping and reload the metadata. eatPrepTBA continues
+#' and records unresolved mappings in the `vomd_unresolved` attribute.
+#'
 #' eatPrepTBA gives source evidence priority when considering a derived result
 #' for not-reached replacement, preventing that result from anchoring itself.
 #' Otherwise existing derived results also count as activity. Coding-error and
