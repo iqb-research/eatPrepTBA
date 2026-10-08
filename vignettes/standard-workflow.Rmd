@@ -400,7 +400,7 @@ Für Details je Testheft, Testlet und Unit im **gewählten Aufruf** zusätzlich
 `diagnostics = "full"` angeben. `diagnostics = "none"` schaltet den Bericht aus.
 
 Wie sich die Optionen auswirken, zeigen
-[elf Fälle im direkten Vergleich](missing-examples.html), einschließlich
+[die Fälle im direkten Vergleich](missing-examples.html), einschließlich
 Version `.9001`. Details zu Reihenfolge und Ableitungen stehen in der
 [Missing-Vignette](missing-classification.html).
 
