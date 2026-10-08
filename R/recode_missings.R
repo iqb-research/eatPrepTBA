@@ -142,7 +142,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   checkmate::assert_numeric(data$unit_booklet_no, any.missing = FALSE, finite = TRUE, lower = 0)
   keys <- tibble::as_tibble(data[c(identifiers, design_keys, intersect("booklet_no", names(data)))])
   keys$booklet_id <- stringr::str_to_upper(keys$booklet_id)
-  if (anyDuplicated(keys)) cli::cli_abort("data contains duplicate person/variable occurrences.")
+  if (dplyr::n_distinct(keys) != nrow(keys)) cli::cli_abort("data contains duplicate person/variable occurrences.")
   required_keys <- c("booklet_id", "unit_booklet_no", "unit_key", "variable_id")
   if (any(vapply(keys[required_keys], anyNA, logical(1)))) cli::cli_abort("Booklet, unit position, unit, and variable keys in data must not be missing.")
   units <- design_order_units_for_keys(units, keys$unit_key)
@@ -160,7 +160,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   }
   position_keys <- positions[design_keys]
   position_keys$booklet_id <- stringr::str_to_upper(position_keys$booklet_id)
-  if (anyDuplicated(position_keys)) cli::cli_abort("positions contains duplicate variable occurrences.")
+  if (dplyr::n_distinct(position_keys) != nrow(position_keys)) cli::cli_abort("positions contains duplicate variable occurrences.")
   checkmate::assert_integerish(positions$variable_order, any.missing = FALSE, lower = 1)
   raw <- c(design_keys, identifiers, "booklet_no", "value", "response_present",
     "code_status", "code_id", "code_score", "code_type", "code_id_input", "code_score_input", "code_type_input")
@@ -175,9 +175,10 @@ recode_missings_impl <- function(data, units, positions = NULL,
   for (column in columns) result[[column]] <- matched[[column]]
   order_keys <- keys[c(identifiers, "booklet_id", intersect("booklet_no", names(keys)))]
   order_keys$variable_order <- result$variable_order
-  if (anyDuplicated(order_keys)) cli::cli_abort("variable_order must uniquely identify positions within each person's booklet.")
+  if (dplyr::n_distinct(order_keys) != nrow(order_keys)) cli::cli_abort("variable_order must uniquely identify positions within each person's booklet.")
   static <- dplyr::distinct(dplyr::bind_cols(keys[design_keys], variable_order = result$variable_order))
-  if (anyDuplicated(static[design_keys]) || anyDuplicated(static[c("booklet_id", "variable_order")])) {
+  if (dplyr::n_distinct(static[design_keys]) != nrow(static) ||
+      dplyr::n_distinct(static[c("booklet_id", "variable_order")]) != nrow(static)) {
     cli::cli_abort("A variable occurrence must have the same static variable_order for all people assigned to its booklet.")
   }
   occurrence_fields <- setdiff(design_keys, "variable_id")
@@ -189,7 +190,7 @@ recode_missings_impl <- function(data, units, positions = NULL,
   }
   if (is.null(metadata)) metadata <- suppressMessages(design_order_metadata(units, progress = progress))
   assert_cols(metadata, c("unit_key", "variable_id", "variable_source_type", "variable_level", "basis_sources", "sources_known"), "units")
-  if (anyDuplicated(metadata[c("unit_key", "variable_id")])) cli::cli_abort("units contains duplicate variable metadata.")
+  if (dplyr::n_distinct(metadata[c("unit_key", "variable_id")]) != nrow(metadata)) cli::cli_abort("units contains duplicate variable metadata.")
   if (nrow(dplyr::anti_join(result[c("unit_key", "variable_id")], metadata, by = c("unit_key", "variable_id")))) cli::cli_abort("units does not contain metadata for every variable in data.")
   bases <- metadata[grepl("^(BASE|BASIS)", metadata$variable_source_type) |
     (is.na(metadata$variable_source_type) & metadata$variable_level %in% 0), c("unit_key", "variable_id")]

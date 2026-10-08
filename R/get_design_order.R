@@ -73,7 +73,7 @@ get_design_order <- function(design, units, overwrite = FALSE,
   }
   occurrences <- dplyr::distinct(occurrences)
   slots <- occurrences[c("booklet_id", "testlet_no", "unit_booklet_no")]
-  if (anyDuplicated(slots)) {
+  if (nrow(dplyr::distinct(slots)) != nrow(slots)) {
     cli::cli_abort("Conflicting unit occurrences in {.arg design}: each booklet/testlet/unit position must identify one unit and alias.")
   }
   occurrences <- dplyr::arrange(occurrences, .data$booklet_id, .data$testlet_no,
@@ -100,6 +100,12 @@ get_design_order <- function(design, units, overwrite = FALSE,
   tables <- vector("list", nrow(occurrences))
   precedence <- vector("list", nrow(occurrences))
   conflicts <- vector("list", nrow(occurrences))
+  template_of <- integer(nrow(occurrences))
+  group_offsets <- integer(nrow(occurrences))
+  template_count <- 0L
+  offset <- 0L
+  previous_booklet <- NULL
+  metadata_indices <- split(seq_len(nrow(metadata)), metadata$unit_key)
   position_cache <- new.env(parent = emptyenv())
   ordering_progress <- missing_progress_start("Ordering units", nrow(occurrences), progress)
   for (i in seq_len(nrow(occurrences))) {
@@ -108,22 +114,30 @@ get_design_order <- function(design, units, overwrite = FALSE,
     # An unmodified unit has the same local order in every booklet. Overrides
     # remain occurrence-specific and are deliberately not reused.
     if (is.null(overrides[[i]]) && exists(key, envir = position_cache, inherits = FALSE)) {
-      current <- get(key, envir = position_cache, inherits = FALSE)
+      template <- get(key, envir = position_cache, inherits = FALSE)
+      current <- tables[[template]]
     } else {
-      current <- metadata[metadata$unit_key == key, , drop = FALSE]
+      current <- metadata[metadata_indices[[key]], , drop = FALSE]
       current <- design_order_position_unit(current, overrides[[i]], order_method,
                                             use_variable_names_for_recoding)
-      if (is.null(overrides[[i]])) assign(key, current, envir = position_cache)
+      template_count <- template_count + 1L
+      template <- template_count
+      tables[[template]] <- current
+      conflicts[[template]] <- attr(current, "order_conflicts", exact = TRUE)
+      if (is.null(overrides[[i]])) assign(key, template, envir = position_cache)
     }
+    template_of[[i]] <- template
     precedence[[i]] <- list(keys = occurrence,
                             variable_ids = current$variable_id,
                             before = attr(current, "before"))
-    conflicts[[i]] <- attr(current, "order_conflicts", exact = TRUE)
-    keys <- occurrence[rep(1L, nrow(current)), , drop = FALSE]
-    tables[[i]] <- dplyr::bind_cols(keys, current[setdiff(names(current), "unit_key")])
+    if (!identical(previous_booklet, occurrence$booklet_id[[1L]])) offset <- 0L
+    group_offsets[[i]] <- offset
+    offset <- max(c(offset, current$order_group + offset), na.rm = TRUE)
+    previous_booklet <- occurrence$booklet_id[[1L]]
     missing_progress_update(ordering_progress)
   }
   missing_progress_done(ordering_progress)
+  assembly_progress <- missing_progress_start("Assembling booklet positions", enabled = progress)
   if (!length(tables)) {
     out <- dplyr::bind_cols(occurrences, metadata[0, setdiff(names(metadata), "unit_key")])
     out$variable_order <- integer()
@@ -136,28 +150,27 @@ get_design_order <- function(design, units, overwrite = FALSE,
     out$box_included <- logical()
     out$box_is_item <- logical()
   } else {
-    out <- dplyr::bind_rows(tables)
+    # Materialize repeated occurrences once from the cached local templates,
+    # rather than constructing a separate data frame for every occurrence.
+    tables <- tables[seq_len(template_count)]
+    sizes <- vapply(tables, nrow, integer(1))
+    starts <- c(1L, utils::head(cumsum(sizes), -1L) + 1L)
+    occurrence_sizes <- sizes[template_of]
+    rows <- sequence(occurrence_sizes, from = starts[template_of])
+    local <- dplyr::bind_rows(tables)
+    keys <- occurrences[rep.int(seq_len(nrow(occurrences)), occurrence_sizes), , drop = FALSE]
+    out <- dplyr::bind_cols(keys, local[rows, setdiff(names(local), "unit_key")])
     # Local ranks include derivations; occurrence offsets are static per booklet.
-    out <- out %>%
-      dplyr::group_by(.data$booklet_id) %>%
-      dplyr::mutate(variable_order = seq_len(dplyr::n())) %>%
-      dplyr::ungroup()
-    offsets <- 0L
-    previous <- NULL
-    cursor <- 1L
-    for (current in tables) {
-      if (!identical(previous, current$booklet_id[[1L]])) offsets <- 0L
-      index <- seq.int(cursor, length.out = nrow(current))
-      out$order_group[index] <- current$order_group + offsets
-      offsets <- max(c(offsets, out$order_group[index]), na.rm = TRUE)
-      previous <- current$booklet_id[[1L]]
-      cursor <- cursor + nrow(current)
-    }
+    out$variable_order <- sequence(rle(out$booklet_id)$lengths)
+    out$order_group <- out$order_group + rep.int(group_offsets, occurrence_sizes)
   }
+  missing_progress_done(assembly_progress)
+  item_progress <- missing_progress_start("Ordering items", enabled = progress)
   out <- design_order_items(out, item_selection)
+  missing_progress_done(item_progress)
   attr(out, "design_precedence") <- precedence
   attr(out, "vomd_unresolved") <- unresolved_items
-  conflicts <- dplyr::distinct(dplyr::bind_rows(design_order_empty_conflicts(), conflicts))
+  conflicts <- dplyr::distinct(dplyr::bind_rows(design_order_empty_conflicts(), conflicts[seq_len(template_count)]))
   attr(out, "order_conflicts") <- conflicts
   design_order_warn_conflicts(conflicts)
   out
@@ -891,23 +904,24 @@ design_order_items <- function(order, selection = NULL) {
     }
   }
   order$item_order <- rep(NA_integer_, nrow(order))
-  for (booklet in unique(order$booklet_id)) {
-    valid_item <- !is.na(order$item_id) & nzchar(trimws(order$item_id))
-    index <- which(order$booklet_id == booklet &
-                     (valid_item | (!is.null(selection) & selected)))
-    if (!length(index)) next
-    keys <- order[index, c("testlet_no", "unit_booklet_no", "unit_key", "unit_alias", "item_id", "variable_id")]
+  # Rank all booklets together. Repeatedly scanning and trimming the full
+  # variable table for every booklet becomes quadratic in large designs.
+  valid_item <- !is.na(order$item_id) & nzchar(trimws(order$item_id))
+  index <- which(valid_item | (!is.null(selection) & selected))
+  if (length(index)) {
+    keys <- order[index, c("booklet_id", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias", "item_id", "variable_id")]
     # An item is represented by one chosen variable. Different variables mapped
     # to the same Studio item do not silently define an aggregation rule.
-    mapped <- keys[selected[index] & !is.na(keys$item_id) & nzchar(trimws(keys$item_id)), , drop = FALSE]
+    mapped <- keys[selected[index] & valid_item[index], , drop = FALSE]
     item_keys <- mapped[setdiff(names(mapped), "variable_id")]
-    if (anyDuplicated(item_keys)) {
+    if (nrow(dplyr::distinct(item_keys)) != nrow(item_keys)) {
       cli::cli_abort("Several variables map to the same item in a unit occurrence. Choose one variable per item using {.arg item_selection}.")
     }
     positions <- order[index, c("testlet_no", "unit_booklet_no", "item_position", "variable_order")]
-    local <- do.call(base::order, c(positions, list(na.last = TRUE)))
+    local <- do.call(base::order, c(list(match(keys$booklet_id, unique(keys$booklet_id))),
+                                    positions, list(na.last = TRUE)))
     unique_keys <- dplyr::distinct(keys[local, , drop = FALSE])
-    unique_keys$.item_order <- seq_len(nrow(unique_keys))
+    unique_keys$.item_order <- sequence(rle(unique_keys$booklet_id)$lengths)
     ordered <- dplyr::left_join(keys, unique_keys, by = names(keys), relationship = "many-to-one")
     order$item_order[index[selected[index]]] <- ordered$.item_order[selected[index]]
   }

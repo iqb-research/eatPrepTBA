@@ -39,7 +39,11 @@ Changes since eatPrepTBA 0.9.8.9036.
   person-by-variable rows. Reuse unit metadata, source graphs and local orders.
 * Build variable metadata in bulk, index static classification metadata instead
   of expanding its source lists over all responses, and avoid unused structural
-  matrices and detailed aggregation for compact reports.
+  matrices and detailed aggregation for compact reports. Batch item ordering
+  across booklets, reuse occurrence templates, and hash response/design keys
+  for duplicate checks. Avoid repeated grouping of large designs and repeated
+  copying when building detailed reports. Large full reports retain every
+  occurrence as a plain-text detail line without costly per-line CLI formatting.
 * Add optional progress reporting, enabled in interactive sessions. RGui uses
   one Windows progress window with phase, completed count and elapsed time;
   console updates are throttled. Clean up displays after completion, failure

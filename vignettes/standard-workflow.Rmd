@@ -401,6 +401,8 @@ meldet deshalb keine neuen Änderungen.
 
 Für Details je Testheft, Testlet und Unit im **gewählten Aufruf** zusätzlich
 `diagnostics = "full"` angeben. `diagnostics = "none"` schaltet den Bericht aus.
+Bei vielen Testheften kann `"full"` sehr viel Konsolentext erzeugen. Mit
+`diagnostics = "compact"` bleibt der Bericht kurz; die Kodierung ist identisch.
 
 Wie sich die Optionen auswirken, zeigen
 [die Fälle im direkten Vergleich](missing-examples.html), einschließlich

@@ -75,10 +75,16 @@ missing_change_report <- function(before, after,
   if (!detail) {
     by_unit <- tibble::tibble()
   } else if (length(unit_keys)) {
-    by_unit <- dplyr::bind_cols(tibble::as_tibble(after[unit_keys]), flags) %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(unit_keys))) %>%
-      dplyr::summarise(dplyr::across(dplyr::all_of(names(flags)), sum),
-                       .groups = "drop")
+    groups <- tibble::as_tibble(after[unit_keys]) %>%
+      dplyr::group_by(dplyr::across(dplyr::everything()))
+    by_unit <- dplyr::group_keys(groups)
+    group_index <- dplyr::group_indices(groups)
+    for (field in names(flags)) {
+      # Count true flags in bulk instead of evaluating 17 summaries for every
+      # booklet/unit occurrence. The grouping order and integer counts match
+      # group_by()/summarise(), including missing keys and empty inputs.
+      by_unit[[field]] <- tabulate(group_index[flags[[field]]], nbins = nrow(by_unit))
+    }
   } else {
     by_unit <- tibble::as_tibble(totals)
     if (!nrow(after)) by_unit <- by_unit[0, ]
@@ -97,6 +103,7 @@ emit_missing_report <- function(report, diagnostics = c("compact", "full", "none
   n <- report$totals
   count <- format_response_count
   lines <- c("i" = paste0(source, "(): ", count(n$n_rows), " output rows."))
+  bulk_details <- character()
 
   if (!report$classified) {
     lines <- c(lines, "*" = paste0("Added: ", count(n$n_added), " rows."),
@@ -149,21 +156,30 @@ emit_missing_report <- function(report, diagnostics = c("compact", "full", "none
     }
     groups <- report$by_unit
     unit_keys <- setdiff(names(groups), names(n))
-    for (i in seq_len(nrow(groups))) {
-      values <- vapply(unit_keys, function(key) {
-        value <- groups[[key]][[i]]
-        if (is.na(value)) "NA" else as.character(value)
-      }, character(1))
-      label <- if (length(unit_keys)) paste(paste0(unit_keys, "=", values), collapse = ", ") else "All rows"
-      detail <- paste0(label, ": ", count(groups$n_added[[i]]),
-        " added; ", count(groups$n_changed[[i]]), " existing changed; ",
-        count(groups$n_unchanged[[i]]), " existing unchanged.")
-      if (groups$n_unchanged_order[[i]] + groups$n_unchanged_sources[[i]] > 0L) {
-        detail <- paste0(detail, " Among unchanged: ", count(groups$n_unchanged_order[[i]]),
-          " lack reliable order; ", count(groups$n_unchanged_sources[[i]]),
-          " lack complete source information.")
+    if (nrow(groups)) {
+      labels <- if (length(unit_keys)) {
+        values <- lapply(unit_keys, function(key) {
+          value <- groups[[key]]
+          paste0(key, "=", ifelse(is.na(value), "NA", as.character(value)))
+        })
+        do.call(paste, c(values, sep = ", "))
+      } else rep("All rows", nrow(groups))
+      detail <- paste0(labels, ": ", count(groups$n_added),
+        " added; ", count(groups$n_changed), " existing changed; ",
+        count(groups$n_unchanged), " existing unchanged.")
+      unresolved <- groups$n_unchanged_order + groups$n_unchanged_sources > 0L
+      detail[unresolved] <- paste0(detail[unresolved], " Among unchanged: ",
+        count(groups$n_unchanged_order[unresolved]), " lack reliable order; ",
+        count(groups$n_unchanged_sources[unresolved]),
+        " lack complete source information.")
+      if (length(detail) > 1000L) {
+        # CLI's per-bullet interpolation and wrapping can take minutes for
+        # large designs. Keep every occurrence, but render the detail section
+        # as literal lines after the normally formatted summary instead.
+        bulk_details <- detail
+      } else {
+        lines <- c(lines, stats::setNames(detail, rep("*", length(detail))))
       }
-      lines <- c(lines, "*" = detail)
     }
   }
   # Interpolate each assembled line as a value, so braces in unit keys or
@@ -172,6 +188,16 @@ emit_missing_report <- function(report, diagnostics = c("compact", "full", "none
   names(values) <- paste0("report_line_", seq_along(lines))
   templates <- paste0("{", names(values), "}")
   names(templates) <- names(lines)
-  cli::cli_inform(templates, .envir = list2env(values, parent = environment()))
+  report_environment <- list2env(values, parent = environment())
+  if (length(bulk_details)) {
+    summary <- cli::format_message(templates, .envir = report_environment)
+    message <- paste(c(summary, paste0(cli::symbol$bullet, " ", bulk_details)),
+                       collapse = "\n")
+    # cli_inform() also signals with rlang::inform(); retaining one condition
+    # keeps suppressMessages() and message handlers working for the whole report.
+    rlang::inform(message)
+  } else {
+    cli::cli_inform(templates, .envir = report_environment)
+  }
   invisible(report)
 }

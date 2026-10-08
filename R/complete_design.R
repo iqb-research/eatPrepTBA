@@ -193,7 +193,7 @@ complete_design <- function(coded,
   join_keys <- c(identifiers, ".booklet_merge", "unit_key", "unit_alias", "variable_id",
     intersect(c("booklet_no", "testlet_no", "unit_booklet_no"), names(coded)))
   coded$.booklet_merge <- stringr::str_to_upper(coded$booklet_id)
-  if (anyDuplicated(coded[join_keys])) {
+  if (dplyr::n_distinct(coded[join_keys]) != nrow(coded)) {
     cli::cli_abort("{.arg coded} contains duplicate response keys. Supply one row per variable and unit occurrence.")
   }
 
@@ -235,12 +235,18 @@ complete_design <- function(coded,
   # Unit aliases normally disambiguate repeated units. If they do not, require
   # the occurrence columns in coded instead of attaching one response twice.
   completed$.booklet_merge <- stringr::str_to_upper(completed$booklet_id)
-  ambiguous <- completed %>%
-    dplyr::select(dplyr::all_of(join_keys)) %>%
-    dplyr::filter(duplicated(.) | duplicated(., fromLast = TRUE)) %>%
-    dplyr::semi_join(coded, by = join_keys)
-  if (nrow(ambiguous)) {
-    cli::cli_abort("Repeated unit occurrences cannot be distinguished in {.arg coded}. Include {.field testlet_no} and {.field unit_booklet_no} (and {.field booklet_no} for repeated booklet assignments).")
+  # Hash the key columns together. Base duplicated.data.frame() constructs a
+  # separate object for every row, which is costly for large completed designs.
+  completed_keys <- completed[join_keys]
+  if (dplyr::n_distinct(completed_keys) != nrow(completed_keys)) {
+    ambiguous <- completed_keys %>%
+      dplyr::group_by(dplyr::across(dplyr::everything())) %>%
+      dplyr::filter(dplyr::n() > 1L) %>%
+      dplyr::ungroup() %>%
+      dplyr::semi_join(coded, by = join_keys)
+    if (nrow(ambiguous)) {
+      cli::cli_abort("Repeated unit occurrences cannot be distinguished in {.arg coded}. Include {.field testlet_no} and {.field unit_booklet_no} (and {.field booklet_no} for repeated booklet assignments).")
+    }
   }
   # Expected-design metadata takes precedence over copied response metadata;
   # the actual coding fields and presence marker always come from coded.
@@ -269,8 +275,8 @@ complete_design <- function(coded,
       phase <- missing_progress_start("Summarising changes", enabled = progress)
       report <- missing_change_report(before, completed, added = added, classified = FALSE,
                                       detail = diagnostics == "full")
-      missing_progress_done(phase)
       emit_missing_report(report, diagnostics, source = "complete_design")
+      missing_progress_done(phase)
     }
     return(completed)
   }
@@ -299,9 +305,9 @@ complete_design <- function(coded,
     report <- missing_change_report(before, out$data, added = added,
                                     reasons = out$reasons, basis = out$basis,
                                     detail = diagnostics == "full")
-    missing_progress_done(phase)
     emit_missing_report(report, diagnostics, source = "complete_design")
     emit_missing_policy_report(out)
+    missing_progress_done(phase)
   }
   out$data
 }
@@ -320,13 +326,13 @@ complete_design_rows <- function(design, metadata, occurrence_keys, code_fields,
                                                 units, unknown_variables)
   variable_keys <- c(occurrence_keys, "variable_id")
   extra_columns <- setdiff(names(design), variable_keys)
-  variable_only <- grepl("^(variable_|item_|order_)", extra_columns)
-  unit_columns <- extra_columns[!variable_only & vapply(extra_columns, function(column) {
-    counts <- design %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(occurrence_keys))) %>%
-      dplyr::summarise(.count = dplyr::n_distinct(.data[[column]]),
-                       .groups = "drop")
-    all(counts$.count <= 1L)
+  candidates <- extra_columns[!grepl("^(variable_|item_|order_)", extra_columns)]
+  # A column is constant within occurrences iff adding it to the occurrence
+  # keys does not increase the number of distinct rows. This avoids rebuilding
+  # hundreds of thousands of groups for every extra design column.
+  n_occurrences <- if (length(candidates)) dplyr::n_distinct(design[occurrence_keys]) else 0L
+  unit_columns <- candidates[vapply(candidates, function(column) {
+    dplyr::n_distinct(design[c(occurrence_keys, column)]) == n_occurrences
   }, logical(1))]
   occurrences <- design %>%
     dplyr::select(dplyr::all_of(c(occurrence_keys, unit_columns))) %>%
@@ -357,7 +363,7 @@ complete_design_validate_design <- function(design, metadata, occurrence_keys,
   }
   variable_keys <- c(occurrence_keys, "variable_id")
   if ("variable_id" %in% names(design)) {
-    if (anyDuplicated(design[variable_keys])) {
+    if (dplyr::n_distinct(design[variable_keys]) != nrow(design)) {
       cli::cli_abort("{.arg design} contains duplicate variable/occurrence keys.")
     }
     unknown <- design %>%
