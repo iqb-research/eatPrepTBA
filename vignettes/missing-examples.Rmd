@@ -202,6 +202,31 @@ Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
 Die Variablennummerierung beginnt in jeder Unit bei V01.
 „Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
 
+## Welche Sortierregeln gelten?
+
+Alle drei Fassungen prüfen die Units je Person, Booklet und Testlet **vom Ende
+her** (`unit_booklet_no` absteigend). Die ausgegebenen Daten stehen anschließend
+in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
+
+| Version | Reihenfolge für die Missing-Einstufung | Sortierung der ausgegebenen Zeilen |
+|:--|:--|:--|
+| **9001** | Die Unit wird als Ganzes betrachtet; die Position einer Variablen innerhalb der Unit hat keinen Einfluss. | `variable_page` → `variable_section` → `variable_level`, jeweils aufsteigend. |
+| **9036** | Wie 9001, auch mit `TRUE`. | Wie 9001. |
+| **Neu `r sub("^0\\.9\\.8\\.", "", new_version)`** | Zuerst Seite (`variable_page`, numerisch), dann Variablenname (`variable_id`, natürlich: V2 vor V10). | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
+
+- **9001/9036:** Die Ausgabesortierung nutzt die vorhandenen Spalten und deren
+  Datentyp; `NA` folgt jeweils zuletzt. Bei Gleichstand bleibt die Reihenfolge
+  nach dem Zusammenführen der Daten erhalten, normalerweise die Designreihenfolge.
+- **Neu:** Fehlende oder nicht als endliche Zahl lesbare Seiten folgen nach
+  bekannten Seiten. Untereinander entscheidet der Variablenname; fehlen alle
+  Seiten, entscheidet allein der Name. Abschnitt und Ableitungsebene haben
+  keinen Einfluss auf diese Reihenfolge.
+- **Alle drei:** Die Itemliste (`items_list$item_no`) bestimmt die Reihenfolge
+  nicht. Deshalb folgt die neue Fassung in [Fall 14](#beispiel-14) der Seitenfolge.
+
+Für den direkten Vergleich zeigen die Tabellen unten alle Ergebnisse in derselben
+Beispielreihenfolge; die ursprüngliche Ausgabesortierung ist dort nicht abgebildet.
+
 ```{r case-comparisons, results='asis'}
 titles <- c(
   "Auslassung vor und nach der letzten Antwort",
