@@ -1,2 +1,4 @@
 *.html
 *.R
+!fixtures/complete-design-9001.R
+!fixtures/complete-design-9036.R
