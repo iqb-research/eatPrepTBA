@@ -30,7 +30,11 @@ complete_design(
 \item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a testlet? Defaults to \code{FALSE}.}
 }
 \value{
-A tibble.
+A tibble including integer \code{variable_position}: the one-based position
+within \code{unit_key} used for sorting and missing classification, including
+derived variables. It is calculated from the unit metadata, replacing any
+input column of the same name. Positions can have gaps when \code{design} contains
+only part of a unit; variables absent from the unit metadata receive \code{NA}.
 }
 \description{
 This function automatically completes missings for coded responses.

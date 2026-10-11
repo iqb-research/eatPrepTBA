@@ -225,6 +225,9 @@ analysis_data <- filter(design_coded, id_used)
 ```
 
 `id_used` kennzeichnet Personen mit mindestens einem gespeicherten Kodierstatus.
+`variable_position` zeigt die verwendete Position innerhalb der Unit ab 1,
+einschließlich Ableitungen. Sie folgt den Unit-Metadaten: Bei einem Teildesign
+bleiben Lücken erhalten, ohne passende Variablenmetadaten steht hier `NA`.
 Mit `recode_omissions_to_not_reached = TRUE` können zusätzlich abschließende
 Auslassungen als nicht erreicht eingeordnet werden:
 

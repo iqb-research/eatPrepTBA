@@ -4,6 +4,7 @@
 
 * Fixed `complete_design()` classifying missings before a later response within the same unit as not reached. Variables are ordered by numeric page, numeric section, and natural variable name; missing sections follow known sections and missing pages follow known pages. Derived variables with resolvable sources follow their last source, including chained derivations. Unresolvable source links use the variable's own position. The order is prepared once per unit; completion and the optional `recode_omissions_to_not_reached` argument retain their existing scope.
 * `complete_design()` now preserves `code_status` exactly, including `NA` for newly completed rows. Missing schemes continue to assign analytical codes and scores.
+* `complete_design()` returns `variable_position`, the integer position within each unit used for sorting and missing classification, including derivations. Positions are calculated from the unit metadata; subsets can have gaps and variables absent from the metadata receive `NA`.
 
 ## tests
 

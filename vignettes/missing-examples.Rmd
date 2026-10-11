@@ -24,7 +24,7 @@ inputs <- read.csv(
                 code_type = "character", legacy_code_status = "character",
                 legacy_code_type = "character")
 ) |> tibble::as_tibble()
-stopifnot(sum(inputs$case_id <= 15L) == 67L,
+stopifnot(sum(inputs$case_id <= 15L) == 62L,
           identical(unique(inputs$case_id), seq_len(max(inputs$case_id))),
           !anyDuplicated(inputs[c("case_id", "unit_key", "variable_id")]))
 
@@ -85,8 +85,8 @@ make_fixture <- function(rows) {
     items <- tibble::tibble(variable_id = ids,
       item_id = paste0(key, "_", ids), item_no = seq_along(ids))
     if (rows$case_id[[1L]] == 14L) {
-      items <- tibble::tibble(variable_id = ids[c(2, 4, 5, 6, 1, 3, 7, 8, 9)],
-        item_id = paste0(key, "_I", c("02", "03", "04", "05", "09", "11", "12", "13", "14")),
+      items <- tibble::tibble(variable_id = ids[c(2, 4, 1, 3)],
+        item_id = paste0(key, "_I", c("02", "03", "09", "11")),
         item_no = seq_along(ids))
     }
     tibble::tibble(unit_key = key, unit_codes = list(codes), items_list = list(items))
@@ -117,7 +117,8 @@ calculate <- function(rows) {
       result <- result[at, ]
       stopifnot(identical(result$value, rows$value),
                 all(result$id_used == (rows$case_id[[1L]] != 8L)))
-      if (version == "new") stopifnot(identical(result$code_status, rows$code_status))
+      if (version == "new") stopifnot(identical(result$code_status, rows$code_status),
+                                      is.integer(result$variable_position))
       if (version == "9001") {
         for (field in c("code_id", "code_type", "code_score", "code_status")) {
           stopifnot(isTRUE(all.equal(result[[field]], rows[[paste0("legacy_", field)]])))
@@ -194,7 +195,13 @@ print_comparison <- function(rows, output) {
     for (version in names(output)) {
       cells <- lapply(output[[version]], function(x) x[i, ])
       labels <- if (version == "9001") "Standard" else c("FALSE", "TRUE")
-      cat('<td>', result_cell(cells, input, labels), '</td>', sep = "")
+      cat('<td>')
+      if (version == "new") {
+        stopifnot(identical(cells[[1L]]$variable_position, cells[[2L]]$variable_position))
+        cat('<span class="missing-position">variable_position: ',
+            number(cells[[1L]]$variable_position), '</span>', sep = "")
+      }
+      cat(result_cell(cells, input, labels), '</td>', sep = "")
     }
     cat('</tr>\n')
   }
@@ -213,6 +220,7 @@ body { max-width: 1100px; }
 .missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: normal; color: #475569; }
 .missing-result + .missing-result { margin-top: 0.6em; }
 .missing-mode { display: block; font-size: 0.88em; color: #475569; }
+.missing-position { display: block; margin-bottom: 0.45em; font-size: 0.88em; color: #475569; }
 .missing-values { font-family: Consolas, monospace; font-size: 0.92em; }
 .missing-field { display: inline-block; max-width: 100%; }
 .missing-result strong { color: #0645a5; background: #e6efff; font-weight: 750; }
@@ -240,6 +248,13 @@ Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
 Die Variablennummerierung beginnt in jeder Unit neu. Die Zusatzfälle verwenden
 auch Namen wie `01a`, `01b` und `01` für Quellen und ihre Ableitung.
 „Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
+
+Die neue Ausgabe enthält zusätzlich **`variable_position`**: die ganzzahlige
+Position innerhalb der Unit, beginnend bei 1, einschließlich Ableitungen.
+Sie wird aus den Unit-Metadaten berechnet und ist für FALSE und TRUE gleich.
+Bei einem Teildesign bleiben Lücken erhalten; ohne passende Variablenmetadaten
+ist die Position `NA`. Die Zahl steht in der neuen Versionsspalte separat über
+den Kodierergebnissen.
 
 ## Welche Sortierregeln gelten?
 
@@ -336,8 +351,11 @@ for (i in seq_along(titles)) {
 
 ## Zur Berechnung
 
-Alle 15 Fälle aus PR80 bleiben enthalten (67 Beispielzeilen); drei Zusatzfälle
-zeigen Abschnitts- und Quellenreihenfolge. Insgesamt werden `r nrow(inputs)` Zeilen
+Alle 15 Fälle aus PR80 bleiben enthalten (`r sum(inputs$case_id <= 15L)` Beispielzeilen).
+Fall 14 wurde um fünf gleichartige nachfolgende NR-Zeilen gekürzt;
+der Unterschied zwischen Seitenfolge und Itemliste bleibt sichtbar.
+Drei Zusatzfälle zeigen Abschnitts- und Quellenreihenfolge.
+Insgesamt werden `r nrow(inputs)` Zeilen
 mit denselben vorbereiteten Daten ausgeführt: eine Person, ein Booklet.
 Verwendet werden die historischen
 Funktionen aus `29cca37` (9001, wie in PR80) und `fc7debb` (9036) sowie die

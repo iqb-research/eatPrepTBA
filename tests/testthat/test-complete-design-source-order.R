@@ -59,6 +59,7 @@ test_that("a derived variable follows its last source rather than its own positi
   f$units$unit_codes[[1]]$variable_level[[1]] <- 20L
   out <- source_order_complete(f)
   expect_equal(out$variable_id, c("01a", "01b", "01", "02"))
+  expect_identical(out$variable_position, 1:4)
   expect_equal(out$code_id, rep(1, 4))
 
   # Alias-only tables are supported when no reference column is available.
@@ -91,7 +92,7 @@ test_that("source-aware ordering and classification are invariant to shuffled in
   shuffled$units$unit_codes[[1]] <- f$units$unit_codes[[1]][c(3, 1, 4, 2), ]
   shuffled$units$unit_codes[[1]]$variable_sources[[2]] <-
     shuffled$units$unit_codes[[1]]$variable_sources[[2]][2:1, ]
-  fields <- c("variable_id", "value", "code_status", "code_id", "code_type", "code_score")
+  fields <- c("variable_id", "variable_position", "value", "code_status", "code_id", "code_type", "code_score")
   for (recode in c(FALSE, TRUE)) {
     expect_equal(source_order_complete(shuffled, recode)[fields],
                  source_order_complete(f, recode)[fields])
@@ -235,6 +236,7 @@ test_that("sources never resolve against variables of another unit", {
   out <- source_order_complete(f)
   expect_equal(out$variable_id[out$unit_key == "U1"], c("01", "A"))
   expect_equal(out$variable_id[out$unit_key == "U2"], c("external", "01"))
+  expect_identical(out$variable_position, c(1:2, 1:2))
 })
 
 test_that("long dependency chains are ordered without recursive stack growth", {

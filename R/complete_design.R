@@ -32,7 +32,11 @@
 #' follow the usual missing rules; no derivation is recalculated.
 #' Newly completed rows retain `NA` in `code_status`.
 #'
-#' @return A tibble.
+#' @return A tibble including integer `variable_position`: the one-based position
+#' within `unit_key` used for sorting and missing classification, including
+#' derived variables. It is calculated from the unit metadata, replacing any
+#' input column of the same name. Positions can have gaps when `design` contains
+#' only part of a unit; variables absent from the unit metadata receive `NA`.
 #' @export
 complete_design <- function(coded,
                             units,
@@ -122,11 +126,13 @@ complete_design <- function(coded,
   # Merge codes and design
   design_coded <-
     design %>%
+    dplyr::select(-dplyr::any_of("variable_position")) %>%
     dplyr::mutate(
       booklet_merge = stringr::str_to_upper(booklet_id)
     ) %>%
     dplyr::left_join(
-      coded %>% dplyr::mutate(booklet_merge = stringr::str_to_upper(booklet_id)) %>% dplyr::select(-booklet_id),
+      coded %>% dplyr::mutate(booklet_merge = stringr::str_to_upper(booklet_id)) %>%
+        dplyr::select(-booklet_id, -dplyr::any_of("variable_position")),
       by = dplyr::join_by(!!! c(identifiers, "booklet_merge", "unit_key", "unit_alias", "variable_id"))
     ) %>%
     dplyr::select(-dplyr::any_of(c("variable_source_type"))) %>%
@@ -251,10 +257,11 @@ complete_design <- function(coded,
     )) %>%
     dplyr::select(
       -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr", "last_position", ".completion_position",
+        "not_reach", "nr", "lag_nr", "check_nr", "last_position",
         "missing_code_id", "missing_code_score"
       ))
-    )
+    ) %>%
+    dplyr::rename(variable_position = ".completion_position")
 }
 
 # Static ordering of one unit; no response values or person-specific data enter.

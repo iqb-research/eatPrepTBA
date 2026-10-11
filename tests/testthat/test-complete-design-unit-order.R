@@ -47,7 +47,7 @@ unit_order_fields <- function(out) {
   out %>%
     dplyr::arrange(login_code, booklet_id, testlet_no, unit_booklet_no, variable_id) %>%
     dplyr::select(login_code, booklet_id, testlet_no, unit_booklet_no, unit_key,
-                  unit_alias, variable_id, value, code_status, code_type,
+                  unit_alias, variable_id, variable_position, value, code_status, code_type,
                   code_id, code_score, id_used)
 }
 
@@ -72,6 +72,7 @@ test_that("page order takes precedence over natural variable names", {
   out <- unit_order_complete(f)
   expect_equal(unit_order_values(out, f), c(-99, 1, -99))
   expect_equal(out$variable_id, c("V11", "V2", "V10"))
+  expect_identical(out$variable_position, 1:3)
   f$units$unit_codes[[1]]$variable_page <- c("2", "10", "1")
   out <- unit_order_complete(f)
   expect_equal(unit_order_values(out, f), c(-99, 1, -99))
@@ -136,6 +137,7 @@ test_that("boundaries respect people, testlets, and repeated occurrences of a un
   f$coded <- unit_order_coded(f$design, types)
   out <- unit_order_fields(unit_order_complete(f, TRUE))
   expect_equal(nrow(out), nrow(f$design))
+  expect_identical(out$variable_position, match(out$variable_id, c("V2", "V10", "V11")))
   expect_true(all(out$code_id[out$login_code == "P2"] == -96))
   expect_true(all(out$code_id[out$login_code == "P1" & out$unit_alias == "first"] == -99))
   p1 <- out[out$login_code == "P1", ]
@@ -216,6 +218,7 @@ test_that("the historical variable design is completed without expanding its uni
   f$coded <- f$coded[FALSE, ]
   out <- unit_order_complete(f)
   expect_equal(out$variable_id, "V10")
+  expect_identical(out$variable_position, 2L)
   expect_equal(out$code_id, -96)
   expect_true(is.na(out$code_status))
   expect_false(out$id_used)
@@ -225,4 +228,26 @@ test_that("the historical variable design is completed without expanding its uni
   out <- unit_order_complete(f)
   expect_equal(out$code_id, 1)
   expect_true(out$id_used)
+})
+
+test_that("variable positions are recalculated instead of using input columns", {
+  original <- unit_order_fixture(c("NR", "A", "NR"))
+  expected <- unit_order_complete(original)
+  for (input in list("coded", "design", c("coded", "design"))) {
+    f <- original
+    for (name in input) f[[name]]$variable_position <- c(99L, 98L, 97L)
+    f$units$unit_codes[[1]]$variable_position <- c(30L, 20L, 10L)
+    expect_identical(unit_order_complete(f), expected)
+  }
+  expect_false(".completion_position" %in% names(expected))
+})
+
+test_that("variables absent from unit metadata have an unknown position", {
+  f <- unit_order_fixture(c("A", "NR", "NR"))
+  f$units$unit_codes[[1]] <- f$units$unit_codes[[1]][1:2, ]
+  out <- unit_order_complete(f)
+  expect_identical(out$variable_id, c("V2", "V10", "V11"))
+  expect_identical(out$variable_position, c(1L, 2L, NA_integer_))
+  expect_equal(out$code_id, c(1, -96, -96))
+  expect_identical(out$code_status, f$coded$code_status)
 })
