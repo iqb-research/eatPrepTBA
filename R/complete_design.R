@@ -1,15 +1,26 @@
 #' Complete design with coded responses
 #'
-#' @param coded Tibble. Response data coded with [code_responses()]. The argument `prepare` must be `TRUE`.
+#' @param coded Tibble. Response data coded with [eatPrepTBA::code_responses()]. The argument `prepare` must be `TRUE`.
 #' @param units Tibble. Unit data retrieved from the IQB Studio after setting the argument `unit_definition = TRUE` for [get_units()] -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by [`add_coding_scheme()`] to save some time.
 #' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. The supplied `code_status` is always preserved, including `NA`; the scheme assigns analytical codes and scores only.
 #' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a testlet? Defaults to `FALSE`.
 #'
 #' @description
 #' This function automatically completes missings for coded responses.
+#'
+#' @details
+#' Within each unit, variables are ordered by page and then by their names in
+#' natural order (for example, `V2` precedes `V10`). Variables without a finite
+#' page number follow the known pages; if pages are absent, names alone define
+#' the order. Section, element, and derivation level do not override this order.
+#' The trailing missing sequence is determined separately for each person,
+#' booklet, and testlet, including positions within a partly answered unit.
+#' Existing valid, invalid, and technical-error results retain their previous
+#' treatment; derived results are not reclassified from their source variables.
+#' Newly completed rows retain `NA` in `code_status`.
 #'
 #' @return A tibble.
 #' @export
@@ -63,7 +74,6 @@ complete_design <- function(coded,
     dplyr::select(
       code_type,
       missing_code_id = code_id,
-      missing_code_status = code_status,
       missing_code_score = code_score
     )
 
@@ -92,6 +102,24 @@ complete_design <- function(coded,
       "unit_key", "variable_id", "variable_source_type",
       "variable_level", "variable_page", "variable_section", "variable_page_always_visible"
     )))
+
+  units_cs_merge <- units_cs_merge %>%
+    dplyr::group_by(unit_key) %>%
+    dplyr::mutate(
+      # Compute once per unit, independently of response and design row order.
+      .completion_position = {
+        ids <- sort(unique(as.character(variable_id)), method = "radix")
+        ids <- stringr::str_sort(ids, numeric = TRUE, locale = "en")
+        page <- if ("variable_page" %in% names(units_cs_merge)) {
+          suppressWarnings(as.numeric(as.character(variable_page)))
+        } else {
+          rep(NA_real_, dplyr::n())
+        }
+        page[!is.finite(page)] <- NA_real_
+        order(order(page, match(variable_id, ids), na.last = TRUE))
+      }
+    ) %>%
+    dplyr::ungroup()
 
   # Merge codes and design
   design_coded <-
@@ -153,15 +181,17 @@ complete_design <- function(coded,
 
   not_reached_classification <-
     design_missings %>%
-    # Units müssen absteigend hier geordnet werden, damit cumany() funktioniert
-    # arrange(booklet_no, testlet_no, block_no, desc(unit_no)) %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no"
+        identifiers, "booklet_merge", "booklet_no", "testlet_no", "unit_booklet_no",
+        "unit_key", "unit_alias"
       ))
     )) %>%
     dplyr::summarise(
       not_reach = all(code_type %in% not_reached_tail_types | is.na(code_type)),
+      last_position = max(c(0L, .data$.completion_position[
+        !(code_type %in% not_reached_tail_types | is.na(code_type))
+      ]), na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -169,10 +199,10 @@ complete_design <- function(coded,
     not_reached_classification %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no"
+        identifiers, "booklet_merge", "booklet_no", "testlet_no"
       ))
     )) %>%
-    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
+    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_merge", "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
     dplyr::mutate(
       nr = dplyr::cumall(not_reach),
       # Da es keine Unit danach mehr geben kann, wird sie diese hypothetische Unit als NOT_REACHED behandelt
@@ -184,13 +214,15 @@ complete_design <- function(coded,
   design_missings %>%
     dplyr::left_join(
       not_reached_cases,
-      by = dplyr::join_by(!!! identifiers, "booklet_no", "testlet_no", "unit_booklet_no")
+      by = dplyr::join_by(!!! identifiers, "booklet_merge", "booklet_no", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias")
     ) %>%
     dplyr::mutate(
       code_type = dplyr::case_when(
-        # Setzt -96, wenn Unit leer oder teilweise befüllt, aber letzte Unit vor Ende oder leeren Units
+        # Keep the unit-level boundary, but exclude positions before later work.
         (code_type %in% not_reached_tail_types | is.na(code_type)) &
-          check_nr ~  "MISSING_NOT_REACHED",
+          check_nr & (is.na(.data$.completion_position) |
+                        .data$.completion_position >= .data$last_position)
+          ~ "MISSING_NOT_REACHED",
         # Kodiert andernfalls auf -99
         (code_type %in% not_reached_tail_types | is.na(code_type))
         ~  "MISSING_BY_OMISSION",
@@ -212,18 +244,17 @@ complete_design <- function(coded,
     ) %>%
     dplyr::mutate(
       code_id = dplyr::coalesce(missing_code_id, code_id),
-      code_status = dplyr::coalesce(code_status, missing_code_status),
       code_score = dplyr::coalesce(missing_code_score, code_score)
     ) %>%
     dplyr::arrange(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
+        identifiers, "booklet_no", "booklet_merge", "testlet_no", "unit_booklet_no", ".completion_position"
       ))
     )) %>%
     dplyr::select(
       -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr",
-        "missing_code_id", "missing_code_status", "missing_code_score"
+        "not_reach", "nr", "lag_nr", "check_nr", "last_position", ".completion_position",
+        "missing_code_id", "missing_code_score"
       ))
     )
 }

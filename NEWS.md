@@ -1,3 +1,18 @@
+# eatPrepTBA 0.9.8.9037 [2026-10-11]
+
+## bug fixes
+
+* Fixed `complete_design()` classifying missings before a later response within the same unit as not reached. Variables are ordered by page and then natural variable name; missing pages follow known pages. Completion and the optional `recode_omissions_to_not_reached` argument retain their existing scope.
+* `complete_design()` now preserves `code_status` exactly, including `NA` for newly completed rows. Missing schemes continue to assign analytical codes and scores.
+
+## tests
+
+* Added focused regressions for within-unit boundaries, natural ordering, shuffled inputs, separate people/testlets/unit occurrences, custom missing schemes, and preserved derived results and technical statuses.
+
+## documentation
+
+* Explained the fixed ordering and optional trailing-omission recoding in the standard workflow, with the four-row default missing scheme directly visible.
+
 # eatPrepTBA 0.9.8.9036 [2026-09-24]
 
 ## bug fixes

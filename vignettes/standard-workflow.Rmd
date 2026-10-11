@@ -174,7 +174,9 @@ Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen Richtungen
 - **`complete_design(...)`:** Die Funktion bestimmt zuerst die Missing-Art und
   ordnet ihr über `code_type` den Code und Score aus der Tabelle zu,
   z. B. `MISSING_BY_OMISSION` → `-99` und 0 Punkte. Das gilt auch
-  ohne manuelle Kodierung; fehlende Status werden ergänzt.
+  ohne manuelle Kodierung. `code_status` bleibt unverändert, einschließlich
+  `NA` bei neu ergänzten Zeilen. Die Statusspalte der Missing-Tabelle wird
+  von `code_responses()` für manuelle Codes genutzt.
 
 ## 4. Optional: manuelle Codes einfügen
 
@@ -203,7 +205,11 @@ wie in Abschnitt 3 prüfen.
 **Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
 [`complete_design()`](../reference/complete_design.html) ergänzt fehlende Einträge aus dem vollständigen Design.
 Anhand der Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
-Aufgaben am Ende von Auslassungen vor später bearbeiteten Units unterschieden.
+Aufgaben am Ende von Auslassungen vor später bearbeiteten Aufgaben unterschieden.
+Innerhalb jeder Unit gilt zuerst die Seitenfolge, dann die natürliche Reihenfolge
+der Variablennamen (z. B. `V2` vor `V10`). Variablen ohne Seitenangabe folgen
+nach den bekannten Seiten; fehlen Seitenangaben ganz, entscheiden die Namen.
+Abschnitte, Elemente und Ableitungsstufen ändern diese Reihenfolge nicht.
 Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
 
 ```{r complete, eval=FALSE}
@@ -215,7 +221,21 @@ analysis_data <- filter(design_coded, id_used)
 
 `id_used` kennzeichnet Personen mit mindestens einem gespeicherten Kodierstatus.
 Mit `recode_omissions_to_not_reached = TRUE` können zusätzlich abschließende
-Auslassungen als nicht erreicht eingeordnet werden. Aufgaben, die laut Design
+Auslassungen als nicht erreicht eingeordnet werden:
+
+```{r complete-trailing-omissions, eval=FALSE}
+design_coded <- complete_design(coded = coded, units = units, design = design,
+                                recode_omissions_to_not_reached = TRUE)
+```
+
+Bei der Folge **Auslassung – Antwort – Auslassung** innerhalb einer Unit wird
+damit nur die letzte Auslassung zu Not reached. Die erste bleibt eine Auslassung.
+Die Einordnung erfolgt getrennt je Person, Booklet und Testlet. Vorhandene
+gültige oder ungültige Ableitungsergebnisse werden nicht aus ihren
+Quellvariablen neu bewertet. `code_status` bleibt auch bei einer Umkodierung
+unverändert; Missing-Art und Punktzahl stehen in `code_type` und `code_score`.
+
+Aufgaben, die laut Design
 gar nicht vorgesehen waren, sind **Missing by Design**, nicht Not reached;
 ihre Zellen bleiben beim späteren Umformen `NA`.
 

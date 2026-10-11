@@ -15,7 +15,7 @@ complete_design(
 )
 }
 \arguments{
-\item{coded}{Tibble. Response data coded with \code{\link[=code_responses]{code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
+\item{coded}{Tibble. Response data coded with \code{\link[eatPrepTBA:code_responses]{eatPrepTBA::code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
 
 \item{units}{Tibble. Unit data retrieved from the IQB Studio after setting the argument \code{unit_definition = TRUE} for \code{\link[=get_units]{get_units()}} -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save some time.}
 
@@ -25,14 +25,24 @@ complete_design(
 
 \item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
 
-\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. (Currently, only one missing scheme is supported.)}
+\item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. The supplied \code{code_status} is always preserved, including \code{NA}; the scheme assigns analytical codes and scores only.}
 
 \item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a testlet? Defaults to \code{FALSE}.}
-
 }
 \value{
 A tibble.
 }
 \description{
 This function automatically completes missings for coded responses.
+}
+\details{
+Within each unit, variables are ordered by page and then by their names in
+natural order (for example, \code{V2} precedes \code{V10}). Variables without a finite
+page number follow the known pages; if pages are absent, names alone define
+the order. Section, element, and derivation level do not override this order.
+The trailing missing sequence is determined separately for each person,
+booklet, and testlet, including positions within a partly answered unit.
+Existing valid, invalid, and technical-error results retain their previous
+treatment; derived results are not reclassified from their source variables.
+Newly completed rows retain \code{NA} in \code{code_status}.
 }
