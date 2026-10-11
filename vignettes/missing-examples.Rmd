@@ -120,16 +120,13 @@ for (case in c("2", "12", "14", "15")) {
   for (mode in 1:2) stopifnot(results[[case]]$new[[mode]]$code_id[[1]] == -99)
 }
 
-type_labels <- c(FULL_CREDIT = "A", MISSING_BY_OMISSION = "O",
-                MISSING_NOT_REACHED = "N", MISSING_INVALID_RESPONSE = "I",
-                MISSING_CODING_IMPOSSIBLE = "C", NO_CODING = "NC")
 escape <- function(x) as.character(htmltools::htmlEscape(x))
 number <- function(x) if (is.na(x)) "NA" else format(x, trim = TRUE, scientific = FALSE)
 fields <- function(row) {
-  type <- row$code_type
-  type <- if (is.na(type)) "NA" else unname(type_labels[type])
-  c(number(row$code_id), type, number(row$code_score),
-    if (is.na(row$code_status)) "NA" else row$code_status)
+  c(if (is.na(row$code_status)) "NA" else row$code_status,
+    number(row$code_id),
+    if (is.na(row$code_type)) "NA" else row$code_type,
+    number(row$code_score))
 }
 result_cell <- function(output, input, labels) {
   paste(vapply(seq_along(output), function(j) {
@@ -137,9 +134,10 @@ result_cell <- function(output, input, labels) {
     changed <- values != fields(input)
     values <- escape(values)
     values[changed] <- paste0("<strong>", values[changed], "</strong>")
+    values <- paste0('<span class="missing-field">', values, '</span>')
     paste0('<div class="missing-result"><span class="missing-mode">', labels[[j]],
-      ':</span> ', paste(values[1:3], collapse = " / "),
-      '<span class="missing-status">Status: ', values[[4]], '</span></div>')
+      ':</span> <span class="missing-values">', paste(values, collapse = " /<wbr> "),
+      '</span></div>')
   }, character(1)), collapse = "")
 }
 print_comparison <- function(rows, output) {
@@ -152,8 +150,7 @@ print_comparison <- function(rows, output) {
     label <- paste0("T", input$testlet_no, " · ", input$unit_key, "/", input$variable_id)
     incoming <- if (!input$response_present) "Keine Antwortzeile" else paste0(
       "value: ", if (is.na(input$value)) "NA" else paste0('"', input$value, '"'),
-      " · Eingang: ", paste(fields(input)[1:3], collapse = " / "),
-      " · Status: ", fields(input)[[4]])
+      " · Eingang: ", paste(fields(input), collapse = " / "))
     cat('<tr class="missing-input"><th colspan="3">', escape(label),
         '<span>', escape(incoming), '</span></th></tr>\n<tr>', sep = "")
     for (version in names(output)) {
@@ -177,95 +174,86 @@ body { max-width: 1100px; }
 .missing-comparison .missing-input th { background: #f5f7f9; text-align: left; }
 .missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: normal; color: #475569; }
 .missing-result + .missing-result { margin-top: 0.6em; }
-.missing-mode { font-size: 0.88em; color: #475569; }
-.missing-status { display: block; font-size: 0.82em; color: #475569; }
+.missing-mode { display: block; font-size: 0.88em; color: #475569; }
+.missing-values { font-family: Consolas, monospace; font-size: 0.92em; }
+.missing-field { display: inline-block; max-width: 100%; }
 .missing-result strong { color: #0645a5; background: #e6efff; font-weight: 750; }
 .missing-comparison caption { text-align: left; font-weight: bold; margin-bottom: 0.4em; }
 </style>
 
-Die **15 Szenarien aus PR80** stehen hier in drei Ergebnisspalten:
-**0.9.8.9001**, **0.9.8.9036** und **neu `r new_version`**.
-Alle Spalten verwenden dieselben 67 Beispielzeilen und dasselbe vollständige
-Variablendesign. Die Eingabe steht jeweils direkt über den drei Ergebnissen.
+**15 Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
+Die graue Zeile zeigt die Eingabe, darunter stehen die drei Ergebnisse.
 
 ## So liest du den Vergleich
 
-Jedes Ergebnis zeigt **Code / Missing-Art / Score** und darunter `code_status`.
-**Blau und fett** markiert Änderungen gegenüber der Eingabe.
-Die Kürzel bedeuten: **A** gültige Antwort, **O** Auslassung, **N** nicht erreicht,
-**I** ungültige Antwort, **C** Kodierfehler, **NC** keine Kodierung.
-**NA** bedeutet, dass der einzelne Wert fehlt.
+Eingabe und Ergebnisse haben dieselbe Reihenfolge:
 
-In den Spalten 9036 und neu steht **FALSE** für den Standardaufruf und **TRUE**
-für `recode_omissions_to_not_reached = TRUE`. Die 9001 hatte diesen Schalter
-noch nicht; sie wird mit ihrem damaligen Standardverhalten ausgeführt.
+**`code_status` / `code_id` / `code_type` / `code_score`**
 
-Die neue Fassung ordnet innerhalb der Unit nach **Seite, dann natürlichem
-Variablennamen**. Fehlende Seiten folgen nach bekannten Seiten.
-`code_status` bleibt einschließlich `NA` erhalten. Die 9036 ergänzte fehlende
-Statuswerte noch aus der Missing-Tabelle; deshalb wird der Status hier mit angezeigt.
+Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
+„gegenüber der Eingabe geändert“. `NA` bedeutet „Wert fehlt“.
 
-## Grundlage
+- **FALSE:** Standard – Auslassungen bleiben Auslassungen.
+- **TRUE:** Mit `recode_omissions_to_not_reached = TRUE` werden abschließende
+  Auslassungen zusätzlich als nicht erreicht (`MISSING_NOT_REACHED`) gewertet.
+- **9001:** Hat diese Option noch nicht; gezeigt wird der damalige Standard.
 
-Die historischen Funktionen werden beim Rendern tatsächlich ausgeführt:
-9001 aus Commit `29cca37` und 9036 aus `fc7debb`. Der 9001-Stand ist derselbe
-wie im ursprünglichen PR80-Vergleich. Ein späterer Commit trug noch dieselbe
-Versionsnummer, hatte aber bereits eine andere Zuordnung für `NO_CODING`.
-Die Originalfunktionen liegen als unveränderte Dateien neben dieser Vignette;
-zum Rendern sind weder Git noch eine Internetverbindung erforderlich.
-
-Verglichen wird `complete_design()` auf identisch vorbereiteten `unit_codes`
-mit denselben installierten Abhängigkeiten. Alle Beispiele verwenden eine
-Person und ein Booklet. Die Missing-Grenzen werden pro Testlet betrachtet.
-Die neue Spalte verwendet die Funktion des geladenen Pakets.
+`T1 · U2/V03` bedeutet: Testlet 1, Unit 2, Variable V03.
+„Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
 
 ```{r case-comparisons, results='asis'}
 titles <- c(
   "Auslassung vor und nach der letzten Antwort",
-  "Gespeicherter NR-Code: spätere Antwort in derselben Unit",
-  "Gespeicherter NR-Code: spätere Antwort in einer anderen Unit",
+  "Nicht erreicht kodiert, danach Antwort in derselben Unit",
+  "Nicht erreicht kodiert, danach Antwort in einer anderen Unit",
   "Nachfolgende Units enthalten nur Auslassungen",
   "Das gesamte Testlet enthält nur Auslassungen",
   "Spätere Antwort im nächsten Testlet",
   "Einzelne Antwortzeilen fehlen",
   "Alle Antwortzeilen fehlen",
-  "Invalid und Kodierfehler als Bearbeitung",
+  "Ungültige Antwort und Kodierfehler",
   "NO_CODING im Versionsvergleich",
   "Eigenes Missing-Schema",
-  "NR-Status ohne Code: spätere Antwort in derselben Unit",
-  "NR-Status ohne Code: spätere Antwort in einer anderen Unit",
+  "NOT_REACHED ohne Code, danach Antwort in derselben Unit",
+  "NOT_REACHED ohne Code, danach Antwort in einer anderen Unit",
   "Seitenfolge und Itemliste widersprechen sich",
-  "Eine Ableitung hat eine andere Itemposition als ihre Quelle"
+  "Abgeleitete Variable mit gültigem Ergebnis"
 )
 notes <- c(
-  "V02 liegt vor der Antwort auf V03. Die 9036 macht V02 mit TRUE fälschlich zu NR; die neue Fassung erhält die Auslassung. V04 liegt hinter der letzten Antwort und wird mit TRUE in beiden neueren Versionen zu NR.",
-  "V01 liegt vor der Antwort auf V02. Die beiden historischen Versionen lassen V01 als NR stehen; die neue Fassung korrigiert V01 zur Auslassung. V03 bleibt NR. Das gilt mit FALSE und TRUE.",
-  "V04 liegt in einer späteren Unit desselben Testlets. Deshalb wird V03 bereits in den historischen Versionen zur Auslassung; die neue Fassung erhält dieses Verhalten.",
-  "Bei FALSE bleiben die späteren Auslassungen erhalten und unterbrechen die abschließende NR-Strecke. Mit TRUE werden sie selbst NR; dann bleibt auch V02 NR. Die 9001 entspricht hier FALSE.",
-  "Mit FALSE bleiben die Auslassungen bei 0 Punkten. Mit TRUE wird das gesamte Testlet NR. Eine beantwortete Variable ist dafür nicht erforderlich.",
-  "Die Antwort in T2 verändert die Missing-Grenze in T1 nicht. Mit TRUE wird die Auslassung am Ende von T1 zu NR; V02 bleibt NR. Alle drei Versionen trennen die Testlets.",
-  "Die fehlenden Zeilen werden ergänzt: V01 als Auslassung, V03 und V04 als NR. Die 9036 ergänzt dabei auch code_status. Die neue Fassung lässt den technischen Status dieser eingefügten Zeilen bei NA.",
-  "Alle vorgesehenen Zeilen werden als NR ergänzt. id_used bleibt FALSE, weil kein ursprünglicher Kodierstatus vorliegt. Nur die 9036 trägt NOT_REACHED in code_status ein; die 9001 und die neue Fassung erhalten NA.",
-  "Die spätere ungültige Antwort und der Kodierfehler unterbrechen die NR-Strecke. V03 wird deshalb zur Auslassung. Die vorhandenen Invalid- und Kodierfehler-Ergebnisse bleiben in allen Versionen erhalten.",
-  "Der hier verwendete 9001-Stand vergibt für NO_CODING den Code -94. Die 9036 und die neue Fassung verwenden -93. Status und fehlender Score bleiben erhalten.",
-  "Die 9001 ignoriert das eigene Schema. Die 9036 und die neue Fassung verwenden dessen Codes und Scores: V02 erhält mit FALSE -199 / O / 0, mit TRUE -196 / N / 0.5. Bei der ergänzten V03 setzt nur die 9036 den Status CUSTOM_NOT_REACHED; die neue Fassung erhält NA.",
-  "Wie Fall 2, aber im Eingang steht nur der Status NOT_REACHED ohne numerischen Code. Die neue Fassung ordnet V01 wegen der späteren Antwort auf V02 als Auslassung ein; die historischen Versionen vergeben NR. V03 bleibt NR.",
-  "Wie Fall 3, aber ohne bereits gesetzte NR-Codes. Die Antwort auf V04 liegt später im selben Testlet: Alle drei Versionen ordnen V03 als Auslassung ein. Die abschließenden V05 und V06 bleiben NR.",
-  "Die Seitenfolge lautet V01 bis V09; die Itemliste lautet V02, V04, V05, V06, V01, V03, V07, V08, V09. Nur V02 wurde beantwortet. Die neue Fassung verwendet die Seitenfolge und ordnet V01 als Auslassung ein. Die historischen Versionen entscheiden noch auf Unit-Ebene und lassen V01 als NR stehen. Die Itemliste bestimmt in keiner dieser drei Fassungen die Missing-Grenze.",
-  "V01 liegt auf Seite 1, V02 auf Seite 2. V03 wird aus V01 abgeleitet, hat keine eigene Seitenangabe und ein bereits gültiges Ergebnis. Die neue Fassung ordnet V01 vor der späteren Antwort als Auslassung ein. Das gültige Ableitungsergebnis von V03 bleibt in allen drei Fassungen erhalten; die neue Fassung berechnet es nicht aus seinen Quellen neu."
+  "V02 liegt vor einer späteren Antwort und bleibt neu auch mit TRUE eine Auslassung. Die 9036 wertet V02 mit TRUE fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur V04 hinter der letzten Antwort.",
+  "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung. Die älteren Versionen lassen V01 als nicht erreicht stehen; V03 bleibt überall nicht erreicht.",
+  "Die Antwort auf V04 liegt in einer späteren Unit desselben Testlets. Deshalb wird V03 in allen Versionen zur Auslassung.",
+  "Bei FALSE wird V02 wegen der späteren Auslassungen selbst zur Auslassung. Mit TRUE werden V02 bis V05 als nicht erreicht gewertet.",
+  "FALSE: Alle Auslassungen behalten 0 Punkte. TRUE: Alle werden nicht erreicht – auch ohne eine einzige beantwortete Variable.",
+  "Die Antwort in T2 hat keinen Einfluss auf T1. Mit TRUE werden in 9036 und neu die abschließenden Auslassungen jedes Testlets als nicht erreicht gewertet.",
+  "V01 wird als Auslassung ergänzt, V03 und V04 als nicht erreicht. Nur 9036 füllt dabei auch `code_status`; neu bleibt dieser bei `NA`.",
+  "Alle Zeilen werden als nicht erreicht ergänzt; `id_used = FALSE`. Nur 9036 setzt `code_status = NOT_REACHED`, die anderen erhalten `NA`.",
+  "Die spätere ungültige Antwort und der Kodierfehler machen V03 zur Auslassung. Ihre eigenen Codes und Scores bleiben in allen Versionen erhalten.",
+  "Für `NO_CODING` vergibt 9001 den Code -94, die neueren Versionen -93. `code_status` und `code_score` bleiben gleich.",
+  "9001 ignoriert das eigene Schema; 9036 und neu übernehmen es. Nur 9036 ergänzt bei V03 `code_status = CUSTOM_NOT_REACHED`; neu bleibt er `NA`.",
+  "Wie Fall 2, aber der Code fehlt noch. Neu wird V01 wegen der späteren Antwort zur Auslassung; früher bleibt V01 nicht erreicht.",
+  "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. Alle Versionen werten V03 als Auslassung und die abschließenden V05 und V06 als nicht erreicht.",
+  "V01 steht auf Seite 1, die Antwort auf V02 auf Seite 2; die Itemliste nennt V02 zuerst. Neu wird V01 zur Auslassung, früher bleibt es nicht erreicht. Die Itemliste spielt in keiner Version eine Rolle.",
+  "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung."
 )
 stopifnot(length(titles) == length(cases), length(notes) == length(cases))
 for (i in seq_along(titles)) {
   rows <- cases[[as.character(i)]]
   cat("\n\n## ", i, ". ", titles[[i]], " {#beispiel-", i, "}\n\n", sep = "")
   if (i == 11L) {
-    cat("Nur dieser Fall verwendet ein eigenes Schema: **NR = -196 mit Score 0.5**, ",
-        "**Auslassung = -199 mit Score 0**. Der halbe Punkt macht die Übernahme ",
-        "des Schemas sichtbar.\n\n", sep = "")
+    cat("Eigenes Schema: nicht erreicht erhält **Code -196 / Score 0.5**, ",
+        "Auslassung **Code -199 / Score 0**.\n\n", sep = "")
   }
   print_comparison(rows, results[[as.character(i)]])
   cat(notes[[i]], "\n\n")
 }
 ```
+
+## Zur Berechnung
+
+Alle 15 Fälle aus PR80 werden mit denselben vorbereiteten Daten ausgeführt:
+eine Person, ein Booklet, 67 Beispielzeilen. Verwendet werden die historischen
+Funktionen aus `29cca37` (9001, wie in PR80) und `fc7debb` (9036) sowie die
+Funktion des geladenen Pakets (`r new_version`).
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).
