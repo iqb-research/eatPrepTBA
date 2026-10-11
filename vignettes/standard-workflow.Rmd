@@ -11,9 +11,10 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Dieser Workflow führt von Testcenter-Antworten zu kodierten Daten, psychometrischen
-Kennwerten und einem Personen-×-Items-Datensatz. Das Beispiel umfasst einen
-Testzeitpunkt und einen Kompetenzbereich (Lesen) mit Autocode-Kodierschemata.
+Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit **einer
+Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe (Item)**. Dazu werden die Antworten
+kodiert, Missings eingeordnet und psychometrische Kennwerte berechnet.
+Das Beispiel umfasst einen Testzeitpunkt und einen Bereich (Lesen) mit Autocode-Kodierschemata.
 Für Daten ohne solche Schemata, etwa aus StarS, siehe den Hinweis in Abschnitt 2.
 
 | Quelle | Benötigte Daten |
@@ -32,6 +33,7 @@ library(tidyr)
 
 ## 1. Studio: Units und Kodierschemata laden
 
+Eine **Unit** ist eine Aufgabeneinheit mit einer oder mehreren Variablen.
 Die Units müssen zur eingesetzten Testversion passen. `metadata = TRUE`
 liefert die Item-Verknüpfungen, `unit_definition = TRUE` die Seiteninformationen.
 
@@ -62,7 +64,7 @@ units <- add_coding_scheme(units)
 
 **Auch beim CSV-Import wird hier Testcenter-Zugriff benötigt:**
 `get_design()` lädt das vollständige Testdesign. Erst damit lassen sich später
-fehlende Antworten als Not reached oder Auslassung einordnen.
+fehlende Antworten als nicht erreicht (Not reached) oder ausgelassen einordnen.
 `read_responses()` allein reicht dafür nicht aus.
 
 Anmeldung mit [`login_testcenter()`](../reference/login_testcenter.html),
@@ -97,8 +99,8 @@ Daten sind dafür kein direkter Ersatz.
 
 ### Das vollständige Testdesign laden
 
-[`get_design()`](../reference/get_design.html) liefert die vorgesehenen
-Person–Testheft–Variablen-Zuordnungen.
+[`get_design()`](../reference/get_design.html) liefert für jede Person die
+Variablen, die in ihrem Testheft vorgesehen waren.
 
 Im gewählten **Testcenter-Workspace** müssen dafür die Materialien der Erhebung
 liegen:
@@ -122,11 +124,11 @@ Aufgaben enthalten; Antworten und Design müssen dieselbe Erhebung abdecken.
 
 ## 3. Automatisch kodieren und Ergebnis prüfen
 
-[`code_responses()`](../reference/code_responses.html) nutzt das R-Paket
-[eatAutoCode](https://github.com/iqb-research/eatAutoCode), das den
-[IQB-Autocoder (`@iqb/responses`)](https://github.com/iqb-berlin/responses)
-einbindet. Dieser vergibt anhand des Kodierschemas Codes (`code_id`) und Punkte
-(`code_score`). `prepare = TRUE` ergänzt Metadaten für die weiteren Schritte.
+[`code_responses()`](../reference/code_responses.html) vergibt anhand des
+Kodierschemas Codes (`code_id`) und Punkte (`code_score`). Dafür nutzt es
+[eatAutoCode](https://github.com/iqb-research/eatAutoCode) mit dem
+[IQB-Autocoder](https://github.com/iqb-berlin/responses).
+`prepare = TRUE` bereitet das Ergebnis für die weiteren Schritte auf.
 **Die abschließende Missing-Zuweisung folgt erst in Abschnitt 5.**
 
 ```{r code, eval=FALSE}
@@ -147,12 +149,12 @@ Untervariablen, die selbst keine Items werden, können andere Status behalten,
 ohne dass ein Problem vorliegt. Zu klären sind offene Kodierungen und Fehler,
 die die Itemvariablen oder deren Berechnung betreffen.
 
-### Zur Information: die voreingestellte Missing-Zuordnung
+### Die voreingestellte Missing-Zuordnung
 
-**Das Objekt muss nicht selbst angelegt oder übergeben werden.** Die folgende
-Tabelle zeigt nur zur Information die Standardwerte von `complete_design()`:
+**Diese Tabelle ist in `complete_design()` bereits hinterlegt.** Du musst
+das Objekt `missings` für die Beispielaufrufe nicht anlegen oder übergeben.
 Auslassungen und ungültige Antworten erhalten 0 Punkte, Not reached und
-Kodierfehler `NA`. Die Beispielaufrufe verwenden diese Voreinstellung automatisch.
+Kodierfehler `NA` (keine Punktzahl).
 
 ```{r missing-rules, eval=FALSE}
 missings <- tibble::tribble(
@@ -163,22 +165,14 @@ missings <- tibble::tribble(
   -99,     "DISPLAYED",    0,          "MISSING_BY_OMISSION")
 ```
 
-Nur für eigene Regeln wird `missings` vor Abschnitt 4 angelegt und mit
-`missings = missings` an die Aufrufe in Abschnitt 4 und 5 übergeben.
+`complete_design()` bestimmt die Missing-Art (`code_type`) und setzt dazu
+Code und Punktzahl aus der Tabelle. **`code_status` bleibt unverändert**,
+auch `NA` bei neu ergänzten Zeilen. Die Statuszuordnung benötigt
+`code_responses()` für manuelle Missing-Codes, etwa `-99` → `DISPLAYED`.
+Die endgültigen Missing-Punktzahlen vergibt erst `complete_design()` in Abschnitt 5.
 
-Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen Richtungen:
-
-- **`code_responses(..., codes_manual = ...)`:**
-  Ein manuell gelieferter Missing-Code in `code_id` wird in Status und Score
-  übersetzt, z. B. `-99` → `DISPLAYED` und 0 Punkte. Ohne `codes_manual` wird
-  diese Zuordnung hier nicht angewendet. Die abschließenden Missing-Scores
-  weist erst `complete_design()` zu.
-- **`complete_design(...)`:** Die Funktion bestimmt zuerst die Missing-Art und
-  ordnet ihr über `code_type` den Code und Score aus der Tabelle zu,
-  z. B. `MISSING_BY_OMISSION` → `-99` und 0 Punkte. Das gilt auch
-  ohne manuelle Kodierung. `code_status` bleibt unverändert, einschließlich
-  `NA` bei neu ergänzten Zeilen. Die Statusspalte der Missing-Tabelle wird
-  von `code_responses()` für manuelle Codes genutzt.
+**Eigene Missing-Regeln:** Den Tabellenblock oben anpassen und ausführen.
+Dann `missings = missings` als Argument in Abschnitt 4 (falls genutzt) und 5 ergänzen.
 
 ## 4. Optional: manuelle Codes einfügen
 
@@ -205,48 +199,44 @@ wie in Abschnitt 3 prüfen.
 ## 5. Design vervollständigen und Missings zuweisen
 
 **Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
-[`complete_design()`](../reference/complete_design.html) ergänzt fehlende Einträge aus dem vollständigen Design.
-Anhand der Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
-Aufgaben am Ende von Auslassungen vor später bearbeiteten Aufgaben unterschieden.
-Innerhalb jeder Unit gilt zunächst **Seite → Abschnitt → natürlicher Variablenname**
-(z. B. `V2` vor `V10`). Fehlende Abschnitte folgen auf derselben Seite zuletzt.
-Variablen ohne Seitenangabe folgen nach den bekannten Seiten; untereinander
-entscheidet dann nur der Name. Eine Ableitung mit vollständig und eindeutig
-zugeordneten Quellen wird direkt nach ihrer letzten Quelle eingeordnet, auch
-bei mehrstufigen Ableitungen. Ist diese Zuordnung nicht möglich, bleiben ihre
-eigene Seite, ihr Abschnitt und ihr Name maßgeblich.
-Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
+[`complete_design()`](../reference/complete_design.html) ergänzt fehlende Zeilen
+aus dem Design. Es unterscheidet nicht erreichte Variablen am Ende von
+Auslassungen vor einer späteren Bearbeitung – getrennt je Person, Testheft
+und Testlet (Testabschnitt).
+
+Bereits als Auslassung kodierte Antworten bleiben mit **`FALSE`** Auslassungen.
+Setze im folgenden Aufruf **`TRUE`**, wenn auch abschließende Auslassungen als
+Not reached eingeordnet werden sollen. Bei **Auslassung – Antwort – Auslassung**
+wird dann nur die letzte Auslassung zu Not reached, sofern danach im selben
+Testlet keine weitere Bearbeitung folgt.
 
 ```{r complete, eval=FALSE}
-design_coded <- complete_design(coded = coded, units = units, design = design)
+design_coded <- complete_design(coded = coded, units = units, design = design,
+                                recode_omissions_to_not_reached = FALSE)
 
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
 ```
 
-`id_used` kennzeichnet Personen mit mindestens einem gespeicherten Kodierstatus.
-`variable_position` zeigt die verwendete Position innerhalb der Unit ab 1,
-einschließlich Ableitungen. Sie folgt den Unit-Metadaten: Bei einem Teildesign
-bleiben Lücken erhalten, ohne passende Variablenmetadaten steht hier `NA`.
-Mit `recode_omissions_to_not_reached = TRUE` können zusätzlich abschließende
-Auslassungen als nicht erreicht eingeordnet werden:
+`id_used` ist `TRUE`, wenn eine Person mindestens einen gespeicherten
+Kodierstatus hat. Der Filter übernimmt diese Personen in `analysis_data`.
 
-```{r complete-trailing-omissions, eval=FALSE}
-design_coded <- complete_design(coded = coded, units = units, design = design,
-                                recode_omissions_to_not_reached = TRUE)
-```
+Innerhalb einer Unit gilt **Seite → Abschnitt → natürlicher Variablenname**
+(z. B. `V2` vor `V10`). Ableitungen mit eindeutig zugeordneten Quellen folgen
+direkt ihrer letzten Quelle, auch bei mehrstufigen Ableitungen.
+`variable_position` zeigt diese Reihenfolge als Zahl ab 1. Ein Teildesign kann
+Positionslücken enthalten; ohne passende Variablenmetadaten steht hier `NA`.
 
-Bei der Folge **Auslassung – Antwort – Auslassung** innerhalb einer Unit wird
-damit nur die letzte Auslassung zu Not reached. Die erste bleibt eine Auslassung.
-Die Einordnung erfolgt getrennt je Person, Booklet und Testlet. Vorhandene
-gültige oder ungültige Ableitungsergebnisse werden nicht aus ihren
-Quellvariablen neu bewertet. Eine gültige Ableitung zählt jedoch als Bearbeitung:
-Steht sie hinter einer als NR kodierten Quelle, wird diese zur Auslassung mit
-0 Punkten. `code_status` bleibt auch bei einer Umkodierung
-unverändert; Missing-Art und Punktzahl stehen in `code_type` und `code_score`.
+**Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges Ergebnis
+zählt aber als Bearbeitung: Eine davor liegende Not-reached-Quelle wird zur
+Auslassung mit 0 Punkten. `code_status` bleibt dabei unverändert;
+Missing-Art und Punktzahl stehen in `code_type` und `code_score`.
 
-Aufgaben, die laut Design
-gar nicht vorgesehen waren, sind **Missing by Design**, nicht Not reached;
+Die [Missing-Szenarien im Versionsvergleich](missing-examples.html) zeigen die
+Entscheidungen an konkreten Beispielen, einschließlich der Sortierregeln bei
+fehlenden Angaben oder nicht zuordenbaren Quellen.
+
+Aufgaben, die laut Design gar nicht vorgesehen waren, sind **Missing by Design**;
 ihre Zellen bleiben beim späteren Umformen `NA`.
 
 ## 6. Psychometrische Kennwerte berechnen
@@ -269,10 +259,10 @@ psychometrics |>
   distinct()
 ```
 
-`code_n` zählt einen Code, `code_p_valid` ist sein Anteil unter Antworten mit
-Score ungleich `NA` (einschließlich als 0 gewerteter Missings).
+`code_n` zählt, wie oft ein Code vorkommt. `code_p_valid` ist sein Anteil unter
+Antworten mit Punktzahl ungleich `NA` (einschließlich als 0 gewerteter Missings).
 `code_pbc` ist die Korrelation seines Auftretens mit dem mittleren
-Itemscore des Bereichs (nicht part-whole-korrigiert).
+Itemscore des Bereichs. Der eigene Itemscore fließt in dieses Mittel mit ein.
 
 ## 7. Personen × Items für eatModel
 
