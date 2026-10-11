@@ -24,7 +24,8 @@ inputs <- read.csv(
                 code_type = "character", legacy_code_status = "character",
                 legacy_code_type = "character")
 ) |> tibble::as_tibble()
-stopifnot(nrow(inputs) == 67L, identical(unique(inputs$case_id), 1:15),
+stopifnot(sum(inputs$case_id <= 15L) == 67L,
+          identical(unique(inputs$case_id), seq_len(max(inputs$case_id))),
           !anyDuplicated(inputs[c("case_id", "unit_key", "variable_id")]))
 
 # Original function bodies, evaluated against the same prepared unit metadata.
@@ -61,6 +62,26 @@ make_fixture <- function(rows) {
       codes$variable_level <- c(0L, 0L, 1L)
       codes$derive_sources <- list(character(), character(), "ref_V01")
     }
+    if (rows$case_id[[1L]] == 16L) codes$variable_section <- c(2L, 1L, 3L)
+    if (rows$case_id[[1L]] == 17L) {
+      codes$variable_source_type <- c("BASE", "BASE", "SUM_CODE", "BASE")
+      codes$variable_level <- c(0L, 0L, 1L, 0L)
+      codes$variable_section[[3L]] <- NA_integer_
+      codes$variable_sources <- list(
+        tibble::tibble(), tibble::tibble(),
+        tibble::tibble(variable_source_ref = c("ref_01a", "ref_01b"),
+                      variable_source_id = c("01a", "01b"),
+                      variable_source_direct = TRUE),
+        tibble::tibble()
+      )
+    }
+    if (rows$case_id[[1L]] == 18L) {
+      codes$variable_source_type <- c("BASE", "SUM_CODE", "SUM_CODE", "BASE", "SUM_CODE")
+      codes$variable_level <- c(0L, 1L, 2L, 0L, 1L)
+      codes$variable_page <- c(1L, NA_integer_, NA_integer_, 1L, 2L)
+      codes$derive_sources <- list(character(), "ref_01a", "ref_01b",
+                                  character(), "ref_fehlt")
+    }
     items <- tibble::tibble(variable_id = ids,
       item_id = paste0(key, "_", ids), item_no = seq_along(ids))
     if (rows$case_id[[1L]] == 14L) {
@@ -92,6 +113,7 @@ calculate <- function(rows) {
       at <- match(paste(rows$unit_key, rows$variable_id),
                   paste(result$unit_key, result$variable_id))
       stopifnot(nrow(result) == nrow(rows), !anyNA(at), !anyDuplicated(at))
+      result$.comparison_position <- seq_len(nrow(result))
       result <- result[at, ]
       stopifnot(identical(result$value, rows$value),
                 all(result$id_used == (rows$case_id[[1L]] != 8L)))
@@ -119,6 +141,13 @@ stopifnot(results[["1"]]$`9036`[[2]]$code_id[[2]] == -96,
 for (case in c("2", "12", "14", "15")) {
   for (mode in 1:2) stopifnot(results[[case]]$new[[mode]]$code_id[[1]] == -99)
 }
+expected_new <- list(`16` = c(1, -99, -96),
+                     `17` = c(-99, -99, 1, -96),
+                     `18` = c(-99, -99, 1, -96, -96))
+for (case in names(expected_new)) {
+  for (mode in 1:2) stopifnot(identical(results[[case]]$new[[mode]]$code_id,
+                                      expected_new[[case]]))
+}
 
 escape <- function(x) as.character(htmltools::htmlEscape(x))
 number <- function(x) if (is.na(x)) "NA" else format(x, trim = TRUE, scientific = FALSE)
@@ -145,6 +174,15 @@ print_comparison <- function(rows, output) {
       '<caption>Fall ', rows$case_id[[1L]], ': Versionsvergleich</caption>\n<thead><tr>',
       paste0('<th scope="col">', column_labels, '</th>', collapse = ""),
       '</tr></thead>\n<tbody>\n', sep = "")
+  if (rows$case_id[[1L]] >= 14L) {
+    cat('<tr class="missing-order">')
+    for (version in names(output)) {
+      ordered <- output[[version]][[1L]] |> arrange(.comparison_position)
+      cat('<td><span class="missing-mode">Ausgabereihenfolge:</span>',
+          escape(paste(ordered$variable_id, collapse = " → ")), '</td>', sep = "")
+    }
+    cat('</tr>\n')
+  }
   for (i in seq_len(nrow(rows))) {
     input <- rows[i, ]
     label <- paste0("T", input$testlet_no, " · ", input$unit_key, "/", input$variable_id)
@@ -181,7 +219,7 @@ body { max-width: 1100px; }
 .missing-comparison caption { text-align: left; font-weight: bold; margin-bottom: 0.4em; }
 </style>
 
-**15 Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
+**`r length(cases)` Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
 Die graue Zeile zeigt die Eingabe, darunter stehen die drei Ergebnisse.
 
 ## So liest du den Vergleich
@@ -199,7 +237,8 @@ Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
 - **9001:** Hat diese Option noch nicht; gezeigt wird der damalige Standard.
 
 `T1 · U2/V01` bedeutet: Testlet 1, Unit 2, Variable V01.
-Die Variablennummerierung beginnt in jeder Unit bei V01.
+Die Variablennummerierung beginnt in jeder Unit neu. Die Zusatzfälle verwenden
+auch Namen wie `01a`, `01b` und `01` für Quellen und ihre Ableitung.
 „Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
 
 ## Welche Sortierregeln gelten?
@@ -212,20 +251,27 @@ in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
 |:--|:--|:--|
 | **9001** | Die Unit wird als Ganzes betrachtet; die Position einer Variablen innerhalb der Unit hat keinen Einfluss. | `variable_page` → `variable_section` → `variable_level`, jeweils aufsteigend. |
 | **9036** | Wie 9001, auch mit `TRUE`. | Wie 9001. |
-| **Neu `r sub("^0\\.9\\.8\\.", "", new_version)`** | Zuerst Seite (`variable_page`, numerisch), dann Variablenname (`variable_id`, natürlich: V2 vor V10). | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
+| **Neu `r sub("^0\\.9\\.8\\.", "", new_version)`** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
 
 - **9001/9036:** Die Ausgabesortierung nutzt die vorhandenen Spalten und deren
   Datentyp; `NA` folgt jeweils zuletzt. Bei Gleichstand bleibt die Reihenfolge
   nach dem Zusammenführen der Daten erhalten, normalerweise die Designreihenfolge.
-- **Neu:** Fehlende oder nicht als endliche Zahl lesbare Seiten folgen nach
-  bekannten Seiten. Untereinander entscheidet der Variablenname; fehlen alle
-  Seiten, entscheidet allein der Name. Abschnitt und Ableitungsebene haben
-  keinen Einfluss auf diese Reihenfolge.
+- **Neu:** Auf derselben Seite kommen bekannte Abschnitte vor fehlenden
+  Abschnitten. Innerhalb eines Abschnitts entscheidet der natürliche Name
+  (`V2` vor `V10`). Fehlt die Seite, steht die Variable hinter bekannten Seiten;
+  untereinander entscheiden dann nur die Namen.
+- **Ableitungen:** Sind alle Quellen eindeutig zugeordnet, folgt die Ableitung
+  direkt auf ihre letzte Quelle. Das gilt auch für mehrstufige Ableitungen.
+  Gleichzeitig mögliche Ableitungen folgen der natürlichen Namensreihenfolge;
+  dadurch neu verfügbare Ableitungen werden sofort eingefügt. Bei fehlenden, mehrdeutigen oder
+  zyklischen Quellen gilt stattdessen die eigene Seite, der Abschnitt und der
+  Name. Eine Quellenbeziehung wird nicht aus ähnlichen Namen geraten.
 - **Alle drei:** Die Itemliste (`items_list$item_no`) bestimmt die Reihenfolge
   nicht. Deshalb folgt die neue Fassung in [Fall 14](#beispiel-14) der Seitenfolge.
 
 Für den direkten Vergleich zeigen die Tabellen unten alle Ergebnisse in derselben
-Beispielreihenfolge; die ursprüngliche Ausgabesortierung ist dort nicht abgebildet.
+Beispielreihenfolge. Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich
+über den Ergebnissen; sie ist bei FALSE und TRUE gleich.
 
 **Ableitungen und NR:** Ein vorhandenes gültiges Ableitungsergebnis zählt bei
 der Bestimmung der NR-Grenze als Bearbeitung. Wenn eine gültige Ableitung `01`
@@ -250,7 +296,10 @@ titles <- c(
   "NOT_REACHED ohne Code, danach Antwort in derselben Unit",
   "NOT_REACHED ohne Code, danach Antwort in einer anderen Unit",
   "Seitenfolge und Itemliste widersprechen sich",
-  "Abgeleitete Variable mit gültigem Ergebnis"
+  "Abgeleitete Variable mit gültigem Ergebnis",
+  "Abschnitt vor Variablenname",
+  "Ableitung direkt nach ihren Quellen",
+  "Mehrstufige Ableitung und fehlende Quelle"
 )
 notes <- c(
   "U1/V02 liegt vor einer späteren Antwort und bleibt neu auch mit TRUE eine Auslassung. Die 9036 wertet U1/V02 mit TRUE fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur U1/V04 hinter der letzten Antwort.",
@@ -267,7 +316,10 @@ notes <- c(
   "Wie Fall 2, aber der Code fehlt noch. Neu wird V01 wegen der späteren Antwort zur Auslassung; früher bleibt V01 nicht erreicht.",
   "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. Alle Versionen werten U1/V03 als Auslassung und die abschließenden U2/V02 und U3/V01 als nicht erreicht.",
   "V01 steht auf Seite 1, die Antwort auf V02 auf Seite 2; die Itemliste nennt V02 zuerst. Neu wird V01 zur Auslassung, früher bleibt es nicht erreicht. Die Itemliste spielt in keiner Version eine Rolle.",
-  "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung."
+  "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu steht V03 direkt hinter V01 und vor V02. V01 wird wegen der späteren Bearbeitung zur Auslassung.",
+  "Auf derselben Seite liegt V02 in Abschnitt 1, die Antwort V01 in Abschnitt 2 und V03 in Abschnitt 3. Neu wird V02 deshalb zur Auslassung, obwohl sein Name hinter V01 steht. V03 bleibt nicht erreicht.",
+  "01 entsteht aus 01a und 01b und steht neu direkt hinter beiden. Sein gespeicherter gültiger Code bleibt erhalten. Dadurch werden die vorher als NR kodierten Quellen zu Auslassungen mit 0 Punkten; das nachfolgende 02 bleibt NR. Es wird keine Ableitung neu berechnet.",
+  "Die Quellenkette lautet 01a → 01b → 01. Neu werden beide Ableitungen direkt nach ihren Quellen eingeordnet; der gültige Code von 01 macht 01a und 01b zu Auslassungen. Für 03 fehlt die angegebene Quelle: Seine eigene Seite 2 bleibt maßgeblich. 02 und 03 bleiben NR."
 )
 stopifnot(length(titles) == length(cases), length(notes) == length(cases))
 for (i in seq_along(titles)) {
@@ -284,8 +336,10 @@ for (i in seq_along(titles)) {
 
 ## Zur Berechnung
 
-Alle 15 Fälle aus PR80 werden mit denselben vorbereiteten Daten ausgeführt:
-eine Person, ein Booklet, 67 Beispielzeilen. Verwendet werden die historischen
+Alle 15 Fälle aus PR80 bleiben enthalten (67 Beispielzeilen); drei Zusatzfälle
+zeigen Abschnitts- und Quellenreihenfolge. Insgesamt werden `r nrow(inputs)` Zeilen
+mit denselben vorbereiteten Daten ausgeführt: eine Person, ein Booklet.
+Verwendet werden die historischen
 Funktionen aus `29cca37` (9001, wie in PR80) und `fc7debb` (9036) sowie die
 Funktion des geladenen Pakets (`r new_version`).
 

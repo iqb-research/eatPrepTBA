@@ -80,6 +80,7 @@ test_that("page order takes precedence over natural variable names", {
 
 test_that("missing pages follow known pages and use natural name order", {
   f <- unit_order_fixture(c("NR", "A", "NR"))
+  f$units$unit_codes[[1]]$variable_section <- c(3L, 2L, 1L)
   f$units$unit_codes[[1]]$variable_page <- c(NA_integer_, 1L, NA_integer_)
   expect_equal(unit_order_values(unit_order_complete(f), f), c(-96, 1, -96))
   f$units$unit_codes[[1]]$variable_page <- c(1L, NA_integer_, NA_integer_)
@@ -90,11 +91,17 @@ test_that("missing pages follow known pages and use natural name order", {
   expect_equal(unit_order_values(unit_order_complete(f), f), c(-99, 1, -96))
 })
 
-test_that("sections, elements, and page visibility do not replace name order", {
+test_that("sections precede names but elements and derivation level do not", {
   f <- unit_order_fixture(c("NR", "A", "NR"))
-  f$units$unit_codes[[1]]$variable_section <- c(3L, 1L, NA_integer_)
+  f$units$unit_codes[[1]]$variable_section <- c("10", "2", NA_character_)
   f$units$unit_codes[[1]]$variable_element <- list(c(2L, 1L), c(1L, 2L), c(1L, 10L))
+  f$units$unit_codes[[1]]$variable_level <- c(0L, 2L, 1L)
   f$units$unit_codes[[1]]$variable_page_always_visible <- TRUE
+  out <- unit_order_complete(f)
+  expect_equal(unit_order_values(out, f), c(-96, 1, -96))
+  expect_equal(out$variable_id, c("V10", "V2", "V11"))
+
+  f$units$unit_codes[[1]]$variable_section <- rep(NA_integer_, 3)
   out <- unit_order_complete(f)
   expect_equal(unit_order_values(out, f), c(-99, 1, -96))
   expect_equal(out$variable_id, f$design$variable_id)

@@ -12,14 +12,24 @@
 #' This function automatically completes missings for coded responses.
 #'
 #' @details
-#' Within each unit, variables are ordered by page and then by their names in
-#' natural order (for example, `V2` precedes `V10`). Variables without a finite
-#' page number follow the known pages; if pages are absent, names alone define
-#' the order. Section, element, and derivation level do not override this order.
+#' Within each unit, base variables are ordered by numeric page, numeric section,
+#' and natural variable name (for example, `V2` precedes `V10`). Missing sections
+#' follow known sections on the same page. Variables without a finite page follow
+#' known pages and are ordered by name alone.
+#' Derived variables with fully resolvable sources are inserted immediately after
+#' their last source, including chains of derivations. Simultaneously available
+#' derivations are ordered by natural name; their newly available dependants are
+#' inserted before the next sibling. Missing, ambiguous, or cyclic source links
+#' use the variable's own page, section, and name instead. Source links come from
+#' `variable_sources`, or from `derive_sources` when the former is empty.
+#' Element position and derivation level are not additional sorting keys.
 #' The trailing missing sequence is determined separately for each person,
 #' booklet, and testlet, including positions within a partly answered unit.
 #' Existing valid, invalid, and technical-error results retain their previous
 #' treatment; derived results are not reclassified from their source variables.
+#' A valid derived result contributes to the reached boundary and can therefore
+#' turn preceding not-reached sources into omissions. Derived missing codes still
+#' follow the usual missing rules; no derivation is recalculated.
 #' Newly completed rows retain `NA` in `code_status`.
 #'
 #' @return A tibble.
@@ -94,32 +104,20 @@ complete_design <- function(coded,
 
   units_cs_merge <-
     units_cs %>%
+    dplyr::mutate(unit_codes = lapply(unit_codes, function(codes) {
+      # Calculate once per unit, before expanding to people and booklets.
+      if (!is.null(codes)) codes$.completion_position <- complete_design_positions(codes)
+      codes
+    })) %>%
     dplyr::select(
       unit_key, unit_codes
     ) %>%
     tidyr::unnest(unit_codes) %>%
     dplyr::select(dplyr::any_of(c(
       "unit_key", "variable_id", "variable_source_type",
-      "variable_level", "variable_page", "variable_section", "variable_page_always_visible"
+      "variable_level", "variable_page", "variable_section", "variable_page_always_visible",
+      ".completion_position"
     )))
-
-  units_cs_merge <- units_cs_merge %>%
-    dplyr::group_by(unit_key) %>%
-    dplyr::mutate(
-      # Compute once per unit, independently of response and design row order.
-      .completion_position = {
-        ids <- sort(unique(as.character(variable_id)), method = "radix")
-        ids <- stringr::str_sort(ids, numeric = TRUE, locale = "en")
-        page <- if ("variable_page" %in% names(units_cs_merge)) {
-          suppressWarnings(as.numeric(as.character(variable_page)))
-        } else {
-          rep(NA_real_, dplyr::n())
-        }
-        page[!is.finite(page)] <- NA_real_
-        order(order(page, match(variable_id, ids), na.last = TRUE))
-      }
-    ) %>%
-    dplyr::ungroup()
 
   # Merge codes and design
   design_coded <-
@@ -257,4 +255,114 @@ complete_design <- function(coded,
         "missing_code_id", "missing_code_score"
       ))
     )
+}
+
+# Static ordering of one unit; no response values or person-specific data enter.
+complete_design_positions <- function(codes) {
+  n <- nrow(codes)
+  if (!n) return(integer())
+  ids <- as.character(codes$variable_id)
+  names_sorted <- stringr::str_sort(sort(unique(ids), method = "radix"),
+                                   numeric = TRUE, locale = "en")
+  name_rank <- match(ids, names_sorted)
+  numeric_position <- function(column) {
+    x <- if (column %in% names(codes)) {
+      suppressWarnings(as.numeric(as.character(codes[[column]])))
+    } else rep(NA_real_, n)
+    x[!is.finite(x)] <- NA_real_
+    x
+  }
+  page <- numeric_position("variable_page")
+  section <- numeric_position("variable_section")
+  section[is.na(page)] <- NA_real_
+  fallback <- order(page, section, name_rank, na.last = TRUE)
+  sources <- rep(list(integer()), n)
+  refs <- if ("variable_ref" %in% names(codes)) as.character(codes$variable_ref) else NULL
+  # An ambiguous identifier cannot identify a source. Build the lookup keys
+  # once, rather than checking all unit keys again for every derivation.
+  id_keys <- ids
+  id_keys[duplicated(ids) | duplicated(ids, fromLast = TRUE)] <- NA_character_
+  if (!is.null(refs)) refs[duplicated(refs) | duplicated(refs, fromLast = TRUE)] <- NA_character_
+  resolve <- function(values, keys) {
+    values <- as.character(unlist(values, use.names = FALSE))
+    if (!length(values) || anyNA(values) || any(!nzchar(values)) || is.null(keys)) {
+      return(integer())
+    }
+    at <- match(values, keys)
+    if (anyNA(at)) return(integer())
+    unique(at)
+  }
+  for (i in seq_len(n)) {
+    if ("variable_source_type" %in% names(codes) &&
+        codes$variable_source_type[i] %in% c("BASE", "BASE_NO_VALUE")) next
+    src <- if ("variable_sources" %in% names(codes)) codes$variable_sources[[i]] else NULL
+    if (is.data.frame(src) && nrow(src)) {
+      if ("variable_source_direct" %in% names(src)) {
+        direct <- src$variable_source_direct
+        if (anyNA(direct)) next
+        if (any(direct)) src <- src[direct, , drop = FALSE]
+      }
+      sources[[i]] <- if ("variable_source_ref" %in% names(src) && !is.null(refs)) {
+        resolve(src$variable_source_ref, refs)
+      } else if ("variable_source_id" %in% names(src)) {
+        resolve(src$variable_source_id, id_keys)
+      } else integer()
+    } else if ((length(src) == 0L || (is.data.frame(src) && nrow(src) == 0L)) &&
+               "derive_sources" %in% names(codes)) {
+      sources[[i]] <- resolve(codes$derive_sources[[i]], refs)
+    }
+  }
+  if (!any(lengths(sources))) return(order(fallback))
+
+  # A topological pass identifies cycles and their blocked dependants. Their
+  # source links are discarded together, so each uses its own fallback position.
+  dependants <- split(rep(seq_len(n), lengths(sources)),
+                      factor(unlist(sources, use.names = FALSE), levels = seq_len(n)))
+  remaining <- lengths(sources)
+  queue <- integer(n)
+  roots <- which(remaining == 0L)
+  tail <- length(roots)
+  queue[seq_len(tail)] <- roots
+  head <- 1L
+  while (head <= tail) {
+    children <- dependants[[queue[head]]]
+    remaining[children] <- remaining[children] - 1L
+    ready <- children[remaining[children] == 0L]
+    if (length(ready)) {
+      queue[tail + seq_along(ready)] <- ready
+      tail <- tail + length(ready)
+    }
+    head <- head + 1L
+  }
+  blocked <- which(remaining > 0L)
+  if (length(blocked)) {
+    sources[blocked] <- rep(list(integer()), length(blocked))
+    dependants <- split(rep(seq_len(n), lengths(sources)),
+                        factor(unlist(sources, use.names = FALSE), levels = seq_len(n)))
+  }
+
+  # Walk roots in layout order. Newly available derivations go on the stack
+  # before pending siblings, keeping chains next to their sources without recursion.
+  remaining <- lengths(sources)
+  roots <- fallback[remaining[fallback] == 0L]
+  stack <- integer(n)
+  top <- length(roots)
+  stack[seq_len(top)] <- rev(roots)
+  position <- integer(n)
+  next_position <- 0L
+  while (top > 0L) {
+    i <- stack[top]
+    top <- top - 1L
+    next_position <- next_position + 1L
+    position[i] <- next_position
+    children <- dependants[[i]]
+    remaining[children] <- remaining[children] - 1L
+    ready <- children[remaining[children] == 0L]
+    if (length(ready)) {
+      ready <- ready[order(name_rank[ready], decreasing = TRUE)]
+      stack[top + seq_along(ready)] <- ready
+      top <- top + length(ready)
+    }
+  }
+  position
 }

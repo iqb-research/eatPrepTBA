@@ -108,8 +108,10 @@ liegen:
 - **Die zugehörigen Testheft-XML-Dateien** (Booklets): referenzierte Units und
   ihre Reihenfolge innerhalb der Testlets.
 
-Die Dateien müssen dem Stand der Durchführung entsprechen. Die Variablen und
-Kodierschemata kommen hier aus dem zuvor aus Studio geladenen Objekt `units`.
+Die Dateien müssen dem Stand der Durchführung entsprechen. Die Variablenliste
+wird aus den Kodierschemata im zuvor aus Studio geladenen Objekt `units`
+ergänzt. Seiten und Abschnitte kommen aus der Unitdefinition; die Beziehungen
+zwischen Ableitungen und ihren Quellen stehen im Kodierschema.
 
 ```{r design, eval=FALSE}
 design <- get_design(testcenter, units = units, mode = "run-hot-return")
@@ -206,10 +208,13 @@ wie in Abschnitt 3 prüfen.
 [`complete_design()`](../reference/complete_design.html) ergänzt fehlende Einträge aus dem vollständigen Design.
 Anhand der Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
 Aufgaben am Ende von Auslassungen vor später bearbeiteten Aufgaben unterschieden.
-Innerhalb jeder Unit gilt zuerst die Seitenfolge, dann die natürliche Reihenfolge
-der Variablennamen (z. B. `V2` vor `V10`). Variablen ohne Seitenangabe folgen
-nach den bekannten Seiten; fehlen Seitenangaben ganz, entscheiden die Namen.
-Abschnitte, Elemente und Ableitungsstufen ändern diese Reihenfolge nicht.
+Innerhalb jeder Unit gilt zunächst **Seite → Abschnitt → natürlicher Variablenname**
+(z. B. `V2` vor `V10`). Fehlende Abschnitte folgen auf derselben Seite zuletzt.
+Variablen ohne Seitenangabe folgen nach den bekannten Seiten; untereinander
+entscheidet dann nur der Name. Eine Ableitung mit vollständig und eindeutig
+zugeordneten Quellen wird direkt nach ihrer letzten Quelle eingeordnet, auch
+bei mehrstufigen Ableitungen. Ist diese Zuordnung nicht möglich, bleiben ihre
+eigene Seite, ihr Abschnitt und ihr Name maßgeblich.
 Bereits als Auslassung kodierte Antworten bleiben standardmäßig Auslassungen.
 
 ```{r complete, eval=FALSE}
@@ -232,7 +237,9 @@ Bei der Folge **Auslassung – Antwort – Auslassung** innerhalb einer Unit wir
 damit nur die letzte Auslassung zu Not reached. Die erste bleibt eine Auslassung.
 Die Einordnung erfolgt getrennt je Person, Booklet und Testlet. Vorhandene
 gültige oder ungültige Ableitungsergebnisse werden nicht aus ihren
-Quellvariablen neu bewertet. `code_status` bleibt auch bei einer Umkodierung
+Quellvariablen neu bewertet. Eine gültige Ableitung zählt jedoch als Bearbeitung:
+Steht sie hinter einer als NR kodierten Quelle, wird diese zur Auslassung mit
+0 Punkten. `code_status` bleibt auch bei einer Umkodierung
 unverändert; Missing-Art und Punktzahl stehen in `code_type` und `code_score`.
 
 Aufgaben, die laut Design

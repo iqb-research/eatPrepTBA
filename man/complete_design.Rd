@@ -15,7 +15,7 @@ complete_design(
 )
 }
 \arguments{
-\item{coded}{Tibble. Response data coded with \code{\link[eatPrepTBA:code_responses]{eatPrepTBA::code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
+\item{coded}{Tibble. Response data coded with \code{\link[=code_responses]{code_responses()}}. The argument \code{prepare} must be \code{TRUE}.}
 
 \item{units}{Tibble. Unit data retrieved from the IQB Studio after setting the argument \code{unit_definition = TRUE} for \code{\link[=get_units]{get_units()}} -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save some time.}
 
@@ -36,13 +36,23 @@ A tibble.
 This function automatically completes missings for coded responses.
 }
 \details{
-Within each unit, variables are ordered by page and then by their names in
-natural order (for example, \code{V2} precedes \code{V10}). Variables without a finite
-page number follow the known pages; if pages are absent, names alone define
-the order. Section, element, and derivation level do not override this order.
+Within each unit, base variables are ordered by numeric page, numeric section,
+and natural variable name (for example, \code{V2} precedes \code{V10}). Missing sections
+follow known sections on the same page. Variables without a finite page follow
+known pages and are ordered by name alone.
+Derived variables with fully resolvable sources are inserted immediately after
+their last source, including chains of derivations. Simultaneously available
+derivations are ordered by natural name; their newly available dependants are
+inserted before the next sibling. Missing, ambiguous, or cyclic source links
+use the variable's own page, section, and name instead. Source links come from
+\code{variable_sources}, or from \code{derive_sources} when the former is empty.
+Element position and derivation level are not additional sorting keys.
 The trailing missing sequence is determined separately for each person,
 booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
+A valid derived result contributes to the reached boundary and can therefore
+turn preceding not-reached sources into omissions. Derived missing codes still
+follow the usual missing rules; no derivation is recalculated.
 Newly completed rows retain \code{NA} in \code{code_status}.
 }
