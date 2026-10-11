@@ -227,6 +227,13 @@ in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
 Für den direkten Vergleich zeigen die Tabellen unten alle Ergebnisse in derselben
 Beispielreihenfolge; die ursprüngliche Ausgabesortierung ist dort nicht abgebildet.
 
+**Ableitungen und NR:** Ein vorhandenes gültiges Ableitungsergebnis zählt bei
+der Bestimmung der NR-Grenze als Bearbeitung. Wenn eine gültige Ableitung `01`
+hinter ihrer noch als NR kodierten Quelle `01b` eingeordnet ist, wird `01b`
+deshalb zur Auslassung mit 0 Punkten. Dieser Einfluss ist beabsichtigt.
+`complete_design()` berechnet die Ableitung nicht neu; vorhandene NR- und
+Auslassungscodes unterliegen weiterhin den Missing-Regeln.
+
 ```{r case-comparisons, results='asis'}
 titles <- c(
   "Auslassung vor und nach der letzten Antwort",
