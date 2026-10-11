@@ -198,7 +198,8 @@ Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
   Auslassungen zusätzlich als nicht erreicht (`MISSING_NOT_REACHED`) gewertet.
 - **9001:** Hat diese Option noch nicht; gezeigt wird der damalige Standard.
 
-`T1 · U2/V03` bedeutet: Testlet 1, Unit 2, Variable V03.
+`T1 · U2/V01` bedeutet: Testlet 1, Unit 2, Variable V01.
+Die Variablennummerierung beginnt in jeder Unit bei V01.
 „Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
 
 ```{r case-comparisons, results='asis'}
@@ -220,19 +221,19 @@ titles <- c(
   "Abgeleitete Variable mit gültigem Ergebnis"
 )
 notes <- c(
-  "V02 liegt vor einer späteren Antwort und bleibt neu auch mit TRUE eine Auslassung. Die 9036 wertet V02 mit TRUE fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur V04 hinter der letzten Antwort.",
+  "U1/V02 liegt vor einer späteren Antwort und bleibt neu auch mit TRUE eine Auslassung. Die 9036 wertet U1/V02 mit TRUE fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur U1/V04 hinter der letzten Antwort.",
   "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung. Die älteren Versionen lassen V01 als nicht erreicht stehen; V03 bleibt überall nicht erreicht.",
-  "Die Antwort auf V04 liegt in einer späteren Unit desselben Testlets. Deshalb wird V03 in allen Versionen zur Auslassung.",
-  "Bei FALSE wird V02 wegen der späteren Auslassungen selbst zur Auslassung. Mit TRUE werden V02 bis V05 als nicht erreicht gewertet.",
+  "Die Antwort auf U2/V01 liegt in einer späteren Unit desselben Testlets. Deshalb wird U1/V03 in allen Versionen zur Auslassung.",
+  "Bei FALSE wird U1/V02 wegen der späteren Auslassungen selbst zur Auslassung. Mit TRUE werden alle Auslassungen als nicht erreicht gewertet; U1/V02 bleibt dann nicht erreicht.",
   "FALSE: Alle Auslassungen behalten 0 Punkte. TRUE: Alle werden nicht erreicht – auch ohne eine einzige beantwortete Variable.",
   "Die Antwort in T2 hat keinen Einfluss auf T1. Mit TRUE werden in 9036 und neu die abschließenden Auslassungen jedes Testlets als nicht erreicht gewertet.",
-  "V01 wird als Auslassung ergänzt, V03 und V04 als nicht erreicht. Nur 9036 füllt dabei auch `code_status`; neu bleibt dieser bei `NA`.",
+  "U1/V01 wird als Auslassung ergänzt, U2/V02 und U3/V01 als nicht erreicht. Nur 9036 füllt dabei auch `code_status`; neu bleibt dieser bei `NA`.",
   "Alle Zeilen werden als nicht erreicht ergänzt; `id_used = FALSE`. Nur 9036 setzt `code_status = NOT_REACHED`, die anderen erhalten `NA`.",
-  "Die spätere ungültige Antwort und der Kodierfehler machen V03 zur Auslassung. Ihre eigenen Codes und Scores bleiben in allen Versionen erhalten.",
+  "Die ungültige Antwort auf U2/V01 und der Kodierfehler bei U2/V02 machen U1/V03 zur Auslassung. Ihre eigenen Codes und Scores bleiben in allen Versionen erhalten.",
   "Für `NO_CODING` vergibt 9001 den Code -94, die neueren Versionen -93. `code_status` und `code_score` bleiben gleich.",
-  "9001 ignoriert das eigene Schema; 9036 und neu übernehmen es. Nur 9036 ergänzt bei V03 `code_status = CUSTOM_NOT_REACHED`; neu bleibt er `NA`.",
+  "9001 ignoriert das eigene Schema; 9036 und neu übernehmen es. Nur 9036 ergänzt bei U2/V01 `code_status = CUSTOM_NOT_REACHED`; neu bleibt er `NA`.",
   "Wie Fall 2, aber der Code fehlt noch. Neu wird V01 wegen der späteren Antwort zur Auslassung; früher bleibt V01 nicht erreicht.",
-  "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. Alle Versionen werten V03 als Auslassung und die abschließenden V05 und V06 als nicht erreicht.",
+  "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. Alle Versionen werten U1/V03 als Auslassung und die abschließenden U2/V02 und U3/V01 als nicht erreicht.",
   "V01 steht auf Seite 1, die Antwort auf V02 auf Seite 2; die Itemliste nennt V02 zuerst. Neu wird V01 zur Auslassung, früher bleibt es nicht erreicht. Die Itemliste spielt in keiner Version eine Rolle.",
   "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung."
 )
