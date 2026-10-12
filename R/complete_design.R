@@ -7,6 +7,12 @@
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
 #' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. The supplied `code_status` is always preserved, including `NA`; the scheme assigns analytical codes and scores only.
 #' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a testlet? Defaults to `FALSE`.
+#' @param preserve_not_reached Logical. Should not-reached results be protected
+#' from recoding to omissions, even before later work? Defaults to `FALSE`.
+#' Protects supplied `MISSING_NOT_REACHED` types, the missing scheme's NR code
+#' when `code_type` is absent, and NR inferred during completion, including
+#' newly completed rows with `code_status = NA`. Other supplied types take
+#' precedence over a technical `NOT_REACHED` status or an NR code.
 #'
 #' @description
 #' This function automatically completes missings for coded responses.
@@ -28,9 +34,14 @@
 #' Existing valid, invalid, and technical-error results retain their previous
 #' treatment; derived results are not reclassified from their source variables.
 #' A valid derived result contributes to the reached boundary and can therefore
-#' turn preceding not-reached sources into omissions. Derived missing codes still
+#' turn preceding not-reached sources into omissions unless
+#' `preserve_not_reached = TRUE`. Derived missing codes still
 #' follow the usual missing rules; no derivation is recalculated.
 #' Newly completed rows retain `NA` in `code_status`.
+#' The two missing options are independent: preserving NR does not turn inner
+#' omissions into NR. With both options `TRUE`, existing and newly inferred NR
+#' remain NR, and trailing omissions additionally become NR. Missing schemes
+#' still assign the corresponding codes and scores.
 #'
 #' @return A tibble including integer `variable_position`: the one-based position
 #' within `unit_key` used for sorting and missing classification, including
@@ -44,12 +55,14 @@ complete_design <- function(coded,
                             identifiers = c("group_id", "login_name", "login_code"),
                             overwrite = FALSE,
                             missings = NULL,
-                            recode_omissions_to_not_reached = FALSE
+                            recode_omissions_to_not_reached = FALSE,
+                            preserve_not_reached = FALSE
 ) {
   # input validation
   checkmate::assert_character(identifiers)
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_logical(recode_omissions_to_not_reached, len = 1)
+  checkmate::assert_flag(preserve_not_reached)
 
   checkmate::assert_tibble(design)
   identifiers <- intersect(names(design), identifiers)
@@ -90,6 +103,10 @@ complete_design <- function(coded,
       missing_code_id = code_id,
       missing_code_score = code_score
     )
+
+  not_reached_codes <- missings$code_id[missings$code_type %in% "MISSING_NOT_REACHED"]
+  not_reached_codes <- not_reached_codes[!is.na(not_reached_codes)]
+  if (!length(not_reached_codes)) not_reached_codes <- -96
 
   not_reached_tail_types <- "MISSING_NOT_REACHED"
   if (recode_omissions_to_not_reached) {
@@ -151,6 +168,11 @@ complete_design <- function(coded,
     dplyr::mutate(
       # TODO: Diese Korrektur nach Auto-Coder-Fix entfernen!
       code_type = dplyr::case_when(
+        # A previous O -> NR recode may still carry the technical DISPLAYED status.
+        .env$preserve_not_reached &
+          (code_type %in% "MISSING_NOT_REACHED" |
+             (is.na(code_type) & code_id %in% .env$not_reached_codes))
+          ~ "MISSING_NOT_REACHED",
         # -99 mbo: Omissions (needs to be recoded with -99)
         # Real omissions, flagged by manual coding
         (is.na(value) | code_id == -99) & code_status == "DISPLAYED" ~ "MISSING_BY_OMISSION",
@@ -222,6 +244,9 @@ complete_design <- function(coded,
     ) %>%
     dplyr::mutate(
       code_type = dplyr::case_when(
+        # Protect supplied and inferred NR, including rows completed from design.
+        .env$preserve_not_reached & code_type %in% "MISSING_NOT_REACHED"
+          ~ "MISSING_NOT_REACHED",
         # Keep the unit-level boundary, but exclude positions before later work.
         (code_type %in% not_reached_tail_types | is.na(code_type)) &
           check_nr & (is.na(.data$.completion_position) |

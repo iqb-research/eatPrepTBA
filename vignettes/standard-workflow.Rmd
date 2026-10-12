@@ -204,15 +204,23 @@ aus dem Design. Es unterscheidet nicht erreichte Variablen am Ende von
 Auslassungen vor einer späteren Bearbeitung – getrennt je Person, Testheft
 und Testlet (Testabschnitt).
 
-Bereits als Auslassung kodierte Antworten bleiben mit **`FALSE`** Auslassungen.
-Setze im folgenden Aufruf **`TRUE`**, wenn auch abschließende Auslassungen als
+Bereits als Auslassung kodierte Antworten bleiben mit
+**`recode_omissions_to_not_reached = FALSE`** Auslassungen.
+Setze diese Option auf **`TRUE`**, wenn auch abschließende Auslassungen als
 Not reached eingeordnet werden sollen. Bei **Auslassung – Antwort – Auslassung**
 wird dann nur die letzte Auslassung zu Not reached, sofern danach im selben
 Testlet keine weitere Bearbeitung folgt.
 
+**`preserve_not_reached = TRUE`** verhindert umgekehrt, dass Not reached vor
+einer späteren Bearbeitung zur Auslassung wird. Das gilt auch für ergänzte
+Designzeilen, noch fehlende Codes bei Status `NOT_REACHED` oder `NA` und
+NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt erhalten.
+Beide Optionen sind unabhängig und stehen standardmäßig auf `FALSE`.
+
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design,
-                                recode_omissions_to_not_reached = FALSE)
+                                recode_omissions_to_not_reached = FALSE,
+                                preserve_not_reached = FALSE)
 
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
@@ -228,8 +236,9 @@ direkt ihrer letzten Quelle, auch bei mehrstufigen Ableitungen.
 Positionslücken enthalten; ohne passende Variablenmetadaten steht hier `NA`.
 
 **Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges Ergebnis
-zählt aber als Bearbeitung: Eine davor liegende Not-reached-Quelle wird zur
-Auslassung mit 0 Punkten. `code_status` bleibt dabei unverändert;
+zählt aber als Bearbeitung: Mit `preserve_not_reached = FALSE` wird eine davor
+liegende Not-reached-Quelle zur Auslassung mit 0 Punkten; mit `TRUE` bleibt sie
+Not reached. `code_status` bleibt dabei unverändert;
 Missing-Art und Punktzahl stehen in `code_type` und `code_score`.
 
 Die [Missing-Szenarien im Versionsvergleich](missing-examples.html) zeigen die

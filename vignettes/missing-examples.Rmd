@@ -39,6 +39,10 @@ functions <- list(`9001` = historical_function("9001"),
                   new = eatPrepTBA::complete_design)
 new_version <- as.character(packageVersion("eatPrepTBA"))
 column_labels <- c("9001", "9036", paste0("Neu ", sub("^0\\.9\\.8\\.", "", new_version)))
+new_modes <- expand.grid(recode_omissions_to_not_reached = c(FALSE, TRUE),
+                         preserve_not_reached = c(FALSE, TRUE))
+new_mode_labels <- paste0("O → NR: ", new_modes$recode_omissions_to_not_reached,
+                         " · NR behalten: ", new_modes$preserve_not_reached)
 
 make_fixture <- function(rows) {
   design <- rows |>
@@ -105,10 +109,15 @@ make_fixture <- function(rows) {
 calculate <- function(rows) {
   fixture <- make_fixture(rows)
   lapply(names(functions), function(version) {
-    modes <- if (version == "9001") list(NULL) else list(FALSE, TRUE)
+    modes <- if (version == "9001") {
+      list(list())
+    } else if (version == "9036") {
+      lapply(c(FALSE, TRUE), function(x) list(recode_omissions_to_not_reached = x))
+    } else {
+      lapply(seq_len(nrow(new_modes)), function(i) as.list(new_modes[i, ]))
+    }
     lapply(modes, function(mode) {
-      args <- fixture
-      if (!is.null(mode)) args$recode_omissions_to_not_reached <- mode
+      args <- c(fixture, mode)
       result <- do.call(functions[[version]], args)
       at <- match(paste(rows$unit_key, rows$variable_id),
                   paste(result$unit_key, result$variable_id))
@@ -148,6 +157,15 @@ expected_new <- list(`16` = c(1, -99, -96),
 for (case in names(expected_new)) {
   for (mode in 1:2) stopifnot(identical(results[[case]]$new[[mode]]$code_id,
                                       expected_new[[case]]))
+}
+for (mode in 3:4) {
+  for (case in c("2", "7", "12", "14", "15")) {
+    stopifnot(results[[case]]$new[[mode]]$code_id[[1]] == -96,
+              is.na(results[[case]]$new[[mode]]$code_score[[1]]))
+  }
+  stopifnot(results[["3"]]$new[[mode]]$code_id[[3]] == -96,
+            results[["18"]]$new[[mode]]$code_id[[2]] == -96,
+            results[["18"]]$new[[mode]]$code_id[[3]] == 1)
 }
 
 escape <- function(x) as.character(htmltools::htmlEscape(x))
@@ -194,10 +212,14 @@ print_comparison <- function(rows, output) {
         '<span>', escape(incoming), '</span></th></tr>\n<tr>', sep = "")
     for (version in names(output)) {
       cells <- lapply(output[[version]], function(x) x[i, ])
-      labels <- if (version == "9001") "Standard" else c("FALSE", "TRUE")
+      labels <- switch(version, `9001` = "Standard",
+                       `9036` = c("O → NR: FALSE", "O → NR: TRUE"),
+                       new = new_mode_labels)
       cat('<td>')
       if (version == "new") {
-        stopifnot(identical(cells[[1L]]$variable_position, cells[[2L]]$variable_position))
+        stopifnot(all(vapply(cells, function(x) {
+          identical(cells[[1L]]$variable_position, x$variable_position)
+        }, logical(1))))
         cat('<span class="missing-position">variable_position: ',
             number(cells[[1L]]$variable_position), '</span>', sep = "")
       }
@@ -228,7 +250,7 @@ body { max-width: 1100px; }
 </style>
 
 **`r length(cases)` Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
-Die graue Zeile zeigt die Eingabe, darunter stehen die drei Ergebnisse.
+Die graue Zeile zeigt die Eingabe, darunter stehen die Ergebnisse der drei Versionen.
 
 ## So liest du den Vergleich
 
@@ -239,10 +261,20 @@ Eingabe und Ergebnisse haben dieselbe Reihenfolge:
 Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
 „gegenüber der Eingabe geändert“. `NA` bedeutet „Wert fehlt“.
 
-- **FALSE:** Standard – Auslassungen bleiben Auslassungen.
-- **TRUE:** Mit `recode_omissions_to_not_reached = TRUE` werden abschließende
-  Auslassungen zusätzlich als nicht erreicht (`MISSING_NOT_REACHED`) gewertet.
-- **9001:** Hat diese Option noch nicht; gezeigt wird der damalige Standard.
+- **O → NR** steht für `recode_omissions_to_not_reached`: Mit **FALSE** bleiben
+  Auslassungen Auslassungen. Mit **TRUE** werden abschließende Auslassungen
+  zusätzlich als nicht erreicht (`MISSING_NOT_REACHED`, kurz NR) gewertet.
+- **NR behalten** steht für `preserve_not_reached`: Mit **FALSE** kann NR vor
+  einer späteren Bearbeitung zur Auslassung werden. Mit **TRUE** bleibt NR
+  erhalten, unabhängig von seiner Herkunft. Das gilt auch bei noch fehlendem
+  Code mit Status `NOT_REACHED` oder `NA`, bei ergänzten Designzeilen und bei
+  Ableitungen. Vorhandene gültige Ergebnisse bleiben erhalten.
+
+Beide Optionen sind unabhängig; **FALSE / FALSE** ist der Standard.
+9001 zeigt nur ihren damaligen Standard, 9036 beide Werte für **O → NR**.
+Die neue Version zeigt alle vier Kombinationen mit ausdrücklich benannten Werten.
+Der Schutz betrifft auch NR, das zuvor aus einer Auslassung entstanden ist:
+Entscheidend ist die Missing-Art, nicht allein `code_status`.
 
 `T1 · U2/V01` bedeutet: Testlet 1, Unit 2, Variable V01.
 Die Variablennummerierung beginnt in jeder Unit neu. Die Zusatzfälle verwenden
@@ -251,7 +283,7 @@ auch Namen wie `01a`, `01b` und `01` für Quellen und ihre Ableitung.
 
 Die neue Ausgabe enthält zusätzlich **`variable_position`**: die ganzzahlige
 Position innerhalb der Unit, beginnend bei 1, einschließlich Ableitungen.
-Sie wird aus den Unit-Metadaten berechnet und ist für FALSE und TRUE gleich.
+Sie wird aus den Unit-Metadaten berechnet und ist für alle Kombinationen gleich.
 Bei einem Teildesign bleiben Lücken erhalten; ohne passende Variablenmetadaten
 ist die Position `NA`. Die Zahl steht in der neuen Versionsspalte separat über
 den Kodierergebnissen.
@@ -286,12 +318,13 @@ in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
 
 Für den direkten Vergleich zeigen die Tabellen unten alle Ergebnisse in derselben
 Beispielreihenfolge. Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich
-über den Ergebnissen; sie ist bei FALSE und TRUE gleich.
+über den Ergebnissen; sie ist bei allen Kombinationen gleich.
 
 **Ableitungen und NR:** Ein vorhandenes gültiges Ableitungsergebnis zählt bei
 der Bestimmung der NR-Grenze als Bearbeitung. Wenn eine gültige Ableitung `01`
 hinter ihrer noch als NR kodierten Quelle `01b` eingeordnet ist, wird `01b`
-deshalb zur Auslassung mit 0 Punkten. Dieser Einfluss ist beabsichtigt.
+mit **NR behalten: FALSE** deshalb zur Auslassung mit 0 Punkten.
+Mit **NR behalten: TRUE** bleibt die Quelle NR.
 `complete_design()` berechnet die Ableitung nicht neu; vorhandene NR- und
 Auslassungscodes unterliegen weiterhin den Missing-Regeln.
 
@@ -317,24 +350,24 @@ titles <- c(
   "Mehrstufige Ableitung und fehlende Quelle"
 )
 notes <- c(
-  "U1/V02 liegt vor einer späteren Antwort und bleibt neu auch mit TRUE eine Auslassung. Die 9036 wertet U1/V02 mit TRUE fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur U1/V04 hinter der letzten Antwort.",
-  "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung. Die älteren Versionen lassen V01 als nicht erreicht stehen; V03 bleibt überall nicht erreicht.",
-  "Die Antwort auf U2/V01 liegt in einer späteren Unit desselben Testlets. Deshalb wird U1/V03 in allen Versionen zur Auslassung.",
-  "Bei FALSE wird U1/V02 wegen der späteren Auslassungen selbst zur Auslassung. Mit TRUE werden alle Auslassungen als nicht erreicht gewertet; U1/V02 bleibt dann nicht erreicht.",
-  "FALSE: Alle Auslassungen behalten 0 Punkte. TRUE: Alle werden nicht erreicht – auch ohne eine einzige beantwortete Variable.",
-  "Die Antwort in T2 hat keinen Einfluss auf T1. Mit TRUE werden in 9036 und neu die abschließenden Auslassungen jedes Testlets als nicht erreicht gewertet.",
-  "U1/V01 wird als Auslassung ergänzt, U2/V02 und U3/V01 als nicht erreicht. Nur 9036 füllt dabei auch `code_status`; neu bleibt dieser bei `NA`.",
+  "U1/V02 liegt vor einer späteren Antwort und bleibt neu auch mit O → NR: TRUE eine Auslassung. Die 9036 wertet U1/V02 damit fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur U1/V04 hinter der letzten Antwort. NR behalten ändert hier nichts.",
+  "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung, solange NR behalten: FALSE gilt. Mit NR behalten: TRUE bleibt V01 nicht erreicht, ebenso wie in den älteren Versionen. V03 bleibt überall nicht erreicht.",
+  "Die Antwort auf U2/V01 liegt in einer späteren Unit desselben Testlets. Deshalb wird U1/V03 zur Auslassung. Nur neu mit NR behalten: TRUE bleibt U1/V03 nicht erreicht.",
+  "Mit O → NR: FALSE wird U1/V02 wegen der späteren Auslassungen selbst zur Auslassung. Neu verhindert NR behalten: TRUE dies. Mit O → NR: TRUE werden alle Auslassungen als nicht erreicht gewertet; U1/V02 bleibt dann ebenfalls nicht erreicht.",
+  "O → NR: FALSE lässt alle Auslassungen bei 0 Punkten. O → NR: TRUE macht alle zu nicht erreicht – auch ohne eine einzige beantwortete Variable. NR behalten ändert hier nichts.",
+  "Die Antwort in T2 hat keinen Einfluss auf T1. Mit O → NR: TRUE werden in 9036 und neu die abschließenden Auslassungen jedes Testlets als nicht erreicht gewertet. NR behalten ändert hier nichts.",
+  "U1/V01 wird als Auslassung ergänzt, U2/V02 und U3/V01 als nicht erreicht. Neu mit NR behalten: TRUE bleibt auch die ergänzte Zeile U1/V01 nicht erreicht. Nur 9036 füllt dabei `code_status`; neu bleibt dieser bei `NA`.",
   "Alle Zeilen werden als nicht erreicht ergänzt; `id_used = FALSE`. Nur 9036 setzt `code_status = NOT_REACHED`, die anderen erhalten `NA`.",
-  "Die ungültige Antwort auf U2/V01 und der Kodierfehler bei U2/V02 machen U1/V03 zur Auslassung. Ihre eigenen Codes und Scores bleiben in allen Versionen erhalten.",
+  "Die ungültige Antwort auf U2/V01 und der Kodierfehler bei U2/V02 machen U1/V03 zur Auslassung. Neu mit NR behalten: TRUE bleibt U1/V03 nicht erreicht. Codes und Scores der ungültigen Antwort und des Kodierfehlers bleiben überall erhalten.",
   "Für `NO_CODING` vergibt 9001 den Code -94, die neueren Versionen -93. `code_status` und `code_score` bleiben gleich.",
   "9001 ignoriert das eigene Schema; 9036 und neu übernehmen es. Nur 9036 ergänzt bei U2/V01 `code_status = CUSTOM_NOT_REACHED`; neu bleibt er `NA`.",
-  "Wie Fall 2, aber der Code fehlt noch. Neu wird V01 wegen der späteren Antwort zur Auslassung; früher bleibt V01 nicht erreicht.",
-  "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. Alle Versionen werten U1/V03 als Auslassung und die abschließenden U2/V02 und U3/V01 als nicht erreicht.",
-  "V01 steht auf Seite 1, die Antwort auf V02 auf Seite 2; die Itemliste nennt V02 zuerst. Neu wird V01 zur Auslassung, früher bleibt es nicht erreicht. Die Itemliste spielt in keiner Version eine Rolle.",
-  "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu steht V03 direkt hinter V01 und vor V02. V01 wird wegen der späteren Bearbeitung zur Auslassung.",
-  "Auf derselben Seite liegt V02 in Abschnitt 1, die Antwort V01 in Abschnitt 2 und V03 in Abschnitt 3. Neu wird V02 deshalb zur Auslassung, obwohl sein Name hinter V01 steht. V03 bleibt nicht erreicht.",
-  "01 entsteht aus 01a und 01b und steht neu direkt hinter beiden. Sein gespeicherter gültiger Code bleibt erhalten. Dadurch werden die vorher als NR kodierten Quellen zu Auslassungen mit 0 Punkten; das nachfolgende 02 bleibt NR. Es wird keine Ableitung neu berechnet.",
-  "Die Quellenkette lautet 01a → 01b → 01. Neu werden beide Ableitungen direkt nach ihren Quellen eingeordnet; der gültige Code von 01 macht 01a und 01b zu Auslassungen. Für 03 fehlt die angegebene Quelle: Seine eigene Seite 2 bleibt maßgeblich. 02 und 03 bleiben NR."
+  "Wie Fall 2, aber der Code fehlt noch. Neu wird V01 wegen der späteren Antwort zur Auslassung. Mit NR behalten: TRUE bleibt V01 nicht erreicht, ebenso wie früher.",
+  "Wie Fall 3, aber bei den nicht erreichten Variablen fehlt der Code noch. U1/V03 wird zur Auslassung; neu verhindert NR behalten: TRUE dies. Die abschließenden U2/V02 und U3/V01 bleiben überall nicht erreicht.",
+  "V01 steht auf Seite 1, die Antwort auf V02 auf Seite 2; die Itemliste nennt V02 zuerst. Neu wird V01 zur Auslassung, außer mit NR behalten: TRUE. Früher bleibt es nicht erreicht. Die Itemliste spielt in keiner Version eine Rolle.",
+  "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu steht V03 direkt hinter V01 und vor V02. V01 wird wegen der späteren Bearbeitung zur Auslassung, außer mit NR behalten: TRUE.",
+  "Auf derselben Seite liegt V02 in Abschnitt 1, die Antwort V01 in Abschnitt 2 und V03 in Abschnitt 3. Neu wird V02 deshalb zur Auslassung, obwohl sein Name hinter V01 steht. NR behalten: TRUE verhindert dies. V03 bleibt nicht erreicht.",
+  "01 entsteht aus 01a und 01b und steht neu direkt hinter beiden. Sein gültiger Code bleibt erhalten. Mit NR behalten: FALSE werden die NR-Quellen deshalb Auslassungen mit 0 Punkten; mit TRUE bleiben sie NR. Das nachfolgende 02 bleibt NR. Es wird keine Ableitung neu berechnet.",
+  "Die Quellenkette lautet 01a → 01b → 01. Neu folgen die Ableitungen direkt ihren Quellen. Mit NR behalten: FALSE macht der gültige Code von 01 die Quelle 01a und die Ableitung 01b zu Auslassungen; mit TRUE bleiben beide NR. Für 03 fehlt die Quelle: Seine eigene Seite 2 bleibt maßgeblich. 02 und 03 bleiben NR."
 )
 stopifnot(length(titles) == length(cases), length(notes) == length(cases))
 for (i in seq_along(titles)) {

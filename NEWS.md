@@ -1,5 +1,9 @@
 # eatPrepTBA 0.9.8.9037 [2026-10-11]
 
+## new features
+
+* Added `preserve_not_reached = FALSE` to `complete_design()`. Setting it to `TRUE` prevents NR from becoming omissions, including supplied NR, NR inferred from missing statuses or completed design rows, and earlier omission-to-NR results. The existing option for trailing omissions remains independent; `code_status` is preserved. The scenario vignette compares all four combinations.
+
 ## bug fixes
 
 * Fixed `complete_design()` classifying missings before a later response within the same unit as not reached. Variables are ordered by numeric page, numeric section, and natural variable name; missing sections follow known sections and missing pages follow known pages. Derived variables with resolvable sources follow their last source, including chained derivations. Unresolvable source links use the variable's own position. The order is prepared once per unit; completion and the optional `recode_omissions_to_not_reached` argument retain their existing scope.

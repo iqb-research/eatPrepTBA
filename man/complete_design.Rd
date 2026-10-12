@@ -11,7 +11,8 @@ complete_design(
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
   missings = NULL,
-  recode_omissions_to_not_reached = FALSE
+  recode_omissions_to_not_reached = FALSE,
+  preserve_not_reached = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,13 @@ complete_design(
 \item{missings}{Tibble (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme. The supplied \code{code_status} is always preserved, including \code{NA}; the scheme assigns analytical codes and scores only.}
 
 \item{recode_omissions_to_not_reached}{Logical. Should trailing omissions (\code{MISSING_BY_OMISSION}) be recoded to not reached (\code{MISSING_NOT_REACHED}) when they occur at the end of a testlet? Defaults to \code{FALSE}.}
+
+\item{preserve_not_reached}{Logical. Should not-reached results be protected
+from recoding to omissions, even before later work? Defaults to \code{FALSE}.
+Protects supplied \code{MISSING_NOT_REACHED} types, the missing scheme's NR code
+when \code{code_type} is absent, and NR inferred during completion, including
+newly completed rows with \code{code_status = NA}. Other supplied types take
+precedence over a technical \code{NOT_REACHED} status or an NR code.}
 }
 \value{
 A tibble including integer \code{variable_position}: the one-based position
@@ -56,7 +64,12 @@ booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
 A valid derived result contributes to the reached boundary and can therefore
-turn preceding not-reached sources into omissions. Derived missing codes still
+turn preceding not-reached sources into omissions unless
+\code{preserve_not_reached = TRUE}. Derived missing codes still
 follow the usual missing rules; no derivation is recalculated.
 Newly completed rows retain \code{NA} in \code{code_status}.
+The two missing options are independent: preserving NR does not turn inner
+omissions into NR. With both options \code{TRUE}, existing and newly inferred NR
+remain NR, and trailing omissions additionally become NR. Missing schemes
+still assign the corresponding codes and scores.
 }
