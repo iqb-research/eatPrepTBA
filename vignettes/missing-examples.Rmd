@@ -242,7 +242,7 @@ body { max-width: 1100px; }
 .missing-comparison td { border-bottom: 1px solid #dce3e9; font-variant-numeric: tabular-nums; }
 .missing-comparison td + td { border-left: 1px solid #e2e8ee; }
 .missing-comparison .missing-input th { background: #f5f7f9; text-align: left; }
-.missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: normal; color: #475569; }
+.missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: 700; color: #475569; background: #fef9c3; }
 .missing-result + .missing-result { margin-top: 0.6em; }
 .missing-mode { display: block; font-size: 0.88em; color: #475569; }
 .missing-reference-mode { color: #166534; background: #dcfce7; font-weight: 700; }
@@ -254,7 +254,8 @@ body { max-width: 1100px; }
 </style>
 
 **`r length(cases)` Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
-Die graue Zeile zeigt die Eingabe, darunter stehen die Ergebnisse der drei Versionen.
+Gelb und fett markiert sind die Eingangswerte; darunter stehen die Ergebnisse
+der drei Versionen.
 
 ## So liest du den Vergleich
 
