@@ -1,3 +1,13 @@
+# eatPrepTBA 0.9.8.9038 [2026-10-12]
+
+## new features
+
+* Added `summarise_missings()` to count item-level missing types and their proportions per person after `complete_design()` and `add_item_id()`. The denominator is the person's assigned items; unmapped variables and design missings are excluded. All people are retained by default, with optional restriction to `id_used = TRUE`. Duplicate person-item rows are rejected. Unresolved coding states are reported separately.
+
+## documentation
+
+* Added a per-person missing summary to the standard workflow and linked the function reference.
+
 # eatPrepTBA 0.9.8.9037 [2026-10-11]
 
 ## new features
