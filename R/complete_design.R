@@ -1,17 +1,57 @@
 #' Complete design with coded responses
 #'
-#' @param coded Tibble. Response data coded with [code_responses()]. The argument `prepare` must be `TRUE`.
+#' @param coded Tibble. Response data coded with [eatPrepTBA::code_responses()]. The argument `prepare` must be `TRUE`.
 #' @param units Tibble. Unit data retrieved from the IQB Studio after setting the argument `unit_definition = TRUE` for [get_units()] -- otherwise the page order of variables could not be correctly inferred from the variable source tree. Could already be treated by [`add_coding_scheme()`] to save some time.
 #' @param design Tibble. Design retrieved from Testcenter via [get_design()] or an object formatted in the same way.
 #' @param identifiers Character. Contains person identifiers of the dataset `coded`. Defaults to `c("group_id", "login_name", "login_code")` which corresponds to the identifiers of the IQB Testcenter.
 #' @param overwrite Logical. Should column `unit_codes` be overwritten if they exist on `units`. Defaults to `FALSE`, i.e., `unit_codes` will be used if they were added to `units` beforehand by applying `add_coding_schemes()`.
-#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. (Currently, only one missing scheme is supported.)
+#' @param missings Tibble (optional). Provide missing meta data with `code_id`, `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and uses default scheme. The supplied `code_status` is always preserved, including `NA`; the scheme assigns analytical codes and scores only.
 #' @param recode_omissions_to_not_reached Logical. Should trailing omissions (`MISSING_BY_OMISSION`) be recoded to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a testlet? Defaults to `FALSE`.
+#' @param preserve_not_reached Logical. Should not-reached results be protected
+#' from recoding to omissions, even before later work? Defaults to `FALSE`.
+#' Protects supplied `MISSING_NOT_REACHED` types, the missing scheme's NR code
+#' when `code_type` is absent, and NR inferred during completion, including
+#' newly completed rows with `code_status = NA`. Other supplied types take
+#' precedence over a technical `NOT_REACHED` status or an NR code.
 #'
 #' @description
 #' This function automatically completes missings for coded responses.
 #'
-#' @return A tibble.
+#' @details
+#' Within each unit, base variables are ordered by numeric page, numeric section,
+#' and natural variable name (for example, `V2` precedes `V10`). Missing sections
+#' follow known sections on the same page. Variables without a finite page follow
+#' known pages and are ordered by name alone.
+#' Derived variables with fully resolvable sources are inserted immediately after
+#' their last source, including chains of derivations. Simultaneously available
+#' derivations are ordered by natural name; their newly available dependants are
+#' inserted before the next sibling. Missing, ambiguous, or cyclic source links
+#' use the variable's own page, section, and name instead. Source links come from
+#' `variable_sources`, or from `derive_sources` when the former is empty.
+#' Element position and derivation level are not additional sorting keys.
+#' The trailing missing sequence is determined separately for each person,
+#' booklet, and testlet, including positions within a partly answered unit.
+#' Existing valid, invalid, and technical-error results retain their previous
+#' treatment; derived results are not reclassified from their source variables.
+#' A valid derived result contributes to the reached boundary and can therefore
+#' turn preceding not-reached sources into omissions unless
+#' `preserve_not_reached = TRUE`. Derived missing codes still
+#' follow the usual missing rules; no derivation is recalculated.
+#' Newly completed rows retain `NA` in `code_status`.
+#' The two missing options are independent: preserving NR does not turn inner
+#' omissions into NR. With both options `TRUE`, existing and newly inferred NR
+#' remain NR, and trailing omissions additionally become NR. Missing schemes
+#' still assign the corresponding codes and scores.
+#'
+#' @return A tibble including integer `variable_position`: the one-based position
+#' within `unit_key` used for sorting and missing classification, including
+#' derived variables. It is calculated from the unit metadata, replacing any
+#' input column of the same name. Positions can have gaps when `design` contains
+#' only part of a unit; variables absent from the unit metadata receive `NA`.
+#'
+#' @seealso Online guides: [Standard workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html)
+#' and [Missing scenarios](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.html).
+#' The online documentation may differ from the installed package version.
 #' @export
 complete_design <- function(coded,
                             units,
@@ -19,12 +59,14 @@ complete_design <- function(coded,
                             identifiers = c("group_id", "login_name", "login_code"),
                             overwrite = FALSE,
                             missings = NULL,
-                            recode_omissions_to_not_reached = FALSE
+                            recode_omissions_to_not_reached = FALSE,
+                            preserve_not_reached = FALSE
 ) {
   # input validation
   checkmate::assert_character(identifiers)
   checkmate::assert_logical(overwrite, len = 1)
   checkmate::assert_logical(recode_omissions_to_not_reached, len = 1)
+  checkmate::assert_flag(preserve_not_reached)
 
   checkmate::assert_tibble(design)
   identifiers <- intersect(names(design), identifiers)
@@ -63,9 +105,12 @@ complete_design <- function(coded,
     dplyr::select(
       code_type,
       missing_code_id = code_id,
-      missing_code_status = code_status,
       missing_code_score = code_score
     )
+
+  not_reached_codes <- missings$code_id[missings$code_type %in% "MISSING_NOT_REACHED"]
+  not_reached_codes <- not_reached_codes[!is.na(not_reached_codes)]
+  if (!length(not_reached_codes)) not_reached_codes <- -96
 
   not_reached_tail_types <- "MISSING_NOT_REACHED"
   if (recode_omissions_to_not_reached) {
@@ -84,23 +129,31 @@ complete_design <- function(coded,
 
   units_cs_merge <-
     units_cs %>%
+    dplyr::mutate(unit_codes = lapply(unit_codes, function(codes) {
+      # Calculate once per unit, before expanding to people and booklets.
+      if (!is.null(codes)) codes$.completion_position <- complete_design_positions(codes)
+      codes
+    })) %>%
     dplyr::select(
       unit_key, unit_codes
     ) %>%
     tidyr::unnest(unit_codes) %>%
     dplyr::select(dplyr::any_of(c(
       "unit_key", "variable_id", "variable_source_type",
-      "variable_level", "variable_page", "variable_section", "variable_page_always_visible"
+      "variable_level", "variable_page", "variable_section", "variable_page_always_visible",
+      ".completion_position"
     )))
 
   # Merge codes and design
   design_coded <-
     design %>%
+    dplyr::select(-dplyr::any_of("variable_position")) %>%
     dplyr::mutate(
       booklet_merge = stringr::str_to_upper(booklet_id)
     ) %>%
     dplyr::left_join(
-      coded %>% dplyr::mutate(booklet_merge = stringr::str_to_upper(booklet_id)) %>% dplyr::select(-booklet_id),
+      coded %>% dplyr::mutate(booklet_merge = stringr::str_to_upper(booklet_id)) %>%
+        dplyr::select(-booklet_id, -dplyr::any_of("variable_position")),
       by = dplyr::join_by(!!! c(identifiers, "booklet_merge", "unit_key", "unit_alias", "variable_id"))
     ) %>%
     dplyr::select(-dplyr::any_of(c("variable_source_type"))) %>%
@@ -119,6 +172,11 @@ complete_design <- function(coded,
     dplyr::mutate(
       # TODO: Diese Korrektur nach Auto-Coder-Fix entfernen!
       code_type = dplyr::case_when(
+        # A previous O -> NR recode may still carry the technical DISPLAYED status.
+        .env$preserve_not_reached &
+          (code_type %in% "MISSING_NOT_REACHED" |
+             (is.na(code_type) & code_id %in% .env$not_reached_codes))
+          ~ "MISSING_NOT_REACHED",
         # -99 mbo: Omissions (needs to be recoded with -99)
         # Real omissions, flagged by manual coding
         (is.na(value) | code_id == -99) & code_status == "DISPLAYED" ~ "MISSING_BY_OMISSION",
@@ -153,15 +211,17 @@ complete_design <- function(coded,
 
   not_reached_classification <-
     design_missings %>%
-    # Units müssen absteigend hier geordnet werden, damit cumany() funktioniert
-    # arrange(booklet_no, testlet_no, block_no, desc(unit_no)) %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no"
+        identifiers, "booklet_merge", "booklet_no", "testlet_no", "unit_booklet_no",
+        "unit_key", "unit_alias"
       ))
     )) %>%
     dplyr::summarise(
       not_reach = all(code_type %in% not_reached_tail_types | is.na(code_type)),
+      last_position = max(c(0L, .data$.completion_position[
+        !(code_type %in% not_reached_tail_types | is.na(code_type))
+      ]), na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -169,10 +229,10 @@ complete_design <- function(coded,
     not_reached_classification %>%
     dplyr::group_by(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no"
+        identifiers, "booklet_merge", "booklet_no", "testlet_no"
       ))
     )) %>%
-    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
+    dplyr::arrange(dplyr::across(dplyr::any_of(c(identifiers, "booklet_merge", "booklet_no", "testlet_no"))), dplyr::desc(unit_booklet_no)) %>%
     dplyr::mutate(
       nr = dplyr::cumall(not_reach),
       # Da es keine Unit danach mehr geben kann, wird sie diese hypothetische Unit als NOT_REACHED behandelt
@@ -184,13 +244,18 @@ complete_design <- function(coded,
   design_missings %>%
     dplyr::left_join(
       not_reached_cases,
-      by = dplyr::join_by(!!! identifiers, "booklet_no", "testlet_no", "unit_booklet_no")
+      by = dplyr::join_by(!!! identifiers, "booklet_merge", "booklet_no", "testlet_no", "unit_booklet_no", "unit_key", "unit_alias")
     ) %>%
     dplyr::mutate(
       code_type = dplyr::case_when(
-        # Setzt -96, wenn Unit leer oder teilweise befüllt, aber letzte Unit vor Ende oder leeren Units
+        # Protect supplied and inferred NR, including rows completed from design.
+        .env$preserve_not_reached & code_type %in% "MISSING_NOT_REACHED"
+          ~ "MISSING_NOT_REACHED",
+        # Keep the unit-level boundary, but exclude positions before later work.
         (code_type %in% not_reached_tail_types | is.na(code_type)) &
-          check_nr ~  "MISSING_NOT_REACHED",
+          check_nr & (is.na(.data$.completion_position) |
+                        .data$.completion_position >= .data$last_position)
+          ~ "MISSING_NOT_REACHED",
         # Kodiert andernfalls auf -99
         (code_type %in% not_reached_tail_types | is.na(code_type))
         ~  "MISSING_BY_OMISSION",
@@ -212,18 +277,128 @@ complete_design <- function(coded,
     ) %>%
     dplyr::mutate(
       code_id = dplyr::coalesce(missing_code_id, code_id),
-      code_status = dplyr::coalesce(code_status, missing_code_status),
       code_score = dplyr::coalesce(missing_code_score, code_score)
     ) %>%
     dplyr::arrange(dplyr::across(
       dplyr::any_of(c(
-        identifiers, "booklet_no", "testlet_no", "unit_booklet_no", "variable_page", "variable_section", "variable_level"
+        identifiers, "booklet_no", "booklet_merge", "testlet_no", "unit_booklet_no", ".completion_position"
       ))
     )) %>%
     dplyr::select(
       -dplyr::any_of(c(
-        "not_reach", "nr", "lag_nr", "check_nr",
-        "missing_code_id", "missing_code_status", "missing_code_score"
+        "not_reach", "nr", "lag_nr", "check_nr", "last_position",
+        "missing_code_id", "missing_code_score"
       ))
-    )
+    ) %>%
+    dplyr::rename(variable_position = ".completion_position")
+}
+
+# Static ordering of one unit; no response values or person-specific data enter.
+complete_design_positions <- function(codes) {
+  n <- nrow(codes)
+  if (!n) return(integer())
+  ids <- as.character(codes$variable_id)
+  names_sorted <- stringr::str_sort(sort(unique(ids), method = "radix"),
+                                   numeric = TRUE, locale = "en")
+  name_rank <- match(ids, names_sorted)
+  numeric_position <- function(column) {
+    x <- if (column %in% names(codes)) {
+      suppressWarnings(as.numeric(as.character(codes[[column]])))
+    } else rep(NA_real_, n)
+    x[!is.finite(x)] <- NA_real_
+    x
+  }
+  page <- numeric_position("variable_page")
+  section <- numeric_position("variable_section")
+  section[is.na(page)] <- NA_real_
+  fallback <- order(page, section, name_rank, na.last = TRUE)
+  sources <- rep(list(integer()), n)
+  refs <- if ("variable_ref" %in% names(codes)) as.character(codes$variable_ref) else NULL
+  # An ambiguous identifier cannot identify a source. Build the lookup keys
+  # once, rather than checking all unit keys again for every derivation.
+  id_keys <- ids
+  id_keys[duplicated(ids) | duplicated(ids, fromLast = TRUE)] <- NA_character_
+  if (!is.null(refs)) refs[duplicated(refs) | duplicated(refs, fromLast = TRUE)] <- NA_character_
+  resolve <- function(values, keys) {
+    values <- as.character(unlist(values, use.names = FALSE))
+    if (!length(values) || anyNA(values) || any(!nzchar(values)) || is.null(keys)) {
+      return(integer())
+    }
+    at <- match(values, keys)
+    if (anyNA(at)) return(integer())
+    unique(at)
+  }
+  for (i in seq_len(n)) {
+    if ("variable_source_type" %in% names(codes) &&
+        codes$variable_source_type[i] %in% c("BASE", "BASE_NO_VALUE")) next
+    src <- if ("variable_sources" %in% names(codes)) codes$variable_sources[[i]] else NULL
+    if (is.data.frame(src) && nrow(src)) {
+      if ("variable_source_direct" %in% names(src)) {
+        direct <- src$variable_source_direct
+        if (anyNA(direct)) next
+        if (any(direct)) src <- src[direct, , drop = FALSE]
+      }
+      sources[[i]] <- if ("variable_source_ref" %in% names(src) && !is.null(refs)) {
+        resolve(src$variable_source_ref, refs)
+      } else if ("variable_source_id" %in% names(src)) {
+        resolve(src$variable_source_id, id_keys)
+      } else integer()
+    } else if ((length(src) == 0L || (is.data.frame(src) && nrow(src) == 0L)) &&
+               "derive_sources" %in% names(codes)) {
+      sources[[i]] <- resolve(codes$derive_sources[[i]], refs)
+    }
+  }
+  if (!any(lengths(sources))) return(order(fallback))
+
+  # A topological pass identifies cycles and their blocked dependants. Their
+  # source links are discarded together, so each uses its own fallback position.
+  dependants <- split(rep(seq_len(n), lengths(sources)),
+                      factor(unlist(sources, use.names = FALSE), levels = seq_len(n)))
+  remaining <- lengths(sources)
+  queue <- integer(n)
+  roots <- which(remaining == 0L)
+  tail <- length(roots)
+  queue[seq_len(tail)] <- roots
+  head <- 1L
+  while (head <= tail) {
+    children <- dependants[[queue[head]]]
+    remaining[children] <- remaining[children] - 1L
+    ready <- children[remaining[children] == 0L]
+    if (length(ready)) {
+      queue[tail + seq_along(ready)] <- ready
+      tail <- tail + length(ready)
+    }
+    head <- head + 1L
+  }
+  blocked <- which(remaining > 0L)
+  if (length(blocked)) {
+    sources[blocked] <- rep(list(integer()), length(blocked))
+    dependants <- split(rep(seq_len(n), lengths(sources)),
+                        factor(unlist(sources, use.names = FALSE), levels = seq_len(n)))
+  }
+
+  # Walk roots in layout order. Newly available derivations go on the stack
+  # before pending siblings, keeping chains next to their sources without recursion.
+  remaining <- lengths(sources)
+  roots <- fallback[remaining[fallback] == 0L]
+  stack <- integer(n)
+  top <- length(roots)
+  stack[seq_len(top)] <- rev(roots)
+  position <- integer(n)
+  next_position <- 0L
+  while (top > 0L) {
+    i <- stack[top]
+    top <- top - 1L
+    next_position <- next_position + 1L
+    position[i] <- next_position
+    children <- dependants[[i]]
+    remaining[children] <- remaining[children] - 1L
+    ready <- children[remaining[children] == 0L]
+    if (length(ready)) {
+      ready <- ready[order(name_rank[ready], decreasing = TRUE)]
+      stack[top + seq_along(ready)] <- ready
+      top <- top + length(ready)
+    }
+  }
+  position
 }
