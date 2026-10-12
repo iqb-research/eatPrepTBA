@@ -12,7 +12,8 @@ complete_design(
   identifiers = c("group_id", "login_name", "login_code"),
   overwrite = FALSE,
   missings = NULL,
-  recode_omissions_to_not_reached = FALSE
+  recode_omissions_to_not_reached = FALSE,
+  preserve_not_reached = FALSE
 )
 ```
 
@@ -56,8 +57,8 @@ complete_design(
 
   Tibble (optional). Provide missing meta data with `code_id`,
   `code_status`, `code_score`, and `code_type`. Defaults to `NULL` and
-  uses default scheme. (Currently, only one missing scheme is
-  supported.)
+  uses default scheme. The supplied `code_status` is always preserved,
+  including `NA`; the scheme assigns analytical codes and scores only.
 
 - recode_omissions_to_not_reached:
 
@@ -65,6 +66,57 @@ complete_design(
   to not reached (`MISSING_NOT_REACHED`) when they occur at the end of a
   testlet? Defaults to `FALSE`.
 
+- preserve_not_reached:
+
+  Logical. Should not-reached results be protected from recoding to
+  omissions, even before later work? Defaults to `FALSE`. Protects
+  supplied `MISSING_NOT_REACHED` types, the missing scheme's NR code
+  when `code_type` is absent, and NR inferred during completion,
+  including newly completed rows with `code_status = NA`. Other supplied
+  types take precedence over a technical `NOT_REACHED` status or an NR
+  code.
+
 ## Value
 
-A tibble.
+A tibble including integer `variable_position`: the one-based position
+within `unit_key` used for sorting and missing classification, including
+derived variables. It is calculated from the unit metadata, replacing
+any input column of the same name. Positions can have gaps when `design`
+contains only part of a unit; variables absent from the unit metadata
+receive `NA`.
+
+## Details
+
+Within each unit, base variables are ordered by numeric page, numeric
+section, and natural variable name (for example, `V2` precedes `V10`).
+Missing sections follow known sections on the same page. Variables
+without a finite page follow known pages and are ordered by name alone.
+Derived variables with fully resolvable sources are inserted immediately
+after their last source, including chains of derivations. Simultaneously
+available derivations are ordered by natural name; their newly available
+dependants are inserted before the next sibling. Missing, ambiguous, or
+cyclic source links use the variable's own page, section, and name
+instead. Source links come from `variable_sources`, or from
+`derive_sources` when the former is empty. Element position and
+derivation level are not additional sorting keys. The trailing missing
+sequence is determined separately for each person, booklet, and testlet,
+including positions within a partly answered unit. Existing valid,
+invalid, and technical-error results retain their previous treatment;
+derived results are not reclassified from their source variables. A
+valid derived result contributes to the reached boundary and can
+therefore turn preceding not-reached sources into omissions unless
+`preserve_not_reached = TRUE`. Derived missing codes still follow the
+usual missing rules; no derivation is recalculated. Newly completed rows
+retain `NA` in `code_status`. The two missing options are independent:
+preserving NR does not turn inner omissions into NR. With both options
+`TRUE`, existing and newly inferred NR remain NR, and trailing omissions
+additionally become NR. Missing schemes still assign the corresponding
+codes and scores.
+
+## See also
+
+Online guides: [Standard
+workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html)
+and [Missing
+scenarios](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.html).
+The online documentation may differ from the installed package version.

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9036</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9037</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -20,6 +20,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/standard-workflow.html">Vom Testcenter zum Skalierungsdatensatz</a></li>
+    <li><a class="dropdown-item" href="../articles/missing-examples.html">Missing-Szenarien im Versionsvergleich</a></li>
     <li><a class="dropdown-item" href="../articles/log-data.html">Log-Daten</a></li>
     <li><a class="dropdown-item" href="../articles/prepare-codebooks.html">Prepare Codebooks</a></li>
     <li><a class="dropdown-item" href="../articles/working-with-iqb-apis.html">How eatPrepTBA communicates with IQB APIs</a></li>
@@ -52,7 +53,8 @@
 <span>  identifiers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"group_id"</span>, <span class="st">"login_name"</span>, <span class="st">"login_code"</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  missings <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  preserve_not_reached <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -81,17 +83,62 @@
 
 
 <dt id="arg-missings">missings<a class="anchor" aria-label="anchor" href="#arg-missings"></a></dt>
-<dd><p>Tibble (optional). Provide missing meta data with <code>code_id</code>, <code>code_status</code>, <code>code_score</code>, and <code>code_type</code>. Defaults to <code>NULL</code> and uses default scheme. (Currently, only one missing scheme is supported.)</p></dd>
+<dd><p>Tibble (optional). Provide missing meta data with <code>code_id</code>, <code>code_status</code>, <code>code_score</code>, and <code>code_type</code>. Defaults to <code>NULL</code> and uses default scheme. The supplied <code>code_status</code> is always preserved, including <code>NA</code>; the scheme assigns analytical codes and scores only.</p></dd>
 
 
 <dt id="arg-recode-omissions-to-not-reached">recode_omissions_to_not_reached<a class="anchor" aria-label="anchor" href="#arg-recode-omissions-to-not-reached"></a></dt>
 <dd><p>Logical. Should trailing omissions (<code>MISSING_BY_OMISSION</code>) be recoded to not reached (<code>MISSING_NOT_REACHED</code>) when they occur at the end of a testlet? Defaults to <code>FALSE</code>.</p></dd>
 
 
+<dt id="arg-preserve-not-reached">preserve_not_reached<a class="anchor" aria-label="anchor" href="#arg-preserve-not-reached"></a></dt>
+<dd><p>Logical. Should not-reached results be protected
+from recoding to omissions, even before later work? Defaults to <code>FALSE</code>.
+Protects supplied <code>MISSING_NOT_REACHED</code> types, the missing scheme's NR code
+when <code>code_type</code> is absent, and NR inferred during completion, including
+newly completed rows with <code>code_status = NA</code>. Other supplied types take
+precedence over a technical <code>NOT_REACHED</code> status or an NR code.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble.</p>
+    <p>A tibble including integer <code>variable_position</code>: the one-based position
+within <code>unit_key</code> used for sorting and missing classification, including
+derived variables. It is calculated from the unit metadata, replacing any
+input column of the same name. Positions can have gaps when <code>design</code> contains
+only part of a unit; variables absent from the unit metadata receive <code>NA</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Within each unit, base variables are ordered by numeric page, numeric section,
+and natural variable name (for example, <code>V2</code> precedes <code>V10</code>). Missing sections
+follow known sections on the same page. Variables without a finite page follow
+known pages and are ordered by name alone.
+Derived variables with fully resolvable sources are inserted immediately after
+their last source, including chains of derivations. Simultaneously available
+derivations are ordered by natural name; their newly available dependants are
+inserted before the next sibling. Missing, ambiguous, or cyclic source links
+use the variable's own page, section, and name instead. Source links come from
+<code>variable_sources</code>, or from <code>derive_sources</code> when the former is empty.
+Element position and derivation level are not additional sorting keys.
+The trailing missing sequence is determined separately for each person,
+booklet, and testlet, including positions within a partly answered unit.
+Existing valid, invalid, and technical-error results retain their previous
+treatment; derived results are not reclassified from their source variables.
+A valid derived result contributes to the reached boundary and can therefore
+turn preceding not-reached sources into omissions unless
+<code>preserve_not_reached = TRUE</code>. Derived missing codes still
+follow the usual missing rules; no derivation is recalculated.
+Newly completed rows retain <code>NA</code> in <code>code_status</code>.
+The two missing options are independent: preserving NR does not turn inner
+omissions into NR. With both options <code>TRUE</code>, existing and newly inferred NR
+remain NR, and trailing omissions additionally become NR. Missing schemes
+still assign the corresponding codes and scores.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p>Online guides: <a href="https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html">Standard workflow</a>
+and <a href="https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.html">Missing scenarios</a>.
+The online documentation may differ from the installed package version.</p></div>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

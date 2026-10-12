@@ -1,10 +1,14 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-Dieser Workflow führt von Testcenter-Antworten zu kodierten Daten,
-psychometrischen Kennwerten und einem Personen-×-Items-Datensatz. Das
-Beispiel umfasst einen Testzeitpunkt und einen Kompetenzbereich (Lesen)
-mit Autocode-Kodierschemata. Für Daten ohne solche Schemata, etwa aus
-StarS, siehe den Hinweis in Abschnitt 2.
+**Paketstand: eatPrepTBA 0.9.8.9037.**
+
+Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
+**einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
+(Item)**. Dazu werden die Antworten kodiert, Missings eingeordnet und
+psychometrische Kennwerte berechnet. Das Beispiel umfasst einen
+Testzeitpunkt und einen Bereich (Lesen) mit Autocode-Kodierschemata. Für
+Daten ohne solche Schemata, etwa aus StarS, siehe den Hinweis in
+Abschnitt 2.
 
 | Quelle | Benötigte Daten |
 |:---|:---|
@@ -24,9 +28,10 @@ library(tidyr)
 
 ## 1. Studio: Units und Kodierschemata laden
 
-Die Units müssen zur eingesetzten Testversion passen. `metadata = TRUE`
-liefert die Item-Verknüpfungen, `unit_definition = TRUE` die
-Seiteninformationen.
+Eine **Unit** ist eine Aufgabeneinheit mit einer oder mehreren
+Variablen. Die Units müssen zur eingesetzten Testversion passen.
+`metadata = TRUE` liefert die Item-Verknüpfungen,
+`unit_definition = TRUE` die Seiteninformationen.
 
 Ein **Kodierschema** legt für jede Variable fest, welche Antwort welchen
 Code und wie viele Punkte erhält, etwa „richtige Auswahl → Code 1 → 1
@@ -61,7 +66,7 @@ units <- add_coding_scheme(units)
 **Auch beim CSV-Import wird hier Testcenter-Zugriff benötigt:**
 [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
 lädt das vollständige Testdesign. Erst damit lassen sich später fehlende
-Antworten als Not reached oder Auslassung einordnen.
+Antworten als nicht erreicht (Not reached) oder ausgelassen einordnen.
 [`read_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/read_responses.md)
 allein reicht dafür nicht aus.
 
@@ -106,7 +111,8 @@ die entpackten Daten sind dafür kein direkter Ersatz.
 ### Das vollständige Testdesign laden
 
 [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
-liefert die vorgesehenen Person–Testheft–Variablen-Zuordnungen.
+liefert für jede Person die Variablen, die in ihrem Testheft vorgesehen
+waren.
 
 Im gewählten **Testcenter-Workspace** müssen dafür die Materialien der
 Erhebung liegen:
@@ -116,9 +122,11 @@ Erhebung liegen:
 - **Die zugehörigen Testheft-XML-Dateien** (Booklets): referenzierte
   Units und ihre Reihenfolge innerhalb der Testlets.
 
-Die Dateien müssen dem Stand der Durchführung entsprechen. Die Variablen
-und Kodierschemata kommen hier aus dem zuvor aus Studio geladenen Objekt
-`units`.
+Die Dateien müssen dem Stand der Durchführung entsprechen. Die
+Variablenliste wird aus den Kodierschemata im zuvor aus Studio geladenen
+Objekt `units` ergänzt. Seiten und Abschnitte kommen aus der
+Unitdefinition; die Beziehungen zwischen Ableitungen und ihren Quellen
+stehen im Kodierschema.
 
 ``` r
 
@@ -132,14 +140,12 @@ Erhebung abdecken.
 ## 3. Automatisch kodieren und Ergebnis prüfen
 
 [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
-nutzt das R-Paket
-[eatAutoCode](https://github.com/iqb-research/eatAutoCode), das den
-[IQB-Autocoder
-(`@iqb/responses`)](https://github.com/iqb-berlin/responses) einbindet.
-Dieser vergibt anhand des Kodierschemas Codes (`code_id`) und Punkte
-(`code_score`). `prepare = TRUE` ergänzt Metadaten für die weiteren
-Schritte. **Die abschließende Missing-Zuweisung folgt erst in Abschnitt
-5.**
+vergibt anhand des Kodierschemas Codes (`code_id`) und Punkte
+(`code_score`). Dafür nutzt es
+[eatAutoCode](https://github.com/iqb-research/eatAutoCode) mit dem
+[IQB-Autocoder](https://github.com/iqb-berlin/responses).
+`prepare = TRUE` bereitet das Ergebnis für die weiteren Schritte auf.
+**Die abschließende Missing-Zuweisung folgt erst in Abschnitt 5.**
 
 ``` r
 
@@ -162,14 +168,14 @@ behalten, ohne dass ein Problem vorliegt. Zu klären sind offene
 Kodierungen und Fehler, die die Itemvariablen oder deren Berechnung
 betreffen.
 
-### Zur Information: die voreingestellte Missing-Zuordnung
+### Die voreingestellte Missing-Zuordnung
 
-**Das Objekt muss nicht selbst angelegt oder übergeben werden.** Die
-folgende Tabelle zeigt nur zur Information die Standardwerte von
-[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md):
-Auslassungen und ungültige Antworten erhalten 0 Punkte, Not reached und
-Kodierfehler `NA`. Die Beispielaufrufe verwenden diese Voreinstellung
-automatisch.
+**Diese Tabelle ist in
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+bereits hinterlegt.** Du musst das Objekt `missings` für die
+Beispielaufrufe nicht anlegen oder übergeben. Auslassungen und ungültige
+Antworten erhalten 0 Punkte, Not reached und Kodierfehler `NA` (keine
+Punktzahl).
 
 ``` r
 
@@ -181,24 +187,19 @@ missings <- tibble::tribble(
   -99,     "DISPLAYED",    0,          "MISSING_BY_OMISSION")
 ```
 
-Nur für eigene Regeln wird `missings` vor Abschnitt 4 angelegt und mit
-`missings = missings` an die Aufrufe in Abschnitt 4 und 5 übergeben.
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+bestimmt die Missing-Art (`code_type`) und setzt dazu Code und Punktzahl
+aus der Tabelle. **`code_status` bleibt unverändert**, auch `NA` bei neu
+ergänzten Zeilen. Die Statuszuordnung benötigt
+[`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+für manuelle Missing-Codes, etwa `-99` → `DISPLAYED`. Die endgültigen
+Missing-Punktzahlen vergibt erst
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+in Abschnitt 5.
 
-Die beiden Funktionen nutzen Missing-Zuordnungen in unterschiedlichen
-Richtungen:
-
-- **`code_responses(..., codes_manual = ...)`:** Ein manuell gelieferter
-  Missing-Code in `code_id` wird in Status und Score übersetzt, z. B.
-  `-99` → `DISPLAYED` und 0 Punkte. Ohne `codes_manual` wird diese
-  Zuordnung hier nicht angewendet. Die abschließenden Missing-Scores
-  weist erst
-  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
-  zu.
-- **`complete_design(...)`:** Die Funktion bestimmt zuerst die
-  Missing-Art und ordnet ihr über `code_type` den Code und Score aus der
-  Tabelle zu,
-  26. B. `MISSING_BY_OMISSION` → `-99` und 0 Punkte. Das gilt auch ohne
-      manuelle Kodierung; fehlende Status werden ergänzt.
+**Eigene Missing-Regeln:** Den Tabellenblock oben anpassen und
+ausführen. Dann `missings = missings` als Argument in Abschnitt 4 (falls
+genutzt) und 5 ergänzen.
 
 ## 4. Optional: manuelle Codes einfügen
 
@@ -227,26 +228,59 @@ Anschließend die Status wie in Abschnitt 3 prüfen.
 
 **Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
 [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
-ergänzt fehlende Einträge aus dem vollständigen Design. Anhand der
-Unit-Reihenfolge innerhalb eines Testlets werden nicht erreichte
-Aufgaben am Ende von Auslassungen vor später bearbeiteten Units
-unterschieden. Bereits als Auslassung kodierte Antworten bleiben
-standardmäßig Auslassungen.
+ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
+Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
+getrennt je Person, Testheft und Testlet (Testabschnitt).
+
+Bereits als Auslassung kodierte Antworten bleiben mit
+**`recode_omissions_to_not_reached = FALSE`** Auslassungen. Setze diese
+Option auf **`TRUE`**, wenn auch abschließende Auslassungen als Not
+reached eingeordnet werden sollen. Bei **Auslassung – Antwort –
+Auslassung** wird dann nur die letzte Auslassung zu Not reached, sofern
+danach im selben Testlet keine weitere Bearbeitung folgt.
+
+**`preserve_not_reached = TRUE`** verhindert umgekehrt, dass Not reached
+vor einer späteren Bearbeitung zur Auslassung wird. Das gilt auch für
+ergänzte Designzeilen, noch fehlende Codes bei Status `NOT_REACHED` oder
+`NA` und NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt
+erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
+`FALSE`.
 
 ``` r
 
-design_coded <- complete_design(coded = coded, units = units, design = design)
+design_coded <- complete_design(coded = coded, units = units, design = design,
+                                recode_omissions_to_not_reached = FALSE,
+                                preserve_not_reached = FALSE)
 
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
 ```
 
-`id_used` kennzeichnet Personen mit mindestens einem gespeicherten
-Kodierstatus. Mit `recode_omissions_to_not_reached = TRUE` können
-zusätzlich abschließende Auslassungen als nicht erreicht eingeordnet
-werden. Aufgaben, die laut Design gar nicht vorgesehen waren, sind
-**Missing by Design**, nicht Not reached; ihre Zellen bleiben beim
-späteren Umformen `NA`.
+`id_used` ist `TRUE`, wenn eine Person mindestens einen gespeicherten
+Kodierstatus hat. Der Filter übernimmt diese Personen in
+`analysis_data`.
+
+Innerhalb einer Unit gilt **Seite → Abschnitt → natürlicher
+Variablenname** (z. B. `V2` vor `V10`). Ableitungen mit eindeutig
+zugeordneten Quellen folgen direkt ihrer letzten Quelle, auch bei
+mehrstufigen Ableitungen. `variable_position` zeigt diese Reihenfolge
+als Zahl ab 1. Ein Teildesign kann Positionslücken enthalten; ohne
+passende Variablenmetadaten steht hier `NA`.
+
+**Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges
+Ergebnis zählt aber als Bearbeitung: Mit `preserve_not_reached = FALSE`
+wird eine davor liegende Not-reached-Quelle zur Auslassung mit 0
+Punkten; mit `TRUE` bleibt sie Not reached. `code_status` bleibt dabei
+unverändert; Missing-Art und Punktzahl stehen in `code_type` und
+`code_score`.
+
+Die [Missing-Szenarien im
+Versionsvergleich](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.md)
+zeigen die Entscheidungen an konkreten Beispielen, einschließlich der
+Sortierregeln bei fehlenden Angaben oder nicht zuordenbaren Quellen.
+
+Aufgaben, die laut Design gar nicht vorgesehen waren, sind **Missing by
+Design**; ihre Zellen bleiben beim späteren Umformen `NA`.
 
 ## 6. Psychometrische Kennwerte berechnen
 
@@ -269,10 +303,11 @@ psychometrics |>
   distinct()
 ```
 
-`code_n` zählt einen Code, `code_p_valid` ist sein Anteil unter
-Antworten mit Score ungleich `NA` (einschließlich als 0 gewerteter
-Missings). `code_pbc` ist die Korrelation seines Auftretens mit dem
-mittleren Itemscore des Bereichs (nicht part-whole-korrigiert).
+`code_n` zählt, wie oft ein Code vorkommt. `code_p_valid` ist sein
+Anteil unter Antworten mit Punktzahl ungleich `NA` (einschließlich als 0
+gewerteter Missings). `code_pbc` ist die Korrelation seines Auftretens
+mit dem mittleren Itemscore des Bereichs. Der eigene Itemscore fließt in
+dieses Mittel mit ein.
 
 ## 7. Personen × Items für eatModel
 
@@ -327,6 +362,11 @@ bleiben erhalten.
 Itemnamen und genau ein Score je Person und Item. Fehlende Werte bleiben
 `NA`, sie werden nicht mit 0 aufgefüllt. `analysis_data` aufbewahren:
 Darin bleiben die Missing-Arten unterscheidbar.
+
+**Für Referenzstudien:** Diesen Workflow und den
+[Szenarienvergleich](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.md)
+als HTML zusammen mit der verwendeten Paketversion zur Auswertung
+ablegen. Die Online-Dokumentation wird weiterentwickelt.
 
 Die weiteren Schritte zur Skalierung beschreibt die
 [eatModel-Dokumentation](https://weirichs.github.io/eatModel/).

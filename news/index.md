@@ -1,5 +1,57 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9037 \[2026-10-11\]
+
+### new features
+
+- Added `preserve_not_reached = FALSE` to
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md).
+  Setting it to `TRUE` prevents NR from becoming omissions, including
+  supplied NR, NR inferred from missing statuses or completed design
+  rows, and earlier omission-to-NR results. The existing option for
+  trailing omissions remains independent; `code_status` is preserved.
+  The scenario vignette compares all four combinations.
+
+### bug fixes
+
+- Fixed
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+  classifying missings before a later response within the same unit as
+  not reached. Variables are ordered by numeric page, numeric section,
+  and natural variable name; missing sections follow known sections and
+  missing pages follow known pages. Derived variables with resolvable
+  sources follow their last source, including chained derivations.
+  Unresolvable source links use the variable’s own position. The order
+  is prepared once per unit; completion and the optional
+  `recode_omissions_to_not_reached` argument retain their existing
+  scope.
+- [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+  now preserves `code_status` exactly, including `NA` for newly
+  completed rows. Missing schemes continue to assign analytical codes
+  and scores.
+- [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+  returns `variable_position`, the integer position within each unit
+  used for sorting and missing classification, including derivations.
+  Positions are calculated from the unit metadata; subsets can have gaps
+  and variables absent from the metadata receive `NA`.
+
+### tests
+
+- Added focused regressions for within-unit boundaries, section and
+  natural ordering, source references and chained derivations, fallback
+  positions, shuffled inputs, separate people/testlets/unit occurrences,
+  custom missing schemes, and preserved derived results and technical
+  statuses.
+
+### documentation
+
+- Explained the fixed ordering and optional trailing-omission recoding
+  in the standard workflow, with the four-row default missing scheme
+  directly visible. The three-version comparison retains the 15 PR80
+  scenarios and adds examples for sections, derivations, and missing
+  source links. It documents that a retained derived result contributes
+  to the NR boundary without being recalculated.
+
 ## eatPrepTBA 0.9.8.9036 \[2026-09-24\]
 
 ### bug fixes
