@@ -26,7 +26,7 @@ Kristoph Schumann, and Jakob Schaefer.
 ## Installation
 
 You can install the development version of eatPrepTBA from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/iqb-research/eatPrepTBA) with:
 
 ``` r
 install.packages("pak") # once
