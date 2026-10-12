@@ -183,7 +183,10 @@ result_cell <- function(output, input, labels) {
     values <- escape(values)
     values[changed] <- paste0("<strong>", values[changed], "</strong>")
     values <- paste0('<span class="missing-field">', values, '</span>')
-    paste0('<div class="missing-result"><span class="missing-mode">', labels[[j]],
+    mode_class <- if (labels[[j]] == "O → NR: TRUE · NR behalten: TRUE") {
+      "missing-mode missing-reference-mode"
+    } else "missing-mode"
+    paste0('<div class="missing-result"><span class="', mode_class, '">', labels[[j]],
       ':</span> <span class="missing-values">', paste(values, collapse = " /<wbr> "),
       '</span></div>')
   }, character(1)), collapse = "")
@@ -242,6 +245,7 @@ body { max-width: 1100px; }
 .missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: normal; color: #475569; }
 .missing-result + .missing-result { margin-top: 0.6em; }
 .missing-mode { display: block; font-size: 0.88em; color: #475569; }
+.missing-reference-mode { color: #166534; font-weight: 700; }
 .missing-position { display: block; margin-bottom: 0.45em; font-size: 0.88em; color: #475569; }
 .missing-values { font-family: Consolas, monospace; font-size: 0.92em; }
 .missing-field { display: inline-block; max-width: 100%; }
@@ -271,6 +275,8 @@ Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
   Ableitungen. Vorhandene gültige Ergebnisse bleiben erhalten.
 
 Beide Optionen sind unabhängig; **FALSE / FALSE** ist der Standard.
+**Fett und grün** markiert ist **TRUE / TRUE**, der vorgesehene Standard der
+Referenzstudien. Die Funktionsdefaults bleiben **FALSE / FALSE**.
 9001 zeigt nur ihren damaligen Standard, 9036 beide Werte für **O → NR**.
 Die neue Version zeigt alle vier Kombinationen mit ausdrücklich benannten Werten.
 Der Schutz betrifft auch NR, das zuvor aus einer Auslassung entstanden ist:
