@@ -176,7 +176,7 @@ fields <- function(row) {
     if (is.na(row$code_type)) "NA" else row$code_type,
     number(row$code_score))
 }
-result_cell <- function(output, input, labels) {
+result_cell <- function(output, input, labels, version) {
   paste(vapply(seq_along(output), function(j) {
     values <- fields(output[[j]])
     changed <- values != fields(input)
@@ -186,7 +186,17 @@ result_cell <- function(output, input, labels) {
     mode_class <- if (labels[[j]] == "O → NR: TRUE · NR behalten: TRUE") {
       "missing-mode missing-reference-mode"
     } else "missing-mode"
-    paste0('<div class="missing-result"><span class="', mode_class, '">', labels[[j]],
+    issue <- if (version == "9036" && input$unit_key == "U1") {
+      if (input$case_id == 1L && input$variable_id == "V02" && j == 2L) {
+        "Fehlverhalten: Eine Auslassung vor einer späteren Antwort wird zu NR."
+      } else if (input$case_id == 2L && input$variable_id == "V01") {
+        "Inkonsistent zu Fall 3: NR bleibt innerhalb einer Unit erhalten, über Unitgrenzen hinweg nicht."
+      } else ""
+    } else ""
+    result_class <- if (nzchar(issue)) "missing-result missing-issue" else "missing-result"
+    paste0('<div class="', result_class, '"',
+      if (nzchar(issue)) paste0(' title="', escape(issue), '"') else "",
+      '><span class="', mode_class, '">', labels[[j]],
       ':</span> <span class="missing-values">', paste(values, collapse = " /<wbr> "),
       '</span></div>')
   }, character(1)), collapse = "")
@@ -209,10 +219,11 @@ print_comparison <- function(rows, output) {
     input <- rows[i, ]
     label <- paste0("T", input$testlet_no, " · ", input$unit_key, "/", input$variable_id)
     incoming <- if (!input$response_present) "Keine Antwortzeile" else paste0(
-      "value: ", if (is.na(input$value)) "NA" else paste0('"', input$value, '"'),
-      " · Eingang: ", paste(fields(input), collapse = " / "))
+      "value: ", escape(if (is.na(input$value)) "NA" else paste0('"', input$value, '"')),
+      ' · Eingang: <strong class="missing-input-values">',
+      escape(paste(fields(input), collapse = " / ")), '</strong>')
     cat('<tr class="missing-input"><th colspan="3">', escape(label),
-        '<span>', escape(incoming), '</span></th></tr>\n<tr>', sep = "")
+        '<span class="missing-input-details">', incoming, '</span></th></tr>\n<tr>', sep = "")
     for (version in names(output)) {
       cells <- lapply(output[[version]], function(x) x[i, ])
       labels <- switch(version, `9001` = "Standard",
@@ -226,7 +237,7 @@ print_comparison <- function(rows, output) {
         cat('<span class="missing-position">variable_position: ',
             number(cells[[1L]]$variable_position), '</span>', sep = "")
       }
-      cat(result_cell(cells, input, labels), '</td>', sep = "")
+      cat(result_cell(cells, input, labels, version), '</td>', sep = "")
     }
     cat('</tr>\n')
   }
@@ -242,7 +253,8 @@ body { max-width: 1100px; }
 .missing-comparison td { border-bottom: 1px solid #dce3e9; font-variant-numeric: tabular-nums; }
 .missing-comparison td + td { border-left: 1px solid #e2e8ee; }
 .missing-comparison .missing-input th { background: #f5f7f9; text-align: left; }
-.missing-input span { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: 700; color: #475569; background: #fef9c3; }
+.missing-input-details { display: block; margin-top: 0.2em; font-size: 0.87em; font-weight: normal; color: #475569; }
+.missing-input-values { background: #fef9c3; font-weight: 700; }
 .missing-result + .missing-result { margin-top: 0.6em; }
 .missing-mode { display: block; font-size: 0.88em; color: #475569; }
 .missing-reference-mode { color: #166534; background: #dcfce7; font-weight: 700; }
@@ -250,11 +262,13 @@ body { max-width: 1100px; }
 .missing-values { font-family: Consolas, monospace; font-size: 0.92em; }
 .missing-field { display: inline-block; max-width: 100%; }
 .missing-result strong { color: #0645a5; background: #e6efff; font-weight: 750; }
+.missing-issue { background: #fff1f2; }
+.missing-result.missing-issue strong { background: transparent; }
 .missing-comparison caption { text-align: left; font-weight: bold; margin-bottom: 0.4em; }
 </style>
 
 **`r length(cases)` Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
-Gelb und fett markiert sind die Eingangswerte; darunter stehen die Ergebnisse
+Gelb und fett markiert sind die vier Eingangswerte; darunter stehen die Ergebnisse
 der drei Versionen.
 
 ## So liest du den Vergleich
@@ -265,6 +279,8 @@ Eingabe und Ergebnisse haben dieselbe Reihenfolge:
 
 Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
 „gegenüber der Eingabe geändert“. `NA` bedeutet „Wert fehlt“.
+**Hellrot** markiert das Fehlverhalten bzw. die Inkonsistenz der 9036 in Fall 1
+und 2. Beim Überfahren der Markierung mit der Maus erscheint eine Erklärung.
 
 - **O → NR** steht für `recode_omissions_to_not_reached`: Mit **FALSE** bleiben
   Auslassungen Auslassungen. Mit **TRUE** werden abschließende Auslassungen
@@ -358,7 +374,7 @@ titles <- c(
 )
 notes <- c(
   "U1/V02 liegt vor einer späteren Antwort und bleibt neu auch mit O → NR: TRUE eine Auslassung. Die 9036 wertet U1/V02 damit fälschlich als nicht erreicht. Von den beiden Auslassungen liegt nur U1/V04 hinter der letzten Antwort. NR behalten ändert hier nichts.",
-  "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung, solange NR behalten: FALSE gilt. Mit NR behalten: TRUE bleibt V01 nicht erreicht, ebenso wie in den älteren Versionen. V03 bleibt überall nicht erreicht.",
+  "Neu wird V01 wegen der späteren Antwort auf V02 zur Auslassung, solange NR behalten: FALSE gilt. Mit NR behalten: TRUE bleibt V01 nicht erreicht, ebenso wie in den älteren Versionen. Die 9036 behandelt NR damit innerhalb einer Unit anders als über Unitgrenzen hinweg (Fall 3). V03 bleibt überall nicht erreicht.",
   "Die Antwort auf U2/V01 liegt in einer späteren Unit desselben Testlets. Deshalb wird U1/V03 zur Auslassung. Nur neu mit NR behalten: TRUE bleibt U1/V03 nicht erreicht.",
   "Mit O → NR: FALSE wird U1/V02 wegen der späteren Auslassungen selbst zur Auslassung. Neu verhindert NR behalten: TRUE dies. Mit O → NR: TRUE werden alle Auslassungen als nicht erreicht gewertet; U1/V02 bleibt dann ebenfalls nicht erreicht.",
   "O → NR: FALSE lässt alle Auslassungen bei 0 Punkten. O → NR: TRUE macht alle zu nicht erreicht – auch ohne eine einzige beantwortete Variable. NR behalten ändert hier nichts.",
