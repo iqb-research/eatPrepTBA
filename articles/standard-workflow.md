@@ -1,6 +1,6 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-**Paketstand: eatPrepTBA 0.9.8.9037.**
+**Paketstand: eatPrepTBA 0.9.8.9038.**
 
 Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 **einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
@@ -281,6 +281,37 @@ Sortierregeln bei fehlenden Angaben oder nicht zuordenbaren Quellen.
 
 Aufgaben, die laut Design gar nicht vorgesehen waren, sind **Missing by
 Design**; ihre Zellen bleiben beim späteren Umformen `NA`.
+
+### Missing-Anzahlen und -Anteile je Person
+
+[`summarise_missings()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_missings.md)
+zählt die Missingtypen auf **Itemebene**. Vorher ergänzt
+[`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md)
+die Zuordnung aus den Studio-Metadaten; Variablen ohne Item-ID werden
+nicht mitgezählt.
+
+``` r
+
+design_items <- add_item_id(design_coded, units)
+missing_summary <- summarise_missings(design_items)
+
+# Optional: nur Personen mit id_used = TRUE
+missing_summary_used <- summarise_missings(design_items, used_only = TRUE)
+```
+
+Standardmäßig bleibt jede Person aus `design_items` erhalten. `n_items`
+ist die Zahl ihrer vorgesehenen Items. `n_not_reached` zählt davon Not
+reached; `prop_not_reached` ist der Anteil zwischen 0 und 1, z. B.
+`0.15` für 15 %. Die anderen Missingtypen erhalten ebenfalls Anzahl und
+Anteil. `n_missing` und `prop_missing` fassen alle Antwort-Missingtypen
+zusammen, einschließlich Auslassungen und ungültiger Antworten mit 0
+Punkten. Noch ungeklärte Kodierungen werden separat ausgewiesen.
+
+Gezählt wird `code_type`, nicht der unveränderte Softwarestatus
+`code_status`. Jedes Item (`unit_key` und `item_id`) darf je Person nur
+einmal vorkommen; Doppelzählungen führen zu einem Fehler. Ohne
+vorgesehene Items sind die Anzahlen 0 und die Anteile `NA`. Bei einer
+anderen Personenkennung nutze beispielsweise `identifiers = "IDSTUD"`.
 
 ## 6. Psychometrische Kennwerte berechnen
 

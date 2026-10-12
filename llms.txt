@@ -219,6 +219,8 @@ Functions to check units, prepare material for administration and coding
   **\[experimental\]** : Prepare unpacked response codes
 - [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
   : Complete design with coded responses
+- [`summarise_missings()`](https://iqb-research.github.io/eatPrepTBA/reference/summarise_missings.md)
+  : Summarise item-level missings per person
 - [`estimate_unit_times()`](https://iqb-research.github.io/eatPrepTBA/reference/estimate_unit_times.md)
   **\[experimental\]** : Estimates loading and stay times for units,
   unit plays and pages from log data
