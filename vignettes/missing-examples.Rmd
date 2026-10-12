@@ -268,54 +268,53 @@ body { max-width: 1100px; }
 </style>
 
 **`r length(cases)` Beispiele, drei Versionen:** 9001, 9036 und neu `r new_version`.
-Gelb und fett markiert sind die vier Eingangswerte; darunter stehen die Ergebnisse
-der drei Versionen.
 
 ## So liest du den Vergleich
 
-Eingabe und Ergebnisse haben dieselbe Reihenfolge:
+Oben stehen die **Eingangswerte in Gelb**, darunter die Ergebnisse der drei
+Versionen. Jede Angabe hat dieselben vier Teile:
 
 **`code_status` / `code_id` / `code_type` / `code_score`**
 
-Das sind Status, Code, Ergebnistyp und Punkte. **Blau und fett** bedeutet
-„gegenüber der Eingabe geändert“. `NA` bedeutet „Wert fehlt“.
-**Hellrot** markiert das Fehlverhalten bzw. die Inkonsistenz der 9036 in Fall 1
-und 2. Beim Überfahren der Markierung mit der Maus erscheint eine Erklärung.
+Das sind Status, Code, Ergebnistyp und Punkte. `NA` heißt „Wert fehlt“.
+**Blau und fett** zeigt Änderungen gegenüber der Eingabe. **Hellrot** markiert
+die Probleme der 9036 in Fall 1 und 2; die Maus darüber zeigt eine Erklärung.
+In der neuen Version bleibt `code_status` unverändert.
 
-- **O → NR** steht für `recode_omissions_to_not_reached`: Mit **FALSE** bleiben
-  Auslassungen Auslassungen. Mit **TRUE** werden abschließende Auslassungen
-  zusätzlich als nicht erreicht (`MISSING_NOT_REACHED`, kurz NR) gewertet.
-- **NR behalten** steht für `preserve_not_reached`: Mit **FALSE** kann NR vor
-  einer späteren Bearbeitung zur Auslassung werden. Mit **TRUE** bleibt NR
-  erhalten, unabhängig von seiner Herkunft. Das gilt auch bei noch fehlendem
-  Code mit Status `NOT_REACHED` oder `NA`, bei ergänzten Designzeilen und bei
-  Ableitungen. Vorhandene gültige Ergebnisse bleiben erhalten.
+**O** bedeutet Auslassung, **NR** bedeutet nicht erreicht. Zwei Schalter
+steuern die neue Version (`TRUE` = an, `FALSE` = aus):
 
-Beide Optionen sind unabhängig; **FALSE / FALSE** ist der Standard.
-**Fett und grün** markiert ist **TRUE / TRUE**, der vorgesehene Standard der
-Referenzstudien. Die Funktionsdefaults bleiben **FALSE / FALSE**.
-9001 zeigt nur ihren damaligen Standard, 9036 beide Werte für **O → NR**.
-Die neue Version zeigt alle vier Kombinationen mit ausdrücklich benannten Werten.
-Der Schutz betrifft auch NR, das zuvor aus einer Auslassung entstanden ist:
-Entscheidend ist die Missing-Art, nicht allein `code_status`.
+- **O → NR** (`recode_omissions_to_not_reached`): Mit **TRUE** werden
+  Auslassungen am Ende eines Testlets zusätzlich zu NR. Mit **FALSE** bleiben sie O.
+- **NR behalten** (`preserve_not_reached`): Mit **TRUE** bleibt NR immer NR,
+  auch vor einer späteren Antwort. Mit **FALSE** kann es dort zu O werden.
+  Der Schutz gilt auch für ergänzte Zeilen, NR aus fehlenden Statusangaben,
+  Ableitungen und früher aus O erzeugtes NR. Gültige Ergebnisse bleiben erhalten.
+
+**Grün und fett** ist **TRUE / TRUE**, die Einstellung für die Referenzstudien.
+Die Funktion selbst startet weiterhin mit **FALSE / FALSE**.
+9001 zeigt ein Ergebnis, 9036 zwei Einstellungen und die neue Version alle vier Kombinationen.
 
 `T1 · U2/V01` bedeutet: Testlet 1, Unit 2, Variable V01.
-Die Variablennummerierung beginnt in jeder Unit neu. Die Zusatzfälle verwenden
-auch Namen wie `01a`, `01b` und `01` für Quellen und ihre Ableitung.
-„Keine Antwortzeile“ bedeutet: im Design vorgesehen, aber im Eingang nicht vorhanden.
+**`variable_position`** zeigt die Reihenfolge innerhalb der Unit ab 1,
+einschließlich Ableitungen; sie ist bei allen Einstellungen gleich.
+Teildesigns können Lücken haben, ohne passende Metadaten steht `NA`.
+„Keine Antwortzeile“ heißt: im Design vorgesehen, aber im Eingang nicht vorhanden.
 
-Die neue Ausgabe enthält zusätzlich **`variable_position`**: die ganzzahlige
-Position innerhalb der Unit, beginnend bei 1, einschließlich Ableitungen.
-Sie wird aus den Unit-Metadaten berechnet und ist für alle Kombinationen gleich.
-Bei einem Teildesign bleiben Lücken erhalten; ohne passende Variablenmetadaten
-ist die Position `NA`. Die Zahl steht in der neuen Versionsspalte separat über
-den Kodierergebnissen.
+> **Kodierbox im Testlet-Modus: Vorsicht bei der NR-Grenze.**
+> Der geprüfte Item-Matrix-Export folgt der Unit-Reihenfolge im Testheft und
+> der Itemliste. Seiten und Abschnitte der einzelnen Variablen werden dabei
+> nicht berücksichtigt. Das kann von ihrer Bearbeitungsreihenfolge abweichen
+> und die Grenze zwischen Auslassung und NR verschieben.
+> Quellen: [Sortierung](https://github.com/iqb-berlin/coding-box/blob/39468e5a28a24dc9ec860aee46daf8d4ed5c8682/apps/backend/src/app/database/services/coding/item-dataset-cell-resolver.ts#L505-L523)
+> und [Itemliste](https://github.com/iqb-berlin/coding-box/blob/39468e5a28a24dc9ec860aee46daf8d4ed5c8682/apps/backend/src/app/database/services/coding/item-dataset-metadata.service.ts#L116-L158),
+> Quellstand vom 26.09.2026, geprüft am 12.10.2026.
 
 ## Welche Sortierregeln gelten?
 
-Alle drei Fassungen prüfen die Units je Person, Booklet und Testlet **vom Ende
-her** (`unit_booklet_no` absteigend). Die ausgegebenen Daten stehen anschließend
-in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
+Alle drei Fassungen prüfen die Units je Person, Testheft und Testlet **vom Ende
+her** (`unit_booklet_no` absteigend). Die Ausgabe läuft wieder von vorne nach
+hinten. Innerhalb einer Unit gilt:
 
 | Version | Reihenfolge für die Missing-Einstufung | Sortierung der ausgegebenen Zeilen |
 |:--|:--|:--|
@@ -323,33 +322,24 @@ in aufsteigender Unit-Reihenfolge. Innerhalb einer Unit gilt:
 | **9036** | Wie 9001, auch mit `TRUE`. | Wie 9001. |
 | **Neu `r sub("^0\\.9\\.8\\.", "", new_version)`** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
 
-- **9001/9036:** Die Ausgabesortierung nutzt die vorhandenen Spalten und deren
-  Datentyp; `NA` folgt jeweils zuletzt. Bei Gleichstand bleibt die Reihenfolge
-  nach dem Zusammenführen der Daten erhalten, normalerweise die Designreihenfolge.
-- **Neu:** Auf derselben Seite kommen bekannte Abschnitte vor fehlenden
-  Abschnitten. Innerhalb eines Abschnitts entscheidet der natürliche Name
-  (`V2` vor `V10`). Fehlt die Seite, steht die Variable hinter bekannten Seiten;
-  untereinander entscheiden dann nur die Namen.
-- **Ableitungen:** Sind alle Quellen eindeutig zugeordnet, folgt die Ableitung
-  direkt auf ihre letzte Quelle. Das gilt auch für mehrstufige Ableitungen.
-  Gleichzeitig mögliche Ableitungen folgen der natürlichen Namensreihenfolge;
-  dadurch neu verfügbare Ableitungen werden sofort eingefügt. Bei fehlenden, mehrdeutigen oder
-  zyklischen Quellen gilt stattdessen die eigene Seite, der Abschnitt und der
-  Name. Eine Quellenbeziehung wird nicht aus ähnlichen Namen geraten.
-- **Alle drei:** Die Itemliste (`items_list$item_no`) bestimmt die Reihenfolge
-  nicht. Deshalb folgt die neue Fassung in [Fall 14](#beispiel-14) der Seitenfolge.
+- **9001/9036:** Vorhandene Datentypen bestimmen die Sortierung; `NA` kommt
+  zuletzt. Bei Gleichstand bleibt die Reihenfolge nach dem Zusammenführen erhalten.
+- **Neu:** Natürliche Namen bedeuten etwa `V2` vor `V10`. Fehlende Abschnitte
+  folgen bekannten Abschnitten derselben Seite. Variablen ohne Seite kommen
+  zuletzt, untereinander nach Namen.
+- **Ableitungen:** Die Quellen bestimmen die Position, auch bei mehrstufigen
+  Ableitungen. Gleichzeitig mögliche Ableitungen folgen ihren Namen; dadurch
+  neu mögliche Ableitungen werden sofort eingefügt. Bei fehlenden, mehrdeutigen
+  oder zyklischen Quellen gelten eigene Seite, Abschnitt und Name.
+- **Alle drei:** Die Itemliste (`items_list$item_no`) ist kein Sortierkriterium
+  (siehe [Fall 14](#beispiel-14)).
 
-Für den direkten Vergleich zeigen die Tabellen unten alle Ergebnisse in derselben
-Beispielreihenfolge. Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich
-über den Ergebnissen; sie ist bei allen Kombinationen gleich.
+Die Tabellen behalten zum Vergleichen dieselbe Beispielreihenfolge bei.
+Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich darüber.
 
-**Ableitungen und NR:** Ein vorhandenes gültiges Ableitungsergebnis zählt bei
-der Bestimmung der NR-Grenze als Bearbeitung. Wenn eine gültige Ableitung `01`
-hinter ihrer noch als NR kodierten Quelle `01b` eingeordnet ist, wird `01b`
-mit **NR behalten: FALSE** deshalb zur Auslassung mit 0 Punkten.
-Mit **NR behalten: TRUE** bleibt die Quelle NR.
-`complete_design()` berechnet die Ableitung nicht neu; vorhandene NR- und
-Auslassungscodes unterliegen weiterhin den Missing-Regeln.
+**Ableitungen werden nicht neu berechnet.** Ein gültiges Ableitungsergebnis zählt
+als Bearbeitung: Davor liegende NR-Quellen werden mit **NR behalten: FALSE** zu
+Auslassungen mit 0 Punkten. Mit **TRUE** bleiben sie NR.
 
 ```{r case-comparisons, results='asis'}
 titles <- c(
@@ -404,17 +394,5 @@ for (i in seq_along(titles)) {
   cat(notes[[i]], "\n\n")
 }
 ```
-
-## Zur Berechnung
-
-Alle 15 Fälle aus PR80 bleiben enthalten (`r sum(inputs$case_id <= 15L)` Beispielzeilen).
-Fall 14 wurde um fünf gleichartige nachfolgende NR-Zeilen gekürzt;
-der Unterschied zwischen Seitenfolge und Itemliste bleibt sichtbar.
-Drei Zusatzfälle zeigen Abschnitts- und Quellenreihenfolge.
-Insgesamt werden `r nrow(inputs)` Zeilen
-mit denselben vorbereiteten Daten ausgeführt: eine Person, ein Booklet.
-Verwendet werden die historischen
-Funktionen aus `29cca37` (9001, wie in PR80) und `fc7debb` (9036) sowie die
-Funktion des geladenen Pakets (`r new_version`).
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).

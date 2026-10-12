@@ -73,3 +73,8 @@ omissions into NR. With both options \code{TRUE}, existing and newly inferred NR
 remain NR, and trailing omissions additionally become NR. Missing schemes
 still assign the corresponding codes and scores.
 }
+\seealso{
+Online guides: \href{https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html}{Standard workflow}
+and \href{https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.html}{Missing scenarios}.
+The online documentation may differ from the installed package version.
+}

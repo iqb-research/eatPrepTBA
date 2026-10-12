@@ -48,6 +48,10 @@
 #' derived variables. It is calculated from the unit metadata, replacing any
 #' input column of the same name. Positions can have gaps when `design` contains
 #' only part of a unit; variables absent from the unit metadata receive `NA`.
+#'
+#' @seealso Online guides: [Standard workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html)
+#' and [Missing scenarios](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.html).
+#' The online documentation may differ from the installed package version.
 #' @export
 complete_design <- function(coded,
                             units,
