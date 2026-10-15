@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9038</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,19 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9039" id="eatpreptba-0989039-2026-10-15">eatPrepTBA 0.9.8.9039 [2026-10-15]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989039-2026-10-15"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9039">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9039"></a></h3>
+<ul><li>
+<code><a href="../reference/complete_design.html">complete_design()</a></code> now determines the not-reached boundary from explicitly mapped item variables and their direct and indirect sources. Unrelated variables cannot establish later work merely because they have a regular code or score. <code>NO_CODING</code> never establishes the boundary, including for items and sources. Missing assignment still applies to all design rows; values, technical statuses, ordering, and <code>id_used</code> retain their existing treatment.</li>
+<li>Item entries without a complete item-variable link are ignored without warning. A list with nonblank item or variable identifiers but no complete links contributes no boundary evidence. Missing or empty metadata, all-blank placeholders, conflicting complete links, and unresolved required sources trigger an aggregated warning and a unit-wide fallback to all variables except <code>NO_CODING</code>. Unrelated design variables absent from coding metadata do not trigger this fallback. The function signature and the defaults of the two missing options are unchanged.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-9-8-9039">documentation<a class="anchor" aria-label="anchor" href="#documentation-0-9-8-9039"></a></h3>
+<ul><li>Explained the item and source boundary, the treatment of intentionally unlinked entries, the fallback for uncertain metadata, and the continued missing assignment to non-item variables. Added small computed examples distinguishing an unrelated scored variable, an item source, <code>NO_CODING</code>, missing item metadata, and unlinked entries.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9038" id="eatpreptba-0989038-2026-10-12">eatPrepTBA 0.9.8.9038 [2026-10-12]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989038-2026-10-12"></a></h2>
 <div class="section level3">

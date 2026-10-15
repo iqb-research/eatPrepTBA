@@ -1,6 +1,6 @@
 # Missing-Szenarien: 9001, 9036 und neue Version
 
-**18 Beispiele, drei Versionen:** 9001, 9036 und neu 0.9.8.9038.
+**18 Beispiele, drei Versionen:** 9001, 9036 und neu 0.9.8.9039.
 
 ## Hinweise zum Vergleich
 
@@ -15,6 +15,13 @@ für einen fehlenden Wert. **Blau und fett** kennzeichnet Änderungen
 gegenüber der Eingabe. **Hellrot** markiert die Probleme der 9036 in
 Fall 1 und 2; beim Überfahren mit dem Mauszeiger erscheint eine
 Erläuterung. In der neuen Version bleibt `code_status` unverändert.
+
+Für die MNR-Grenze zählen neu nur Items und die Variablen, aus denen sie
+berechnet werden. `NO_CODING` zählt nie. Missings werden weiterhin für
+alle Zeilen vergeben. Die Versionsbeispiele enthalten Items und ihre
+Quellen. So sind `01a` und `01b` Quellen für das Item `01`, keine
+eigenen Items. [Am Ende](#itemgrenze) stehen Beispiele mit unabhängigen
+Hilfsvariablen.
 
 **O** steht für Auslassung, **NR** für nicht erreicht. Die neue Version
 bietet zwei unabhängige Optionen (`TRUE` = aktiviert, `FALSE` =
@@ -63,7 +70,7 @@ wieder von vorne nach hinten. Innerhalb einer Unit gilt:
 |:---|:---|:---|
 | **9001** | Die Unit wird als Ganzes betrachtet; die Position einer Variablen innerhalb der Unit hat keinen Einfluss. | `variable_page` → `variable_section` → `variable_level`, jeweils aufsteigend. |
 | **9036** | Wie 9001, auch mit `TRUE`. | Wie 9001. |
-| **Neu 9038** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
+| **Neu 9039** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
 
 - **9001/9036:** Vorhandene Datentypen bestimmen die Sortierung; `NA`
   kommt zuletzt. Bei Gleichstand bleibt die Reihenfolge nach dem
@@ -83,9 +90,10 @@ Die Tabellen behalten zum Vergleichen dieselbe Beispielreihenfolge bei.
 Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich darüber.
 
 **Ableitungen werden nicht neu berechnet.** Ein gültiges
-Ableitungsergebnis zählt als Bearbeitung: Davor liegende NR-Quellen
-werden mit **NR behalten: FALSE** zu Auslassungen mit 0 Punkten. Mit
-**TRUE** bleiben sie NR.
+Ableitungsergebnis zählt als Bearbeitung, wenn es zu einem Item oder
+dessen Quellen gehört (oder die Ersatzregel für die Unit gilt). Davor
+liegende NR-Quellen werden mit **NR behalten: FALSE** zu Auslassungen
+mit 0 Punkten. Mit **TRUE** bleiben sie NR.
 
 ## 1. Auslassung vor und nach der letzten Antwort
 
@@ -278,7 +286,35 @@ Die Quellenkette lautet 01a → 01b → 01. Neu folgen die Ableitungen
 direkt ihren Quellen. Mit NR behalten: FALSE macht der gültige Code von
 01 die Quelle 01a und die Ableitung 01b zu Auslassungen; mit TRUE
 bleiben beide NR. Für 03 fehlt die Quelle: Seine eigene Seite 2 bleibt
-maßgeblich. 02 und 03 bleiben NR.
+maßgeblich. Wegen der unauflösbaren benötigten Quelle warnt die neue
+Version und verwendet für diese Unit alle Variablen außer NO_CODING zur
+Grenzbestimmung. 02 und 03 bleiben NR.
+
+## Welche Variablen bestimmen die MNR-Grenze?
+
+**A wurde ausgelassen, danach kommt B, dann das nicht erreichte Item
+C.** A und C sind mit Items verknüpft. B hat einen gültigen Antwortcode,
+sofern die Tabelle nichts anderes angibt. Es gilt **O → NR: TRUE / NR
+behalten: TRUE**; danach folgt keine Bearbeitung.
+
+| Fall                                          | Ergebnis für A      |
+|:----------------------------------------------|:--------------------|
+| B ist eine unabhängige Hilfsvariable          | Nicht erreicht / NA |
+| B wird für die Berechnung von C benötigt      | Auslassung / 0      |
+| B wird für C benötigt, hat aber NO_CODING     | Nicht erreicht / NA |
+| Itemmetadaten fehlen: Ersatzregel mit Warnung | Auslassung / 0      |
+| Wie Fall 1, zusätzlich unverknüpfte Einträge  | Nicht erreicht / NA |
+
+**B hält A nur dann bei Auslassung, wenn B als Bearbeitung zählt.** Eine
+unabhängige Hilfsvariable zählt nicht, eine benötigte Quelle schon. C
+bleibt in allen Fällen nicht erreicht; es wird keine Ableitung neu
+berechnet.
+
+Unverknüpfte Einträge werden ohne Warnung übersprungen. Fehlen die
+Metadaten oder benötigte Quellen, warnt die Funktion und prüft für diese
+Unit alle Variablen außer `NO_CODING` auf Bearbeitung. Fehlende
+Positionsangaben (`variable_position = NA`) schränken die Prüfung der
+Reihenfolge ein.
 
 Der Ablauf mit eigenen Daten steht im
 [Standard-Workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.md).

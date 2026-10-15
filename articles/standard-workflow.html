@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9038</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
 
     
     
-<p><strong>Paketstand: eatPrepTBA 0.9.8.9038.</strong></p>
+<p><strong>Paketstand: eatPrepTBA 0.9.8.9039.</strong></p>
 <p>Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 <strong>einer Zeile je Person und einer Punktespalte je ausgewerteter
 Aufgabe (Item)</strong>. Dazu werden die Antworten kodiert, Missings
@@ -325,6 +325,25 @@ Antworten.</strong> <a href="../reference/complete_design.html"><code>complete_d
 ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
 Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
 getrennt je Person, Testheft und Testlet (Testabschnitt).</p>
+<p><strong>Als Bearbeitung zählen nur Items und ihre Quellen.</strong>
+Maßgeblich sind die Item-Verknüpfungen in <code>units</code>. Quellen
+sind die Variablen, aus denen ein Item berechnet wird, auch über mehrere
+Schritte. Sie brauchen weder eine eigene Itemzuordnung noch eigene
+Punkte. <strong><code>NO_CODING</code> zählt nie als
+Bearbeitung.</strong></p>
+<p>Unverknüpfte Einträge in der Itemliste sind normal und werden
+übersprungen. Eine vorhandene Liste mit ausschließlich unverknüpften
+Einträgen trägt deshalb nichts zur Grenze bei. Fehlen dagegen die
+Metadaten ganz, widersprechen sie sich oder fehlt eine benötigte
+Variable im Schema, gibt es eine Warnung: Für die betroffene Unit dürfen
+dann alle Variablen außer <code>NO_CODING</code> zählen. Das gilt auch
+bei ganz leeren Listen und reinen NA-Platzhaltern.</p>
+<p><strong>Missings werden weiterhin für alle Designzeilen
+vergeben</strong>, auch für technische Variablen: Eine Auslassung vor
+einer späteren relevanten Bearbeitung bleibt bei 0 Punkten. Eine
+Auslassung nach der letzten Bearbeitung wird mit <strong>O → NR:
+TRUE</strong> zu Not reached mit <code>NA</code>. Ein Rohwert wie
+<code>"0"</code> entscheidet das nicht.</p>
 <p>Bereits als Auslassung kodierte Antworten bleiben mit
 <strong><code>recode_omissions_to_not_reached = FALSE</code></strong>
 Auslassungen. Setze diese Option auf <strong><code>TRUE</code></strong>,
@@ -338,17 +357,19 @@ Auslassung wird. Das gilt auch für ergänzte Designzeilen, noch fehlende
 Codes bei Status <code>NOT_REACHED</code> oder <code>NA</code> und
 NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt
 erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
-<code>FALSE</code>.</p>
+<code>FALSE</code>. Für die Referenzstudien setzen wir hier beide auf
+<code>TRUE</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design_coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/complete_design.html">complete_design</a></span><span class="op">(</span>coded <span class="op">=</span> <span class="va">coded</span>, units <span class="op">=</span> <span class="va">units</span>, design <span class="op">=</span> <span class="va">design</span>,</span>
-<span>                                recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>                                preserve_not_reached <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>                                recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                                preserve_not_reached <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span>, <span class="va">code_type</span><span class="op">)</span></span>
 <span><span class="va">analysis_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span><span class="op">)</span></span></code></pre></div>
 <p><code>id_used</code> ist <code>TRUE</code>, wenn eine Person
-mindestens einen gespeicherten Kodierstatus hat. Der Filter übernimmt
-diese Personen in <code>analysis_data</code>.</p>
+mindestens einen gespeicherten Kodierstatus hat, auch bei einer
+technischen Variable. Der Filter übernimmt diese Personen in
+<code>analysis_data</code>.</p>
 <p>Innerhalb einer Unit gilt <strong>Seite → Abschnitt → natürlicher
 Variablenname</strong> (z. B. <code>V2</code> vor <code>V10</code>).
 Ableitungen mit eindeutig zugeordneten Quellen folgen direkt ihrer
@@ -357,12 +378,13 @@ letzten Quelle, auch bei mehrstufigen Ableitungen.
 Ein Teildesign kann Positionslücken enthalten; ohne passende
 Variablenmetadaten steht hier <code>NA</code>.</p>
 <p><strong>Ableitungen werden nicht neu berechnet.</strong> Ein
-vorhandenes gültiges Ergebnis zählt aber als Bearbeitung: Mit
-<code>preserve_not_reached = FALSE</code> wird eine davor liegende
-Not-reached-Quelle zur Auslassung mit 0 Punkten; mit <code>TRUE</code>
-bleibt sie Not reached. <code>code_status</code> bleibt dabei
-unverändert; Missing-Art und Punktzahl stehen in <code>code_type</code>
-und <code>code_score</code>.</p>
+vorhandenes gültiges Ergebnis zählt als Bearbeitung, wenn es zu einem
+Item oder dessen Quellen gehört (oder die Ersatzregel für die Unit
+gilt): Mit <code>preserve_not_reached = FALSE</code> wird eine davor
+liegende Not-reached-Quelle zur Auslassung mit 0 Punkten; mit
+<code>TRUE</code> bleibt sie Not reached. <code>code_status</code>
+bleibt dabei unverändert; Missing-Art und Punktzahl stehen in
+<code>code_type</code> und <code>code_score</code>.</p>
 <p>Die <a href="missing-examples.html">Missing-Szenarien im
 Versionsvergleich</a> zeigen die Entscheidungen an konkreten Beispielen,
 einschließlich der Sortierregeln bei fehlenden Angaben oder nicht
