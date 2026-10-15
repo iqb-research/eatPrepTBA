@@ -1,6 +1,6 @@
 # Missing-Szenarien: 9001, 9036 und neue Version
 
-**18 Beispiele, drei Versionen:** 9001, 9036 und neu 0.9.8.9039.
+**18 Beispiele, drei Versionen:** 9001, 9036 und neu 0.9.8.9038.
 
 ## Hinweise zum Vergleich
 
@@ -15,15 +15,6 @@ für einen fehlenden Wert. **Blau und fett** kennzeichnet Änderungen
 gegenüber der Eingabe. **Hellrot** markiert die Probleme der 9036 in
 Fall 1 und 2; beim Überfahren mit dem Mauszeiger erscheint eine
 Erläuterung. In der neuen Version bleibt `code_status` unverändert.
-
-Für die MNR-Grenze zählen neu nur explizit zugeordnete Items und ihre
-direkten und indirekten Quellen; `NO_CODING` ist immer neutral. Die
-folgenden 18 Versionsbeispiele ordnen alle Variablen ausdrücklich Items
-zu. Fall 18 enthält eine unauflösbare Quelle: Die neue Version warnt und
-verwendet für diese Unit alle Variablen außer `NO_CODING` zur
-Grenzbestimmung. Die Missing-Zuweisung selbst gilt weiterhin für alle
-Designzeilen. Weitere Beispiele zur Auswahl stehen [am Ende dieser
-Seite](#itemgrenze).
 
 **O** steht für Auslassung, **NR** für nicht erreicht. Die neue Version
 bietet zwei unabhängige Optionen (`TRUE` = aktiviert, `FALSE` =
@@ -72,7 +63,7 @@ wieder von vorne nach hinten. Innerhalb einer Unit gilt:
 |:---|:---|:---|
 | **9001** | Die Unit wird als Ganzes betrachtet; die Position einer Variablen innerhalb der Unit hat keinen Einfluss. | `variable_page` → `variable_section` → `variable_level`, jeweils aufsteigend. |
 | **9036** | Wie 9001, auch mit `TRUE`. | Wie 9001. |
-| **Neu 9039** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
+| **Neu 9038** | Seite → Abschnitt (beide numerisch) → natürlicher Variablenname. Ableitungen mit vollständig zugeordneten Quellen folgen direkt auf ihre letzte Quelle. | Dieselbe Reihenfolge wie für die Missing-Einstufung. |
 
 - **9001/9036:** Vorhandene Datentypen bestimmen die Sortierung; `NA`
   kommt zuletzt. Bei Gleichstand bleibt die Reihenfolge nach dem
@@ -92,10 +83,9 @@ Die Tabellen behalten zum Vergleichen dieselbe Beispielreihenfolge bei.
 Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich darüber.
 
 **Ableitungen werden nicht neu berechnet.** Ein gültiges
-Ableitungsergebnis zählt als Bearbeitung, wenn es zu einem Item oder
-dessen Quellen gehört (oder die Ersatzregel für die Unit gilt). Davor
-liegende NR-Quellen werden mit **NR behalten: FALSE** zu Auslassungen
-mit 0 Punkten. Mit **TRUE** bleiben sie NR.
+Ableitungsergebnis zählt als Bearbeitung: Davor liegende NR-Quellen
+werden mit **NR behalten: FALSE** zu Auslassungen mit 0 Punkten. Mit
+**TRUE** bleiben sie NR.
 
 ## 1. Auslassung vor und nach der letzten Antwort
 
@@ -288,31 +278,7 @@ Die Quellenkette lautet 01a → 01b → 01. Neu folgen die Ableitungen
 direkt ihren Quellen. Mit NR behalten: FALSE macht der gültige Code von
 01 die Quelle 01a und die Ableitung 01b zu Auslassungen; mit TRUE
 bleiben beide NR. Für 03 fehlt die Quelle: Seine eigene Seite 2 bleibt
-maßgeblich. Wegen der unauflösbaren benötigten Quelle warnt die neue
-Version und verwendet für diese Unit alle Variablen außer NO_CODING zur
-Grenzbestimmung. 02 und 03 bleiben NR.
-
-## Welche Variablen bestimmen die MNR-Grenze?
-
-In diesen kleinen Beispielen sind **A und C die Items**: A wurde
-ausgelassen, C ist bereits MNR. Dazwischen liegt B mit einem Rohwert.
-Alle Beispiele verwenden **O → NR: TRUE / NR behalten: TRUE**. Es gibt
-keine weitere Bearbeitung.
-
-| Fall | Code A | Score A | Ersatzregel |
-|:---|---:|---:|:---|
-| B ist unabhängig, gültiger Code mit Score 1 | -96 | NA | FALSE |
-| B ist Quelle von Item C, gültiger Code mit Score 1 | -99 | 0 | FALSE |
-| B ist Quelle von Item C, aber NO_CODING | -96 | NA | FALSE |
-| Itemmetadaten fehlen, B hat gültigen Code mit Score 1 | -99 | 0 | TRUE |
-
-Eine unabhängige Variable B hält A nicht bei Omission, auch wenn B
-Punkte hat. Als benötigte Quelle belegt B dagegen spätere Bearbeitung.
-Mit `NO_CODING` entfällt dieser Beitrag wieder. Fehlen die
-Itemmetadaten, warnt die Funktion und prüft ersatzweise alle Variablen
-der Unit außer `NO_CODING`; B hält A dann bei Omission. Die Warnung wird
-hier aufgefangen und in der Spalte „Ersatzregel“ gezeigt. C bleibt in
-allen vier Fällen MNR; keine Ableitung wird neu berechnet.
+maßgeblich. 02 und 03 bleiben NR.
 
 Der Ablauf mit eigenen Daten steht im
 [Standard-Workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.md).

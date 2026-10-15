@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9038</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
 
     
     
-<p><strong>Paketstand: eatPrepTBA 0.9.8.9039.</strong></p>
+<p><strong>Paketstand: eatPrepTBA 0.9.8.9038.</strong></p>
 <p>Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 <strong>einer Zeile je Person und einer Punktespalte je ausgewerteter
 Aufgabe (Item)</strong>. Dazu werden die Antworten kodiert, Missings
@@ -325,27 +325,6 @@ Antworten.</strong> <a href="../reference/complete_design.html"><code>complete_d
 ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
 Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
 getrennt je Person, Testheft und Testlet (Testabschnitt).</p>
-<p><strong>Die Grenze richtet sich nach Items und ihren
-Quellen.</strong> Als Items gelten die Variablen mit ausdrücklicher
-Itemzuordnung aus <code>items_list</code>, ersatzweise
-<code>item_metadata</code>, wie bei <code><a href="../reference/add_item_id.html">add_item_id()</a></code>. Ihre
-direkten und indirekten Quellen werden ebenfalls berücksichtigt. Eine
-unabhängige technische Variable setzt dagegen auch mit gültigem Code
-oder Score keine Grenze; eigene Bewertungscodes und Variablennamen sind
-kein Auswahlkriterium. <strong><code>NO_CODING</code> zählt nie als
-Grenzbeitrag</strong>, auch nicht bei einem Item oder einer benötigten
-Quelle.</p>
-<p>Fehlen für eine Unit verwertbare Itemzuordnungen, sind Zuordnungen
-unklar oder benötigte Quellen nicht eindeutig auflösbar, meldet die
-Funktion dies gesammelt als Warnung. Für diese Units gilt als Ersatz die
-bisherige Prüfung über alle Variablen, weiterhin ohne
-<code>NO_CODING</code>. Das betrifft auch leere Itemlisten, weil sie
-nicht zuverlässig von fehlenden Metadaten unterschieden werden
-können.</p>
-<p><strong>Die Missing-Zuweisung selbst bleibt für alle Designzeilen
-aktiv.</strong> Technische Variablen können deshalb weiterhin Omission/0
-oder MNR/<code>NA</code> erhalten. Alle Zeilen bleiben erhalten;
-geändert wird, welche davon die MNR-Grenze bestimmen dürfen.</p>
 <p>Bereits als Auslassung kodierte Antworten bleiben mit
 <strong><code>recode_omissions_to_not_reached = FALSE</code></strong>
 Auslassungen. Setze diese Option auf <strong><code>TRUE</code></strong>,
@@ -368,9 +347,8 @@ erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span>, <span class="va">code_type</span><span class="op">)</span></span>
 <span><span class="va">analysis_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span><span class="op">)</span></span></code></pre></div>
 <p><code>id_used</code> ist <code>TRUE</code>, wenn eine Person
-mindestens einen gespeicherten Kodierstatus hat, auch bei einer
-technischen Variable. Der Filter übernimmt diese Personen in
-<code>analysis_data</code>.</p>
+mindestens einen gespeicherten Kodierstatus hat. Der Filter übernimmt
+diese Personen in <code>analysis_data</code>.</p>
 <p>Innerhalb einer Unit gilt <strong>Seite → Abschnitt → natürlicher
 Variablenname</strong> (z. B. <code>V2</code> vor <code>V10</code>).
 Ableitungen mit eindeutig zugeordneten Quellen folgen direkt ihrer
@@ -379,13 +357,12 @@ letzten Quelle, auch bei mehrstufigen Ableitungen.
 Ein Teildesign kann Positionslücken enthalten; ohne passende
 Variablenmetadaten steht hier <code>NA</code>.</p>
 <p><strong>Ableitungen werden nicht neu berechnet.</strong> Ein
-vorhandenes gültiges Ergebnis zählt als Bearbeitung, wenn es zu einem
-Item oder dessen Quellen gehört (oder die Ersatzregel für die Unit
-gilt): Mit <code>preserve_not_reached = FALSE</code> wird eine davor
-liegende Not-reached-Quelle zur Auslassung mit 0 Punkten; mit
-<code>TRUE</code> bleibt sie Not reached. <code>code_status</code>
-bleibt dabei unverändert; Missing-Art und Punktzahl stehen in
-<code>code_type</code> und <code>code_score</code>.</p>
+vorhandenes gültiges Ergebnis zählt aber als Bearbeitung: Mit
+<code>preserve_not_reached = FALSE</code> wird eine davor liegende
+Not-reached-Quelle zur Auslassung mit 0 Punkten; mit <code>TRUE</code>
+bleibt sie Not reached. <code>code_status</code> bleibt dabei
+unverändert; Missing-Art und Punktzahl stehen in <code>code_type</code>
+und <code>code_score</code>.</p>
 <p>Die <a href="missing-examples.html">Missing-Szenarien im
 Versionsvergleich</a> zeigen die Entscheidungen an konkreten Beispielen,
 einschließlich der Sortierregeln bei fehlenden Angaben oder nicht

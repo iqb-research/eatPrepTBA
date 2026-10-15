@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9038</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,20 +109,7 @@ only part of a unit; variables absent from the unit metadata receive <code>NA</c
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Only variables explicitly linked to items in <code>items_list</code> (or <code>item_metadata</code>
-when <code>items_list</code> is absent), and their direct and indirect source variables,
-can establish the not-reached boundary. Own scores and variable names do not
-establish item relevance. After the existing code normalization, <code>NO_CODING</code>
-never establishes this boundary, even for items or their sources.
-Missing, empty, conflicting item metadata or unresolvable required sources
-cause a unit-wide fallback: all variables in that unit may establish the
-boundary except <code>NO_CODING</code>. One aggregated warning identifies affected units.
-An empty item list cannot distinguish an item-free unit from missing metadata.
-This selection affects only the boundary. All design rows still receive the
-existing missing treatment; values, technical statuses, <code>id_used</code>, and the
-full-metadata ordering retain their previous treatment. Source evidence is
-evaluated at the source's own position, not the derived item's position.</p>
-<p>Within each unit, base variables are ordered by numeric page, numeric section,
+    <p>Within each unit, base variables are ordered by numeric page, numeric section,
 and natural variable name (for example, <code>V2</code> precedes <code>V10</code>). Missing sections
 follow known sections on the same page. Variables without a finite page follow
 known pages and are ordered by name alone.
@@ -137,8 +124,8 @@ The trailing missing sequence is determined separately for each person,
 booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
-A valid derived result included in the boundary can turn preceding
-not-reached sources into omissions unless
+A valid derived result contributes to the reached boundary and can therefore
+turn preceding not-reached sources into omissions unless
 <code>preserve_not_reached = TRUE</code>. Derived missing codes still
 follow the usual missing rules; no derivation is recalculated.
 Newly completed rows retain <code>NA</code> in <code>code_status</code>.
