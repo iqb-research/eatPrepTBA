@@ -1,6 +1,6 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-**Paketstand: eatPrepTBA 0.9.8.9038.**
+**Paketstand: eatPrepTBA 0.9.8.9039.**
 
 Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 **einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
@@ -232,6 +232,28 @@ ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
 Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
 getrennt je Person, Testheft und Testlet (Testabschnitt).
 
+**Die Grenze richtet sich nach Items und ihren Quellen.** Als Items
+gelten die Variablen mit ausdrücklicher Itemzuordnung aus `items_list`,
+ersatzweise `item_metadata`, wie bei
+[`add_item_id()`](https://iqb-research.github.io/eatPrepTBA/reference/add_item_id.md).
+Ihre direkten und indirekten Quellen werden ebenfalls berücksichtigt.
+Eine unabhängige technische Variable setzt dagegen auch mit gültigem
+Code oder Score keine Grenze; eigene Bewertungscodes und Variablennamen
+sind kein Auswahlkriterium. **`NO_CODING` zählt nie als Grenzbeitrag**,
+auch nicht bei einem Item oder einer benötigten Quelle.
+
+Fehlen für eine Unit verwertbare Itemzuordnungen, sind Zuordnungen
+unklar oder benötigte Quellen nicht eindeutig auflösbar, meldet die
+Funktion dies gesammelt als Warnung. Für diese Units gilt als Ersatz die
+bisherige Prüfung über alle Variablen, weiterhin ohne `NO_CODING`. Das
+betrifft auch leere Itemlisten, weil sie nicht zuverlässig von fehlenden
+Metadaten unterschieden werden können.
+
+**Die Missing-Zuweisung selbst bleibt für alle Designzeilen aktiv.**
+Technische Variablen können deshalb weiterhin Omission/0 oder MNR/`NA`
+erhalten. Alle Zeilen bleiben erhalten; geändert wird, welche davon die
+MNR-Grenze bestimmen dürfen.
+
 Bereits als Auslassung kodierte Antworten bleiben mit
 **`recode_omissions_to_not_reached = FALSE`** Auslassungen. Setze diese
 Option auf **`TRUE`**, wenn auch abschließende Auslassungen als Not
@@ -257,8 +279,8 @@ analysis_data <- filter(design_coded, id_used)
 ```
 
 `id_used` ist `TRUE`, wenn eine Person mindestens einen gespeicherten
-Kodierstatus hat. Der Filter übernimmt diese Personen in
-`analysis_data`.
+Kodierstatus hat, auch bei einer technischen Variable. Der Filter
+übernimmt diese Personen in `analysis_data`.
 
 Innerhalb einer Unit gilt **Seite → Abschnitt → natürlicher
 Variablenname** (z. B. `V2` vor `V10`). Ableitungen mit eindeutig
@@ -268,11 +290,12 @@ als Zahl ab 1. Ein Teildesign kann Positionslücken enthalten; ohne
 passende Variablenmetadaten steht hier `NA`.
 
 **Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges
-Ergebnis zählt aber als Bearbeitung: Mit `preserve_not_reached = FALSE`
-wird eine davor liegende Not-reached-Quelle zur Auslassung mit 0
-Punkten; mit `TRUE` bleibt sie Not reached. `code_status` bleibt dabei
-unverändert; Missing-Art und Punktzahl stehen in `code_type` und
-`code_score`.
+Ergebnis zählt als Bearbeitung, wenn es zu einem Item oder dessen
+Quellen gehört (oder die Ersatzregel für die Unit gilt): Mit
+`preserve_not_reached = FALSE` wird eine davor liegende
+Not-reached-Quelle zur Auslassung mit 0 Punkten; mit `TRUE` bleibt sie
+Not reached. `code_status` bleibt dabei unverändert; Missing-Art und
+Punktzahl stehen in `code_type` und `code_score`.
 
 Die [Missing-Szenarien im
 Versionsvergleich](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.md)

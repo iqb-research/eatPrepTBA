@@ -87,6 +87,22 @@ receive `NA`.
 
 ## Details
 
+Only variables explicitly linked to items in `items_list` (or
+`item_metadata` when `items_list` is absent), and their direct and
+indirect source variables, can establish the not-reached boundary. Own
+scores and variable names do not establish item relevance. After the
+existing code normalization, `NO_CODING` never establishes this
+boundary, even for items or their sources. Missing, empty, conflicting
+item metadata or unresolvable required sources cause a unit-wide
+fallback: all variables in that unit may establish the boundary except
+`NO_CODING`. One aggregated warning identifies affected units. An empty
+item list cannot distinguish an item-free unit from missing metadata.
+This selection affects only the boundary. All design rows still receive
+the existing missing treatment; values, technical statuses, `id_used`,
+and the full-metadata ordering retain their previous treatment. Source
+evidence is evaluated at the source's own position, not the derived
+item's position.
+
 Within each unit, base variables are ordered by numeric page, numeric
 section, and natural variable name (for example, `V2` precedes `V10`).
 Missing sections follow known sections on the same page. Variables
@@ -103,13 +119,13 @@ sequence is determined separately for each person, booklet, and testlet,
 including positions within a partly answered unit. Existing valid,
 invalid, and technical-error results retain their previous treatment;
 derived results are not reclassified from their source variables. A
-valid derived result contributes to the reached boundary and can
-therefore turn preceding not-reached sources into omissions unless
-`preserve_not_reached = TRUE`. Derived missing codes still follow the
-usual missing rules; no derivation is recalculated. Newly completed rows
-retain `NA` in `code_status`. The two missing options are independent:
-preserving NR does not turn inner omissions into NR. With both options
-`TRUE`, existing and newly inferred NR remain NR, and trailing omissions
+valid derived result included in the boundary can turn preceding
+not-reached sources into omissions unless `preserve_not_reached = TRUE`.
+Derived missing codes still follow the usual missing rules; no
+derivation is recalculated. Newly completed rows retain `NA` in
+`code_status`. The two missing options are independent: preserving NR
+does not turn inner omissions into NR. With both options `TRUE`,
+existing and newly inferred NR remain NR, and trailing omissions
 additionally become NR. Missing schemes still assign the corresponding
 codes and scores.
 
