@@ -48,6 +48,20 @@ only part of a unit; variables absent from the unit metadata receive \code{NA}.
 This function automatically completes missings for coded responses.
 }
 \details{
+Only variables explicitly linked to items in \code{items_list} (or \code{item_metadata}
+when \code{items_list} is absent), and their direct and indirect source variables,
+can establish the not-reached boundary. Own scores and variable names do not
+establish item relevance. After the existing code normalization, \code{NO_CODING}
+never establishes this boundary, even for items or their sources.
+Missing, empty, conflicting item metadata or unresolvable required sources
+cause a unit-wide fallback: all variables in that unit may establish the
+boundary except \code{NO_CODING}. One aggregated warning identifies affected units.
+An empty item list cannot distinguish an item-free unit from missing metadata.
+This selection affects only the boundary. All design rows still receive the
+existing missing treatment; values, technical statuses, \code{id_used}, and the
+full-metadata ordering retain their previous treatment. Source evidence is
+evaluated at the source's own position, not the derived item's position.
+
 Within each unit, base variables are ordered by numeric page, numeric section,
 and natural variable name (for example, \code{V2} precedes \code{V10}). Missing sections
 follow known sections on the same page. Variables without a finite page follow
@@ -63,8 +77,8 @@ The trailing missing sequence is determined separately for each person,
 booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
-A valid derived result contributes to the reached boundary and can therefore
-turn preceding not-reached sources into omissions unless
+A valid derived result included in the boundary can turn preceding
+not-reached sources into omissions unless
 \code{preserve_not_reached = TRUE}. Derived missing codes still
 follow the usual missing rules; no derivation is recalculated.
 Newly completed rows retain \code{NA} in \code{code_status}.
