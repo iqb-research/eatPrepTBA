@@ -116,8 +116,23 @@ issue9_units <- function(unit_keys, variable_ids) {
         )
       },
       variable_ids
-    )
+    ),
+    items_list = lapply(variable_ids, function(variable_id) {
+      tibble::tibble(variable_id = variable_id, item_id = paste0("I", seq_along(variable_id)))
+    })
   )
+}
+
+issue9_complete <- function(...) {
+  boundary_warnings <- character()
+  out <- withCallingHandlers(complete_design(...),
+    eatPrepTBA_item_boundary_fallback = function(w) {
+      boundary_warnings <<- c(boundary_warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_length(boundary_warnings, 0L)
+  out
 }
 
 test_that("complete_design fills missing responses according to booklet order", {
@@ -154,7 +169,7 @@ test_that("complete_design fills missing responses according to booklet order", 
     value = character()
   )
 
-  out <- complete_design(coded, units, design)
+  out <- issue9_complete(coded, units, design)
 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$code_id, -96)
@@ -195,7 +210,7 @@ test_that("complete_design preserves trailing omissions by default", {
     value = NA_character_
   )
 
-  out <- complete_design(coded, units, design)
+  out <- issue9_complete(coded, units, design)
 
   expect_equal(out$code_type, c("MISSING_BY_OMISSION", "MISSING_BY_OMISSION"))
   expect_equal(out$code_id, c(-99, -99))
@@ -235,7 +250,7 @@ test_that("complete_design can recode trailing omissions as not reached", {
     value = NA_character_
   )
 
-  out <- complete_design(coded, units, design, recode_omissions_to_not_reached = TRUE)
+  out <- issue9_complete(coded, units, design, recode_omissions_to_not_reached = TRUE)
 
   expect_equal(out$code_type, c("MISSING_NOT_REACHED", "MISSING_NOT_REACHED"))
   expect_equal(out$code_id, c(-96, -96))
@@ -275,7 +290,7 @@ test_that("complete_design keeps not-reached detection within testlets", {
     value = c(NA_character_, "A")
   )
 
-  out <- complete_design(coded, units, design, recode_omissions_to_not_reached = TRUE)
+  out <- issue9_complete(coded, units, design, recode_omissions_to_not_reached = TRUE)
 
   expect_equal(out$code_type, c("MISSING_NOT_REACHED", "FULL_CREDIT"))
   expect_equal(out$code_id, c(-96, 1))
@@ -311,7 +326,7 @@ test_that("complete_design only requires identifiers available in design", {
     value = character()
   )
 
-  out <- complete_design(coded, units, design)
+  out <- issue9_complete(coded, units, design)
 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$login_code, "C1")
@@ -362,7 +377,7 @@ test_that("complete_design applies custom missing metadata", {
     )
   )
 
-  out <- complete_design(coded, units, design, missings = missings)
+  out <- issue9_complete(coded, units, design, missings = missings)
 
   expect_equal(out$code_type, "MISSING_NOT_REACHED")
   expect_equal(out$code_id, -196L)

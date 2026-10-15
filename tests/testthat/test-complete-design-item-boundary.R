@@ -313,6 +313,75 @@ test_that("real scheme preparation excludes independent scored technical variabl
   expect_equal(mapped$code_score, c(0, 1, NA_real_))
 })
 
+test_that("technical zero omissions after the item boundary follow the recode option", {
+  for (technical_last in c(FALSE, TRUE)) {
+    f <- item_boundary_fixture(c("A", "O", if (technical_last) "A" else "NR"),
+      items = c(1, 3), ids = c("ItemBefore", "audio_5", "ItemAfter"))
+    f$units <- item_boundary_raw_units()
+    f$coded$value[2] <- "0"
+    if (technical_last) f$units$variable_pages[[1]]$variable_section <- c(1L, 3L, 2L)
+    for (recode in c(FALSE, TRUE)) for (preserve in c(FALSE, TRUE)) {
+      expect_no_warning(out <- item_boundary_run(f, recode, preserve))
+      technical <- item_boundary_row(out, "audio_5")
+      expect_equal(technical$code_id, if (recode) -96 else -99)
+      expect_equal(technical$code_score, if (recode) NA_real_ else 0)
+      expect_identical(technical$code_type,
+        if (recode) "MISSING_NOT_REACHED" else "MISSING_BY_OMISSION")
+      expect_identical(technical$value, "0")
+      expect_identical(technical$code_status, "DISPLAYED")
+      expect_true(is.na(add_item_id(technical, f$units)$item_id))
+    }
+  }
+})
+
+test_that("an item without its own scoring codes can contribute except for NO_CODING", {
+  f <- item_boundary_fixture(c("O", "NC", "A"), items = c(1, 3),
+    ids = c("ItemBefore", "audio_5", "ItemAfter"))
+  f$units <- item_boundary_raw_units()
+  scheme <- jsonlite::parse_json(f$units$coding_scheme)
+  scheme$variableCodings[[3]]$codes <- list()
+  f$units$coding_scheme <- as.character(jsonlite::toJSON(scheme, auto_unbox = TRUE, null = "null"))
+  # A coding error is existing evidence of work even though it carries no score.
+  f$coded$code_status[3] <- "CODING_ERROR"
+  f$coded$code_type[3] <- NA_character_
+  f$coded$code_id[3] <- f$coded$code_score[3] <- NA_real_
+  expect_no_warning(out <- item_boundary_run(f))
+  expect_equal(out$code_id, c(-99, -93, -97))
+  expect_true(is.na(item_boundary_row(out, "ItemAfter")$code_score))
+
+  f$coded$code_status[3] <- "NO_CODING"
+  expect_no_warning(no_coding <- item_boundary_run(f))
+  expect_equal(no_coding$code_id, c(-96, -93, -93))
+})
+
+test_that("an answered item in a unit without a scheme contributes through the fallback", {
+  earlier <- item_boundary_fixture("O", key = "EARLIER")
+  later <- item_boundary_fixture("A", key = "NO_SCHEME")
+  later$design$unit_booklet_no <- 2L
+  raw <- item_boundary_mapping_units("V1", tibble::tibble(variable_id = "V1", item_id = "I1"))
+  earlier$units <- later$units <- raw
+  earlier$units$unit_key <- "EARLIER"
+  later$units$unit_key <- "NO_SCHEME"
+  later$units$coding_scheme <- NA_character_
+  f <- list(coded = dplyr::bind_rows(earlier$coded, later$coded),
+            design = dplyr::bind_rows(earlier$design, later$design),
+            units = dplyr::bind_rows(earlier$units, later$units))
+  captured <- item_boundary_capture(f)
+  expect_length(captured$warnings, 1L)
+  expect_s3_class(captured$warnings[[1]], "eatPrepTBA_item_boundary_fallback")
+  expect_match(conditionMessage(captured$warnings[[1]]), "NO_SCHEME", fixed = TRUE)
+  expect_equal(captured$result$code_id, c(-99, 1))
+  expect_true(is.na(item_boundary_row(captured$result, "V1", "NO_SCHEME")$variable_position))
+
+  # Even in this fallback, a stored NO_CODING result is never evidence of work.
+  f$coded$code_type[2] <- f$coded$code_status[2] <- "NO_CODING"
+  f$coded$code_id[2] <- -93
+  f$coded$code_score[2] <- NA_real_
+  captured <- item_boundary_capture(f)
+  expect_length(captured$warnings, 1L)
+  expect_equal(captured$result$code_id, c(-96, -93))
+})
+
 test_that("only mapped items contribute boundaries under all missing options", {
   f <- item_boundary_fixture(c("NR", "O", "A"), items = 1:2)
   for (recode in c(FALSE, TRUE)) for (preserve in c(FALSE, TRUE)) {

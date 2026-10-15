@@ -287,13 +287,10 @@ fehlenden Wert. **Blau und fett** kennzeichnet Änderungen gegenüber der Eingab
 dem Mauszeiger erscheint eine Erläuterung.
 In der neuen Version bleibt `code_status` unverändert.
 
-Für die MNR-Grenze zählen neu nur explizit zugeordnete Items und ihre direkten
-und indirekten Quellen; `NO_CODING` ist immer neutral. Die folgenden 18
-Versionsbeispiele ordnen alle Variablen ausdrücklich Items zu. Fall 18 enthält
-eine unauflösbare Quelle: Die neue Version warnt und verwendet für diese Unit
-alle Variablen außer `NO_CODING` zur Grenzbestimmung. Die Missing-Zuweisung selbst
-gilt weiterhin für alle Designzeilen. Weitere Beispiele zur Auswahl stehen
-[am Ende dieser Seite](#itemgrenze).
+Für die MNR-Grenze zählen neu nur Items und die Variablen, aus denen sie
+berechnet werden. `NO_CODING` zählt nie. Missings werden weiterhin für alle
+Zeilen vergeben. In den 18 Versionsbeispielen sind alle Variablen Items;
+[am Ende](#itemgrenze) stehen Beispiele mit Hilfsvariablen.
 
 **O** steht für Auslassung, **NR** für nicht erreicht. Die neue Version bietet
 zwei unabhängige Optionen (`TRUE` = aktiviert, `FALSE` = deaktiviert):
@@ -413,9 +410,10 @@ for (i in seq_along(titles)) {
 
 ## Welche Variablen bestimmen die MNR-Grenze? {#itemgrenze}
 
-In diesen kleinen Beispielen sind **A und C die Items**: A wurde ausgelassen,
-C ist bereits MNR. Dazwischen liegt B mit einem Rohwert. Alle Beispiele verwenden
-**O → NR: TRUE / NR behalten: TRUE**. Es gibt keine weitere Bearbeitung.
+**A wurde ausgelassen, danach kommt B, dann das nicht erreichte Item C.**
+A und C sind mit Items verknüpft. B hat einen gültigen Antwortcode, sofern die
+Tabelle nichts anderes angibt. Es gilt **O → NR: TRUE / NR behalten: TRUE**;
+danach folgt keine Bearbeitung.
 
 ```{r item-boundary-examples, results='asis'}
 boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE,
@@ -466,29 +464,24 @@ boundary_results <- bind_rows(
 )
 stopifnot(identical(boundary_results$`Code A`, c(-96, -99, -96, -99, -96)),
           identical(boundary_results$Ersatzregel, c(FALSE, FALSE, FALSE, TRUE, FALSE)))
-knitr::kable(bind_cols(tibble::tibble(Fall = c(
-  "B ist unabhängig, gültiger Code mit Score 1",
-  "B ist Quelle von Item C, gültiger Code mit Score 1",
-  "B ist Quelle von Item C, aber NO_CODING",
-  "Itemmetadaten fehlen, B hat gültigen Code mit Score 1",
-  "Zusätzliche unverknüpfte Einträge; B bleibt unabhängig"
-)), boundary_results))
+knitr::kable(tibble::tibble(
+  Fall = c("B ist eine unabhängige Hilfsvariable",
+           "B wird für die Berechnung von C benötigt",
+           "B wird für C benötigt, hat aber NO_CODING",
+           "Itemmetadaten fehlen: Ersatzregel mit Warnung",
+           "Wie Fall 1, zusätzlich unverknüpfte Einträge"),
+  `Ergebnis für A` = ifelse(boundary_results$`Code A` == -96,
+                           "Nicht erreicht / NA", "Auslassung / 0")
+))
 ```
 
-Eine unabhängige Variable B hält A nicht bei Omission, auch wenn B Punkte hat.
-Als benötigte Quelle belegt B dagegen spätere Bearbeitung. Mit `NO_CODING`
-entfällt dieser Beitrag wieder. Fehlen die Itemmetadaten, warnt die Funktion und
-prüft ersatzweise alle Variablen der Unit außer `NO_CODING`; B hält A dann bei
-Omission. Die Warnung wird hier aufgefangen und in der Spalte „Ersatzregel“ gezeigt.
-C bleibt in allen fünf Fällen MNR; keine Ableitung wird neu berechnet.
+**B hält A nur dann bei Auslassung, wenn B als Bearbeitung zählt.** Eine
+unabhängige Hilfsvariable zählt nicht, eine benötigte Quelle schon. C bleibt
+in allen Fällen nicht erreicht; es wird keine Ableitung neu berechnet.
 
-Unverknüpfte Item- und Variableneinträge werden ohne Warnung übersprungen: Im
-fünften Beispiel ist ein zusätzliches Item ohne Variable eingetragen und B
-ohne Item-ID. Die gültigen Verknüpfungen von A und C bleiben maßgeblich. Enthält
-eine Liste Item- oder Variablen-IDs, aber keine vollständige Verknüpfung, gibt
-es keine Grenzbeiträge. Eine ganz leere Liste oder Platzhalter ohne diese IDs lösen
-dagegen wie fehlende Metadaten die Ersatzregel aus. Auch fehlende Schemaangaben
-zu unabhängigen Designvariablen lösen keine Ersatzregel aus; entscheidend sind
-die ausdrücklich verknüpften Items und ihre benötigten Quellen.
+Unverknüpfte Einträge werden ohne Warnung übersprungen. Fehlen die Metadaten
+oder benötigte Quellen, warnt die Funktion und prüft für diese Unit alle
+Variablen außer `NO_CODING` auf Bearbeitung. Fehlende Positionsangaben
+(`variable_position = NA`) schränken die Prüfung der Reihenfolge ein.
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).

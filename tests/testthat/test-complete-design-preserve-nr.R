@@ -24,16 +24,25 @@ preserve_nr_fixture <- function(types = c("NR", "O", "A", "O", "NR")) {
       code_type = unname(type_map[types]), code_id = unname(id_map[types]),
       code_status = unname(status_map[types]), code_score = unname(score_map[types])
     )
-  list(units = tibble::tibble(unit_key = "U1", unit_codes = list(codes)),
+  list(units = tibble::tibble(
+    unit_key = "U1", unit_codes = list(codes),
+    items_list = list(tibble::tibble(variable_id = ids, item_id = paste0("I", seq_along(ids))))
+  ),
        design = design, coded = coded)
 }
 
 preserve_nr_complete <- function(f, preserve = FALSE, recode = FALSE, ...) {
-  suppressMessages(complete_design(
+  boundary_warnings <- character()
+  out <- withCallingHandlers(suppressMessages(complete_design(
     f$coded, f$units, f$design, identifiers = "login_code",
     recode_omissions_to_not_reached = recode,
     preserve_not_reached = preserve, ...
-  ))
+  )), eatPrepTBA_item_boundary_fallback = function(w) {
+    boundary_warnings <<- c(boundary_warnings, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  expect_length(boundary_warnings, 0L)
+  out
 }
 
 test_that("NR preservation and trailing-omission recoding are independent options", {
@@ -92,7 +101,8 @@ test_that("preservation applies across units without changing testlet boundaries
   f$coded$unit_alias <- f$design$unit_alias
   f$units <- tibble::tibble(
     unit_key = f$design$unit_key,
-    unit_codes = lapply(1:4, function(i) f$units$unit_codes[[1]][i, ])
+    unit_codes = lapply(1:4, function(i) f$units$unit_codes[[1]][i, ]),
+    items_list = lapply(1:4, function(i) f$units$items_list[[1]][i, ])
   )
   for (recode in c(FALSE, TRUE)) {
     ordinary <- preserve_nr_complete(f, FALSE, recode)

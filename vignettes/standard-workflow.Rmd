@@ -206,32 +206,22 @@ aus dem Design. Es unterscheidet nicht erreichte Variablen am Ende von
 Auslassungen vor einer späteren Bearbeitung – getrennt je Person, Testheft
 und Testlet (Testabschnitt).
 
-**Die Grenze richtet sich nach Items und ihren Quellen.** Als Items gelten die
-Variablen mit ausdrücklicher Itemzuordnung aus `items_list`, ersatzweise
-`item_metadata`, wie bei `add_item_id()`. Ihre direkten und indirekten Quellen
-werden ebenfalls berücksichtigt. Eine unabhängige technische Variable setzt
-dagegen auch mit gültigem Code oder Score keine Grenze; eigene Bewertungscodes
-und Variablennamen sind kein Auswahlkriterium. **`NO_CODING` zählt nie als
-Grenzbeitrag**, auch nicht bei einem Item oder einer benötigten Quelle.
+**Als Bearbeitung zählen nur Items und ihre Quellen.** Maßgeblich sind die
+Item-Verknüpfungen in `units`. Quellen sind die Variablen, aus denen ein Item
+berechnet wird, auch über mehrere Schritte. Sie brauchen weder eine eigene
+Itemzuordnung noch eigene Punkte. **`NO_CODING` zählt nie als Bearbeitung.**
 
-**Unverknüpfte Einträge sind zulässig.** Fehlt in einer Zeile `item_id` oder
-`variable_id` (`NA`, leere Zeichenfolge oder nur Leerzeichen), wird diese Zeile
-ohne Warnung übersprungen. Quellen brauchen keine eigene Itemzuordnung. Enthält
-eine Liste Item- oder Variablen-IDs, aber keine vollständige Verknüpfung,
-trägt die Unit nicht zur Grenze bei.
+Unverknüpfte Einträge in der Itemliste sind normal und werden übersprungen. Eine
+vorhandene Liste mit ausschließlich unverknüpften Einträgen trägt deshalb
+nichts zur Grenze bei. Fehlen dagegen die Metadaten ganz, widersprechen sie
+sich oder fehlt eine benötigte Variable im Schema, gibt es eine Warnung:
+Für die betroffene Unit dürfen dann alle Variablen außer `NO_CODING` zählen.
+Das gilt auch bei ganz leeren Listen und reinen NA-Platzhaltern.
 
-Fehlen dagegen die Itemmetadaten, widersprechen sich vollständige Zuordnungen
-oder sind benötigte Itemvariablen oder Quellen nicht eindeutig auflösbar,
-meldet die Funktion dies gesammelt als Warnung. Für diese Units gilt als Ersatz
-die bisherige Prüfung über alle Variablen, weiterhin ohne `NO_CODING`. Das
-betrifft auch leere Listen und Platzhalter ohne Item- und Variablen-IDs, weil sie nicht
-zuverlässig von fehlenden Metadaten unterschieden werden können. Eine
-unverknüpfte Designvariable, die im Schema fehlt und auch keine benötigte Quelle
-ist, löst dagegen keine Ersatzregel aus.
-
-**Die Missing-Zuweisung selbst bleibt für alle Designzeilen aktiv.** Technische
-Variablen können deshalb weiterhin Omission/0 oder MNR/`NA` erhalten. Alle Zeilen
-bleiben erhalten; geändert wird, welche davon die MNR-Grenze bestimmen dürfen.
+**Missings werden weiterhin für alle Designzeilen vergeben**, auch für
+technische Variablen: Eine Auslassung vor einer späteren Antwort bleibt bei
+0 Punkten. Eine Auslassung nach der letzten Bearbeitung wird mit **O → NR: TRUE**
+zu Not reached mit `NA`. Ein Rohwert wie `"0"` entscheidet das nicht.
 
 Bereits als Auslassung kodierte Antworten bleiben mit
 **`recode_omissions_to_not_reached = FALSE`** Auslassungen.
