@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9039 [2026-10-15]
+
+## bug fixes
+
+* `complete_design()` now determines the not-reached boundary from explicitly mapped item variables and their direct and indirect sources. Unrelated variables cannot establish later work merely because they have a regular code or score. `NO_CODING` never establishes the boundary, including for items and sources. Missing assignment still applies to all design rows; values, technical statuses, ordering, and `id_used` retain their existing treatment.
+* Incomplete or ambiguous item mappings and unresolved required sources trigger an aggregated warning. For affected units, all variables may establish the boundary as before, except `NO_CODING`. This fallback also applies when a unit has no usable item mapping. The function signature and the defaults of the two missing options are unchanged.
+
+## documentation
+
+* Explained the item and source boundary, the fallback for incomplete metadata, and the continued missing assignment to non-item variables. Added small computed examples distinguishing an unrelated scored variable, an item source, `NO_CODING`, and missing item metadata.
+
 # eatPrepTBA 0.9.8.9038 [2026-10-12]
 
 ## new features

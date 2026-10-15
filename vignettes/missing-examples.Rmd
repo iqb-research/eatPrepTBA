@@ -287,6 +287,14 @@ fehlenden Wert. **Blau und fett** kennzeichnet Änderungen gegenüber der Eingab
 dem Mauszeiger erscheint eine Erläuterung.
 In der neuen Version bleibt `code_status` unverändert.
 
+Für die MNR-Grenze zählen neu nur explizit zugeordnete Items und ihre direkten
+und indirekten Quellen; `NO_CODING` ist immer neutral. Die folgenden 18
+Versionsbeispiele ordnen alle Variablen ausdrücklich Items zu. Fall 18 enthält
+eine unauflösbare Quelle: Die neue Version warnt und verwendet für diese Unit
+alle Variablen außer `NO_CODING` zur Grenzbestimmung. Die Missing-Zuweisung selbst
+gilt weiterhin für alle Designzeilen. Weitere Beispiele zur Auswahl stehen
+[am Ende dieser Seite](#itemgrenze).
+
 **O** steht für Auslassung, **NR** für nicht erreicht. Die neue Version bietet
 zwei unabhängige Optionen (`TRUE` = aktiviert, `FALSE` = deaktiviert):
 
@@ -345,8 +353,9 @@ Die Tabellen behalten zum Vergleichen dieselbe Beispielreihenfolge bei.
 Ab Fall 14 steht die tatsächliche Ausgabereihenfolge zusätzlich darüber.
 
 **Ableitungen werden nicht neu berechnet.** Ein gültiges Ableitungsergebnis zählt
-als Bearbeitung: Davor liegende NR-Quellen werden mit **NR behalten: FALSE** zu
-Auslassungen mit 0 Punkten. Mit **TRUE** bleiben sie NR.
+als Bearbeitung, wenn es zu einem Item oder dessen Quellen gehört
+(oder die Ersatzregel für die Unit gilt). Davor liegende NR-Quellen werden mit
+**NR behalten: FALSE** zu Auslassungen mit 0 Punkten. Mit **TRUE** bleiben sie NR.
 
 ```{r case-comparisons, results='asis'}
 titles <- c(
@@ -387,7 +396,7 @@ notes <- c(
   "V03 ist aus V01 abgeleitet und bereits gültig kodiert: Dieses Ergebnis bleibt überall erhalten. Neu steht V03 direkt hinter V01 und vor V02. V01 wird wegen der späteren Bearbeitung zur Auslassung, außer mit NR behalten: TRUE.",
   "Auf derselben Seite liegt V02 in Abschnitt 1, die Antwort V01 in Abschnitt 2 und V03 in Abschnitt 3. Neu wird V02 deshalb zur Auslassung, obwohl sein Name hinter V01 steht. NR behalten: TRUE verhindert dies. V03 bleibt nicht erreicht.",
   "01 entsteht aus 01a und 01b und steht neu direkt hinter beiden. Sein gültiger Code bleibt erhalten. Mit NR behalten: FALSE werden die NR-Quellen deshalb Auslassungen mit 0 Punkten; mit TRUE bleiben sie NR. Das nachfolgende 02 bleibt NR. Es wird keine Ableitung neu berechnet.",
-  "Die Quellenkette lautet 01a → 01b → 01. Neu folgen die Ableitungen direkt ihren Quellen. Mit NR behalten: FALSE macht der gültige Code von 01 die Quelle 01a und die Ableitung 01b zu Auslassungen; mit TRUE bleiben beide NR. Für 03 fehlt die Quelle: Seine eigene Seite 2 bleibt maßgeblich. 02 und 03 bleiben NR."
+  "Die Quellenkette lautet 01a → 01b → 01. Neu folgen die Ableitungen direkt ihren Quellen. Mit NR behalten: FALSE macht der gültige Code von 01 die Quelle 01a und die Ableitung 01b zu Auslassungen; mit TRUE bleiben beide NR. Für 03 fehlt die Quelle: Seine eigene Seite 2 bleibt maßgeblich. Wegen der unauflösbaren benötigten Quelle warnt die neue Version und verwendet für diese Unit alle Variablen außer NO_CODING zur Grenzbestimmung. 02 und 03 bleiben NR."
 )
 stopifnot(length(titles) == length(cases), length(notes) == length(cases))
 for (i in seq_along(titles)) {
@@ -401,5 +410,67 @@ for (i in seq_along(titles)) {
   cat(notes[[i]], "\n\n")
 }
 ```
+
+## Welche Variablen bestimmen die MNR-Grenze? {#itemgrenze}
+
+In diesen kleinen Beispielen sind **A und C die Items**: A wurde ausgelassen,
+C ist bereits MNR. Dazwischen liegt B mit einem Rohwert. Alle Beispiele verwenden
+**O → NR: TRUE / NR behalten: TRUE**. Es gibt keine weitere Bearbeitung.
+
+```{r item-boundary-examples, results='asis'}
+boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE) {
+  rows <- tibble::tribble(
+    ~variable_id, ~value, ~code_status, ~code_id, ~code_type, ~code_score,
+    "A", NA_character_, "DISPLAYED", -99, "MISSING_BY_OMISSION", 0,
+    "B", "1", "CODING_COMPLETE", 1, "FULL_CREDIT", 1,
+    "C", NA_character_, "NOT_REACHED", -96, "MISSING_NOT_REACHED", NA_real_
+  ) |> mutate(case_id = 0L, unit_key = "U1", testlet_no = 1L, response_present = TRUE)
+  if (no_coding) {
+    rows$code_status[2] <- rows$code_type[2] <- "NO_CODING"
+    rows$code_id[2] <- -93
+    rows$code_score[2] <- NA_real_
+  }
+  fixture <- make_fixture(rows)
+  fixture$units$items_list[[1]] <- filter(fixture$units$items_list[[1]], variable_id != "B")
+  if (source) {
+    codes <- fixture$units$unit_codes[[1]]
+    codes$variable_source_type[3] <- "SUM_CODE"
+    codes$variable_level[3] <- 1L
+    codes$derive_sources <- list(character(), character(), "ref_B")
+    fixture$units$unit_codes[[1]] <- codes
+  }
+  if (!metadata) fixture$units$items_list <- NULL
+  fallback <- FALSE
+  result <- withCallingHandlers(
+    do.call(eatPrepTBA::complete_design, c(fixture, list(
+      recode_omissions_to_not_reached = TRUE, preserve_not_reached = TRUE))),
+    eatPrepTBA_item_boundary_fallback = function(w) {
+      fallback <<- TRUE
+      invokeRestart("muffleWarning")
+    })
+  tibble::tibble(`Code A` = result$code_id[result$variable_id == "A"],
+                 `Score A` = result$code_score[result$variable_id == "A"],
+                 Ersatzregel = fallback)
+}
+boundary_results <- bind_rows(
+  boundary_example(), boundary_example(source = TRUE),
+  boundary_example(source = TRUE, no_coding = TRUE), boundary_example(metadata = FALSE)
+)
+stopifnot(identical(boundary_results$`Code A`, c(-96, -99, -96, -99)),
+          identical(boundary_results$Ersatzregel, c(FALSE, FALSE, FALSE, TRUE)))
+knitr::kable(bind_cols(tibble::tibble(Fall = c(
+  "B ist unabhängig, gültiger Code mit Score 1",
+  "B ist Quelle von Item C, gültiger Code mit Score 1",
+  "B ist Quelle von Item C, aber NO_CODING",
+  "Itemmetadaten fehlen, B hat gültigen Code mit Score 1"
+)), boundary_results))
+```
+
+Eine unabhängige Variable B hält A nicht bei Omission, auch wenn B Punkte hat.
+Als benötigte Quelle belegt B dagegen spätere Bearbeitung. Mit `NO_CODING`
+entfällt dieser Beitrag wieder. Fehlen die Itemmetadaten, warnt die Funktion und
+prüft ersatzweise alle Variablen der Unit außer `NO_CODING`; B hält A dann bei
+Omission. Die Warnung wird hier aufgefangen und in der Spalte „Ersatzregel“ gezeigt.
+C bleibt in allen vier Fällen MNR; keine Ableitung wird neu berechnet.
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).
