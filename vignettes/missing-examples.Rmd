@@ -418,7 +418,8 @@ C ist bereits MNR. Dazwischen liegt B mit einem Rohwert. Alle Beispiele verwende
 **O → NR: TRUE / NR behalten: TRUE**. Es gibt keine weitere Bearbeitung.
 
 ```{r item-boundary-examples, results='asis'}
-boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE) {
+boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE,
+                             unlinked = FALSE) {
   rows <- tibble::tribble(
     ~variable_id, ~value, ~code_status, ~code_id, ~code_type, ~code_score,
     "A", NA_character_, "DISPLAYED", -99, "MISSING_BY_OMISSION", 0,
@@ -432,6 +433,12 @@ boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE)
   }
   fixture <- make_fixture(rows)
   fixture$units$items_list[[1]] <- filter(fixture$units$items_list[[1]], variable_id != "B")
+  if (unlinked) {
+    fixture$units$items_list[[1]] <- bind_rows(
+      fixture$units$items_list[[1]],
+      tibble::tibble(variable_id = c(NA_character_, "B"),
+                     item_id = c("unlinked_item", NA_character_)))
+  }
   if (source) {
     codes <- fixture$units$unit_codes[[1]]
     codes$variable_source_type[3] <- "SUM_CODE"
@@ -454,15 +461,17 @@ boundary_example <- function(source = FALSE, no_coding = FALSE, metadata = TRUE)
 }
 boundary_results <- bind_rows(
   boundary_example(), boundary_example(source = TRUE),
-  boundary_example(source = TRUE, no_coding = TRUE), boundary_example(metadata = FALSE)
+  boundary_example(source = TRUE, no_coding = TRUE), boundary_example(metadata = FALSE),
+  boundary_example(unlinked = TRUE)
 )
-stopifnot(identical(boundary_results$`Code A`, c(-96, -99, -96, -99)),
-          identical(boundary_results$Ersatzregel, c(FALSE, FALSE, FALSE, TRUE)))
+stopifnot(identical(boundary_results$`Code A`, c(-96, -99, -96, -99, -96)),
+          identical(boundary_results$Ersatzregel, c(FALSE, FALSE, FALSE, TRUE, FALSE)))
 knitr::kable(bind_cols(tibble::tibble(Fall = c(
   "B ist unabhängig, gültiger Code mit Score 1",
   "B ist Quelle von Item C, gültiger Code mit Score 1",
   "B ist Quelle von Item C, aber NO_CODING",
-  "Itemmetadaten fehlen, B hat gültigen Code mit Score 1"
+  "Itemmetadaten fehlen, B hat gültigen Code mit Score 1",
+  "Zusätzliche unverknüpfte Einträge; B bleibt unabhängig"
 )), boundary_results))
 ```
 
@@ -471,6 +480,15 @@ Als benötigte Quelle belegt B dagegen spätere Bearbeitung. Mit `NO_CODING`
 entfällt dieser Beitrag wieder. Fehlen die Itemmetadaten, warnt die Funktion und
 prüft ersatzweise alle Variablen der Unit außer `NO_CODING`; B hält A dann bei
 Omission. Die Warnung wird hier aufgefangen und in der Spalte „Ersatzregel“ gezeigt.
-C bleibt in allen vier Fällen MNR; keine Ableitung wird neu berechnet.
+C bleibt in allen fünf Fällen MNR; keine Ableitung wird neu berechnet.
+
+Unverknüpfte Item- und Variableneinträge werden ohne Warnung übersprungen: Im
+fünften Beispiel ist ein zusätzliches Item ohne Variable eingetragen und B
+ohne Item-ID. Die gültigen Verknüpfungen von A und C bleiben maßgeblich. Enthält
+eine Liste Item- oder Variablen-IDs, aber keine vollständige Verknüpfung, gibt
+es keine Grenzbeiträge. Eine ganz leere Liste oder Platzhalter ohne diese IDs lösen
+dagegen wie fehlende Metadaten die Ersatzregel aus. Auch fehlende Schemaangaben
+zu unabhängigen Designvariablen lösen keine Ersatzregel aus; entscheidend sind
+die ausdrücklich verknüpften Items und ihre benötigten Quellen.
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).

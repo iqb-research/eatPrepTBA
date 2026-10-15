@@ -90,6 +90,175 @@ item_boundary_raw_units <- function(score_technical = FALSE) {
   )
 }
 
+# Build actual JSON schemes, including unscored source chains, for mapping tests.
+item_boundary_mapping_units <- function(ids, items, sources = list()) {
+  refs <- stats::setNames(paste0("ref_", ids), ids)
+  variables <- lapply(ids, function(id) {
+    derived <- id %in% names(sources)
+    list(id = unname(refs[id]), alias = id,
+      sourceType = if (derived) "COPY_VALUE" else "BASE",
+      sourceParameters = list(processing = list(), solverExpression = NULL),
+      deriveSources = if (derived) as.list(unname(refs[sources[[id]]])) else list(),
+      processing = list(), codeModel = "basic",
+      codes = if (id %in% items$variable_id[
+        !is.na(items$item_id) & nzchar(trimws(as.character(items$item_id)))
+      ] || id == "audio_5") {
+        list(list(id = 1, type = "FULL_CREDIT", score = 1,
+                  ruleSetOperatorAnd = TRUE, ruleSets = list()))
+      } else list())
+  })
+  base <- !ids %in% names(sources)
+  tibble::tibble(
+    ws_id = 1L, unit_id = 1L, unit_key = "U",
+    coding_scheme = as.character(jsonlite::toJSON(
+      list(variableCodings = variables), auto_unbox = TRUE, null = "null")),
+    unit_variables = list(tibble::tibble(
+      variable_ref = unname(refs[base]), variable_type = "text",
+      variable_format = "", variable_multiple = FALSE, variable_page = 1L
+    )),
+    variable_pages = list(tibble::tibble(
+      variable_ref = unname(refs[base]), variable_page = 1L,
+      variable_section = which(base), variable_element = which(base),
+      variable_content = NA_integer_, variable_page_always_visible = FALSE
+    )),
+    items_list = list(items)
+  )
+}
+
+test_that("real schemes use the eleven DLB017 links and ignore six unlinked items", {
+  ids <- c(sprintf("%02d", 1:11), "audio_5")
+  items <- tibble::tibble(
+    variable_id = c(NA, "01", "03", "05", NA, NA, "10", "", NA, NA,
+                    "04", "07", "09", "02", "06", "08", "11"),
+    item_id = sprintf("%02d", 1:17)
+  )
+  f <- item_boundary_fixture(c(rep("O", 11), "A"), ids = ids)
+  f$units <- item_boundary_mapping_units(ids, items)
+  expect_no_warning(out <- item_boundary_run(f))
+  expect_equal(out$code_id, c(rep(-96, 11), 1))
+  expect_equal(out$code_score, c(rep(NA_real_, 11), 1))
+  expect_identical(out$variable_position, 1:12)
+  expect_identical(out$code_status, f$coded$code_status)
+  expect_identical(out$value, f$coded$value)
+  expect_identical(add_item_id(out, f$units)$item_id,
+                   c("02", "14", "03", "11", "04", "15", "12", "16", "13", "07", "17", NA_character_))
+
+  # Ignored entries may also have stale refs or a variable without an item ID.
+  f$units$items_list[[1]]$variable_ref <- NA_character_
+  f$units$items_list[[1]]$variable_ref[c(1, 8)] <- "not_in_the_scheme"
+  f$units$items_list[[1]] <- dplyr::bind_rows(f$units$items_list[[1]],
+    tibble::tibble(variable_id = c("audio_5", "  ", "unknown"),
+                  item_id = c(NA_character_, "unused", " \t "),
+                  variable_ref = "invalid_ref"))
+  expect_no_warning(with_unlinked <- item_boundary_run(f))
+  expect_identical(with_unlinked, out)
+
+  # A genuine later item still counts under this same incomplete mapping.
+  f$coded$code_id[11] <- f$coded$code_score[11] <- 1
+  f$coded$code_type[11] <- "FULL_CREDIT"
+  f$coded$code_status[11] <- "CODING_COMPLETE"
+  expect_no_warning(answered <- item_boundary_run(f))
+  expect_equal(answered$code_id, c(rep(-99, 10), 1, 1))
+})
+
+test_that("actual prepared schemes retain unmapped direct and indirect item sources", {
+  ids <- c("Earlier", "Part", "Intermediate", "Total", "audio_5")
+  items <- tibble::tibble(variable_id = c("Earlier", "Total", "Part", NA_character_),
+                         item_id = c("I1", "I2", NA_character_, "unlinked"))
+  f <- item_boundary_fixture(c("O", "A", "NR", "NR", "A"), ids = ids)
+  f$units <- item_boundary_mapping_units(ids, items,
+    sources = list(Intermediate = "Part", Total = "Intermediate"))
+  expect_no_warning(prepared <- suppressMessages(add_coding_scheme(f$units)))
+  codes <- prepared$unit_codes[[1]]
+  total <- codes$variable_sources[[match("Total", codes$variable_id)]]
+  expect_setequal(total$variable_source_id, c("Part", "Intermediate"))
+  expect_setequal(total$variable_source_id[total$variable_source_direct], "Intermediate")
+  expect_no_warning(out <- item_boundary_run(f))
+  expect_equal(item_boundary_row(out, "Earlier")$code_id, -99)
+  expect_true(is.na(add_item_id(out, f$units)$item_id[out$variable_id == "Part"]))
+
+  f$coded$code_type[2] <- "NO_CODING"
+  f$coded$code_status[2] <- "NO_CODING"
+  f$coded$code_id[2] <- -93
+  f$coded$code_score[2] <- NA_real_
+  expect_no_warning(neutral <- item_boundary_run(f))
+  expect_equal(item_boundary_row(neutral, "Earlier")$code_id, -96)
+  expect_equal(item_boundary_row(neutral, "Part")$code_id, -93)
+})
+
+test_that("real but wholly unlinked item lists contribute no boundary even without a scheme", {
+  lists <- list(
+    tibble::tibble(variable_id = c(NA_character_, "", " \t "), item_id = c("I1", "I2", "I3")),
+    tibble::tibble(variable_id = c("ItemBefore", "audio_5", "ItemAfter"), item_id = c(NA_character_, "", " "))
+  )
+  for (items in lists) {
+    f <- item_boundary_fixture(c("O", "A", "NR"), ids = c("ItemBefore", "audio_5", "ItemAfter"))
+    f$units <- item_boundary_raw_units(score_technical = TRUE)
+    f$units$items_list <- list(items)
+    expect_no_warning(out <- item_boundary_run(f))
+    expect_equal(out$code_id, c(-96, 1, -96))
+    expect_no_warning(prepared <- suppressMessages(add_coding_scheme(f$units)))
+    prepared$unit_codes[1] <- list(NULL)
+    f$units <- prepared
+    expect_no_warning(no_scheme <- item_boundary_run(f))
+    expect_equal(no_scheme$code_id, c(-96, 1, -96))
+    expect_true(all(is.na(no_scheme$variable_position)))
+  }
+})
+
+test_that("missing or wholly empty mappings still fall back with actual prepared schemes", {
+  empty <- tibble::tibble(variable_id = character(), item_id = character())
+  lists <- list(NULL, empty,
+    tibble::tibble(variable_id = NA_character_, item_id = NA_character_),
+    tibble::tibble(variable_id = c("", " \t "), item_id = c(NA_character_, "")))
+  for (items in lists) {
+    f <- item_boundary_fixture(c("O", "A", "NR"), ids = c("ItemBefore", "audio_5", "ItemAfter"))
+    f$units <- item_boundary_raw_units(score_technical = TRUE)
+    f$units$items_list <- list(items)
+    captured <- item_boundary_capture(f)
+    expect_length(captured$warnings, 1L)
+    expect_s3_class(captured$warnings[[1]], "eatPrepTBA_item_boundary_fallback")
+    expect_equal(captured$result$code_id, c(-99, 1, -96))
+  }
+})
+
+test_that("actual prepared schemes need not describe independent design variables", {
+  ids <- c("Earlier", "Later", "audio_5")
+  items <- tibble::tibble(variable_id = c("Earlier", "Later"), item_id = c("I1", "I2"))
+  f <- item_boundary_fixture(c("O", "NR", "A"), ids = ids)
+  f$units <- item_boundary_mapping_units(ids[1:2], items)
+  expect_no_warning(prepared <- suppressMessages(add_coding_scheme(f$units)))
+  expect_no_warning(membership <- complete_design_boundary(prepared, f$design))
+  expect_identical(membership$.completion_boundary, c(TRUE, TRUE, FALSE))
+  expect_no_warning(out <- item_boundary_run(f))
+  expect_equal(out$code_id, c(-96, -96, 1))
+  expect_true(is.na(item_boundary_row(out, "audio_5")$variable_position))
+  expect_identical(out$code_status, f$coded$code_status)
+})
+
+test_that("irrelevant malformed schema rows do not invalidate reliable item links", {
+  f <- item_boundary_fixture(c("O", "A", "A"), items = 1)
+  codes <- f$units$unit_codes[[1]]
+  for (bad_ids in list(c("V2", "V2"), c(NA_character_, ""))) {
+    codes$variable_id[2:3] <- bad_ids
+    codes$variable_ref[2:3] <- "duplicate_unrelated_ref"
+    codes$variable_source_type[2:3] <- "COPY_VALUE"
+    codes$variable_sources[2:3] <- rep(list(tibble::tibble(variable_source_ref = "absent")), 2)
+    expect_identical(complete_design_item_sources(codes, f$units$items_list[[1]], f$design$variable_id),
+                     c(TRUE, FALSE, FALSE))
+  }
+
+  # Ambiguity still matters when the duplicate is an actual target or source.
+  codes <- f$units$unit_codes[[1]]
+  codes$variable_id[2] <- "V1"
+  expect_type(complete_design_item_sources(codes, f$units$items_list[[1]], f$design$variable_id), "character")
+  codes <- f$units$unit_codes[[1]]
+  codes$variable_id[3] <- "V2"
+  codes$variable_source_type[1] <- "COPY_VALUE"
+  codes$variable_sources[[1]] <- tibble::tibble(variable_source_id = "V2")
+  expect_type(complete_design_item_sources(codes, f$units$items_list[[1]], f$design$variable_id), "character")
+})
+
 test_that("real scheme preparation retains technical zero omissions between mapped items", {
   f <- item_boundary_fixture(c("A", "O", "A"), items = c(1, 3),
                              ids = c("ItemBefore", "audio_5", "ItemAfter"))
@@ -303,8 +472,8 @@ test_that("unreliable metadata falls back for the whole unit with one warning", 
     },
     malformed_items = function(f) { f$units$items_list[[1]] <- tibble::tibble(other = "V1"); f },
     unknown_item_variable = function(f) { f$units$items_list[[1]]$variable_id <- "absent"; f },
-    unknown_design_variable = function(f) {
-      f$units$unit_codes[[1]] <- f$units$unit_codes[[1]][c(1, 3), ]; f
+    missing_mapped_variable = function(f) {
+      f$units$unit_codes[[1]] <- f$units$unit_codes[[1]][c(2, 3), ]; f
     },
     conflicting_items = function(f) {
       f$units$items_list[[1]] <- tibble::tibble(variable_id = c("V1", "V1"), item_id = c("I1", "I2")); f
@@ -344,7 +513,10 @@ test_that("unreliable metadata falls back for the whole unit with one warning", 
       expect_s3_class(result$warnings[[1]], "eatPrepTBA_item_boundary_fallback")
       expect_match(conditionMessage(result$warnings[[1]]), "U", fixed = TRUE, info = name)
     }
-    expect_equal(item_boundary_row(result$result, "V1")$code_id, -99, info = name)
+    # Missing coding metadata also removes that variable's position; fallback
+    # cannot reconstruct it and preserves the existing missing-position rule.
+    expected <- if (name == "missing_mapped_variable") -96 else -99
+    expect_equal(item_boundary_row(result$result, "V1")$code_id, expected, info = name)
   }
 })
 

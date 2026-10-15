@@ -23,10 +23,16 @@
 #' can establish the not-reached boundary. Own scores and variable names do not
 #' establish item relevance. After the existing code normalization, `NO_CODING`
 #' never establishes this boundary, even for items or their sources.
-#' Missing, empty, conflicting item metadata or unresolvable required sources
-#' cause a unit-wide fallback: all variables in that unit may establish the
-#' boundary except `NO_CODING`. One aggregated warning identifies affected units.
-#' An empty item list cannot distinguish an item-free unit from missing metadata.
+#' Rows with a missing or blank `item_id` or `variable_id` are ignored without
+#' warning; whitespace-only values are also blank. An item list with nonblank
+#' item or variable identifiers but no complete links provides no boundary
+#' contributors. Missing or empty metadata, all-blank placeholders, conflicting
+#' complete links, or unresolvable required sources cause a unit-wide fallback:
+#' all variables in that unit may establish the boundary except `NO_CODING`.
+#' One aggregated warning identifies affected units. Unrelated design variables
+#' absent from coding metadata do not themselves trigger this fallback. Empty
+#' lists and all-blank placeholders cannot distinguish an item-free unit from
+#' missing metadata.
 #' This selection affects only the boundary. All design rows still receive the
 #' existing missing treatment; values, technical statuses, `id_used`, and the
 #' full-metadata ordering retain their previous treatment. Source evidence is

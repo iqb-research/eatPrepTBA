@@ -47,9 +47,13 @@ complete_design_item_sources <- function(codes, items, design_ids) {
   if (!all(c("variable_id", "item_id") %in% names(items))) {
     return("incomplete item metadata")
   }
-  if (any(missing_key(items$variable_id) | missing_key(items$item_id))) {
-    return("empty or incomplete item mapping")
-  }
+  has_variable <- !missing_key(items$variable_id)
+  has_item <- !missing_key(items$item_id)
+  # Missing metadata is represented by an empty placeholder by read_items_list().
+  if (!any(has_variable | has_item)) return("item metadata contains only empty placeholders")
+  # Unlinked entries are intentional. Only complete pairs start the source search.
+  items <- items[has_variable & has_item, , drop = FALSE]
+  if (!nrow(items)) return(rep(FALSE, length(design_ids)))
   mapping <- unique(data.frame(variable_id = as.character(items$variable_id),
                                item_id = as.character(items$item_id)))
   if (anyDuplicated(mapping$variable_id)) return("conflicting item mapping")
@@ -57,17 +61,16 @@ complete_design_item_sources <- function(codes, items, design_ids) {
     return("coding metadata missing")
   }
   ids <- as.character(codes$variable_id)
-  if (any(missing_key(ids)) || anyDuplicated(ids)) {
-    return("missing or ambiguous variable identifiers")
-  }
-  targets <- match(mapping$variable_id, ids)
-  if (anyNA(targets) || anyNA(match(design_ids, ids))) {
-    return("item or design variables absent from coding metadata")
+  id_keys <- ids
+  id_keys[missing_key(ids) | duplicated(ids) | duplicated(ids, fromLast = TRUE)] <- NA_character_
+  targets <- match(mapping$variable_id, id_keys)
+  if (anyNA(targets)) {
+    return("mapped item variables missing or ambiguous in coding metadata")
   }
   refs <- if ("variable_ref" %in% names(codes)) as.character(codes$variable_ref) else NULL
   ref_keys <- refs
   if (!is.null(ref_keys)) {
-    ref_keys[duplicated(refs) | duplicated(refs, fromLast = TRUE)] <- NA_character_
+    ref_keys[missing_key(refs) | duplicated(refs) | duplicated(refs, fromLast = TRUE)] <- NA_character_
   }
   resolve <- function(values, lookup) {
     values <- as.character(unlist(values, use.names = FALSE))
@@ -80,7 +83,7 @@ complete_design_item_sources <- function(codes, items, design_ids) {
   if ("variable_ref" %in% names(items) && !is.null(refs)) {
     present <- !missing_key(items$variable_ref)
     by_ref <- match(as.character(items$variable_ref[present]), ref_keys)
-    by_id <- match(as.character(items$variable_id[present]), ids)
+    by_id <- match(as.character(items$variable_id[present]), id_keys)
     if (anyNA(by_ref) || any(by_ref != by_id)) return("conflicting item references")
   }
 
@@ -92,6 +95,7 @@ complete_design_item_sources <- function(codes, items, design_ids) {
   while (head <= length(queue)) {
     i <- queue[head]
     head <- head + 1L
+    if (is.na(id_keys[i])) return("missing or ambiguous required variable identifiers")
     type <- if ("variable_source_type" %in% names(codes)) codes$variable_source_type[i] else NA_character_
     # Prepared BASE rows may carry synthetic NA source rows, not dependencies.
     if (type %in% c("BASE", "BASE_NO_VALUE")) next
@@ -110,11 +114,11 @@ complete_design_item_sources <- function(codes, items, design_ids) {
         # IDs may be omitted, but a supplied conflicting ID is not safe to ignore.
         if (!is.null(resolved) && has_id) {
           present <- !missing_key(src$variable_source_id)
-          by_id <- match(as.character(src$variable_source_id[present]), ids)
+          by_id <- match(as.character(src$variable_source_id[present]), id_keys)
           by_ref <- match(as.character(src$variable_source_ref[present]), ref_keys)
           if (anyNA(by_id) || any(by_id != by_ref)) return("conflicting source identifiers")
         }
-      } else if (has_id) resolved <- resolve(src$variable_source_id, ids)
+      } else if (has_id) resolved <- resolve(src$variable_source_id, id_keys)
     } else if (length(src) == 0L || (is.data.frame(src) && !nrow(src))) {
       if ("derive_sources" %in% names(codes)) {
         resolved <- resolve(codes$derive_sources[[i]], ref_keys)
@@ -140,5 +144,6 @@ complete_design_item_sources <- function(codes, items, design_ids) {
     head <- head + 1L
   }
   if (any(remaining[included] > 0L)) return("cyclic source relationships")
-  included[match(design_ids, ids)]
+  # Unrelated design variables need not occur in the coding metadata.
+  as.character(design_ids) %in% ids[included]
 }

@@ -214,11 +214,20 @@ dagegen auch mit gültigem Code oder Score keine Grenze; eigene Bewertungscodes
 und Variablennamen sind kein Auswahlkriterium. **`NO_CODING` zählt nie als
 Grenzbeitrag**, auch nicht bei einem Item oder einer benötigten Quelle.
 
-Fehlen für eine Unit verwertbare Itemzuordnungen, sind Zuordnungen unklar oder
-benötigte Quellen nicht eindeutig auflösbar, meldet die Funktion dies gesammelt
-als Warnung. Für diese Units gilt als Ersatz die bisherige Prüfung über alle
-Variablen, weiterhin ohne `NO_CODING`. Das betrifft auch leere Itemlisten,
-weil sie nicht zuverlässig von fehlenden Metadaten unterschieden werden können.
+**Unverknüpfte Einträge sind zulässig.** Fehlt in einer Zeile `item_id` oder
+`variable_id` (`NA`, leere Zeichenfolge oder nur Leerzeichen), wird diese Zeile
+ohne Warnung übersprungen. Quellen brauchen keine eigene Itemzuordnung. Enthält
+eine Liste Item- oder Variablen-IDs, aber keine vollständige Verknüpfung,
+trägt die Unit nicht zur Grenze bei.
+
+Fehlen dagegen die Itemmetadaten, widersprechen sich vollständige Zuordnungen
+oder sind benötigte Itemvariablen oder Quellen nicht eindeutig auflösbar,
+meldet die Funktion dies gesammelt als Warnung. Für diese Units gilt als Ersatz
+die bisherige Prüfung über alle Variablen, weiterhin ohne `NO_CODING`. Das
+betrifft auch leere Listen und Platzhalter ohne Item- und Variablen-IDs, weil sie nicht
+zuverlässig von fehlenden Metadaten unterschieden werden können. Eine
+unverknüpfte Designvariable, die im Schema fehlt und auch keine benötigte Quelle
+ist, löst dagegen keine Ersatzregel aus.
 
 **Die Missing-Zuweisung selbst bleibt für alle Designzeilen aktiv.** Technische
 Variablen können deshalb weiterhin Omission/0 oder MNR/`NA` erhalten. Alle Zeilen
