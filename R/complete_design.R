@@ -18,6 +18,26 @@
 #' This function automatically completes missings for coded responses.
 #'
 #' @details
+#' Only variables explicitly linked to items in `items_list` (or `item_metadata`
+#' when `items_list` is absent), and their direct and indirect source variables,
+#' can establish the not-reached boundary. Own scores and variable names do not
+#' establish item relevance. After the existing code normalization, `NO_CODING`
+#' never establishes this boundary, even for items or their sources.
+#' Rows with a missing or blank `item_id` or `variable_id` are ignored without
+#' warning; whitespace-only values are also blank. An item list with nonblank
+#' item or variable identifiers but no complete links provides no boundary
+#' contributors. Missing or empty metadata, all-blank placeholders, conflicting
+#' complete links, or unresolvable required sources cause a unit-wide fallback:
+#' all variables in that unit may establish the boundary except `NO_CODING`.
+#' One aggregated warning identifies affected units. Unrelated design variables
+#' absent from coding metadata do not themselves trigger this fallback. Empty
+#' lists and all-blank placeholders cannot distinguish an item-free unit from
+#' missing metadata.
+#' This selection affects only the boundary. All design rows still receive the
+#' existing missing treatment; values, technical statuses, `id_used`, and the
+#' full-metadata ordering retain their previous treatment. Source evidence is
+#' evaluated at the source's own position, not the derived item's position.
+#'
 #' Within each unit, base variables are ordered by numeric page, numeric section,
 #' and natural variable name (for example, `V2` precedes `V10`). Missing sections
 #' follow known sections on the same page. Variables without a finite page follow
@@ -33,8 +53,8 @@
 #' booklet, and testlet, including positions within a partly answered unit.
 #' Existing valid, invalid, and technical-error results retain their previous
 #' treatment; derived results are not reclassified from their source variables.
-#' A valid derived result contributes to the reached boundary and can therefore
-#' turn preceding not-reached sources into omissions unless
+#' A valid derived result included in the boundary can turn preceding
+#' not-reached sources into omissions unless
 #' `preserve_not_reached = TRUE`. Derived missing codes still
 #' follow the usual missing rules; no derivation is recalculated.
 #' Newly completed rows retain `NA` in `code_status`.
@@ -116,6 +136,7 @@ complete_design <- function(coded,
   if (recode_omissions_to_not_reached) {
     not_reached_tail_types <- c(not_reached_tail_types, "MISSING_BY_OMISSION")
   }
+  boundary_neutral_types <- c(not_reached_tail_types, "NO_CODING")
 
   cli_setting()
 
@@ -143,6 +164,18 @@ complete_design <- function(coded,
       "variable_level", "variable_page", "variable_section", "variable_page_always_visible",
       ".completion_position"
     )))
+
+  # Preserve joins for absent schemes; membership then falls back for that unit.
+  if (!"variable_id" %in% names(units_cs_merge)) {
+    units_cs_merge$variable_id <- design$variable_id[rep(NA_integer_, nrow(units_cs_merge))]
+  }
+  if (!".completion_position" %in% names(units_cs_merge)) {
+    units_cs_merge$.completion_position <- rep(NA_integer_, nrow(units_cs_merge))
+  }
+  units_cs_merge <- dplyr::full_join(
+    units_cs_merge, complete_design_boundary(units_cs, design),
+    by = dplyr::join_by(unit_key, variable_id)
+  )
 
   # Merge codes and design
   design_coded <-
@@ -218,9 +251,11 @@ complete_design <- function(coded,
       ))
     )) %>%
     dplyr::summarise(
-      not_reach = all(code_type %in% not_reached_tail_types | is.na(code_type)),
+      not_reach = all(!.data$.completion_boundary |
+                       code_type %in% boundary_neutral_types | is.na(code_type)),
       last_position = max(c(0L, .data$.completion_position[
-        !(code_type %in% not_reached_tail_types | is.na(code_type))
+        .data$.completion_boundary &
+          !(code_type %in% boundary_neutral_types | is.na(code_type))
       ]), na.rm = TRUE),
       .groups = "drop"
     )
@@ -287,7 +322,7 @@ complete_design <- function(coded,
     dplyr::select(
       -dplyr::any_of(c(
         "not_reach", "nr", "lag_nr", "check_nr", "last_position",
-        "missing_code_id", "missing_code_score"
+        "missing_code_id", "missing_code_score", ".completion_boundary"
       ))
     ) %>%
     dplyr::rename(variable_position = ".completion_position")
@@ -335,7 +370,7 @@ complete_design_positions <- function(codes) {
     if (is.data.frame(src) && nrow(src)) {
       if ("variable_source_direct" %in% names(src)) {
         direct <- src$variable_source_direct
-        if (anyNA(direct)) next
+        if (!is.logical(direct) || anyNA(direct)) next
         if (any(direct)) src <- src[direct, , drop = FALSE]
       }
       sources[[i]] <- if ("variable_source_ref" %in% names(src) && !is.null(refs)) {

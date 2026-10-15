@@ -28,15 +28,24 @@ unit_order_fixture <- function(types = c("O", "A", "O")) {
     testlet_no = 1L, unit_booklet_no = 1L, unit_key = "U1",
     unit_alias = "first", variable_id = ids
   )
-  list(units = tibble::tibble(unit_key = "U1", unit_codes = list(codes)),
+  list(units = tibble::tibble(
+    unit_key = "U1", unit_codes = list(codes),
+    items_list = list(tibble::tibble(variable_id = ids, item_id = paste0("I", seq_along(ids))))
+  ),
        design = design, coded = unit_order_coded(design, types))
 }
 
-unit_order_complete <- function(f, recode = FALSE, ...) {
-  suppressMessages(complete_design(
+unit_order_complete <- function(f, recode = FALSE, expect_fallback = FALSE, ...) {
+  boundary_warnings <- character()
+  out <- withCallingHandlers(suppressMessages(complete_design(
     f$coded, f$units, f$design, identifiers = "login_code",
     recode_omissions_to_not_reached = recode, ...
-  ))
+  )), eatPrepTBA_item_boundary_fallback = function(w) {
+    boundary_warnings <<- c(boundary_warnings, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  expect_length(boundary_warnings, as.integer(expect_fallback))
+  out
 }
 
 unit_order_values <- function(out, f, column = "code_id") {
@@ -152,6 +161,10 @@ test_that("derived valid and invalid results retain the historical treatment", {
   f$units$unit_codes[[1]]$variable_source_type <- c("BASE", "SUM", "SUM")
   f$units$unit_codes[[1]]$variable_level <- c(0L, 1L, 1L)
   f$units$unit_codes[[1]]$variable_page <- 1:3
+  f$units$unit_codes[[1]]$variable_sources <- list(
+    tibble::tibble(), tibble::tibble(variable_source_id = "V2"),
+    tibble::tibble(variable_source_id = "V2")
+  )
   for (recode in c(FALSE, TRUE)) {
     out <- unit_order_complete(f, recode)
     expect_equal(unit_order_values(out, f), c(-99, 1, -98))
@@ -245,7 +258,8 @@ test_that("variable positions are recalculated instead of using input columns", 
 test_that("variables absent from unit metadata have an unknown position", {
   f <- unit_order_fixture(c("A", "NR", "NR"))
   f$units$unit_codes[[1]] <- f$units$unit_codes[[1]][1:2, ]
-  out <- unit_order_complete(f)
+  # V11 is still mapped to an item, so missing metadata requires the unit fallback.
+  out <- unit_order_complete(f, expect_fallback = TRUE)
   expect_identical(out$variable_id, c("V2", "V10", "V11"))
   expect_identical(out$variable_position, c(1L, 2L, NA_integer_))
   expect_equal(out$code_id, c(1, -96, -96))

@@ -206,6 +206,23 @@ aus dem Design. Es unterscheidet nicht erreichte Variablen am Ende von
 Auslassungen vor einer späteren Bearbeitung – getrennt je Person, Testheft
 und Testlet (Testabschnitt).
 
+**Als Bearbeitung zählen nur Items und ihre Quellen.** Maßgeblich sind die
+Item-Verknüpfungen in `units`. Quellen sind die Variablen, aus denen ein Item
+berechnet wird, auch über mehrere Schritte. Sie brauchen weder eine eigene
+Itemzuordnung noch eigene Punkte. **`NO_CODING` zählt nie als Bearbeitung.**
+
+Unverknüpfte Einträge in der Itemliste sind normal und werden übersprungen. Eine
+vorhandene Liste mit ausschließlich unverknüpften Einträgen trägt deshalb
+nichts zur Grenze bei. Fehlen dagegen die Metadaten ganz, widersprechen sie
+sich oder fehlt eine benötigte Variable im Schema, gibt es eine Warnung:
+Für die betroffene Unit dürfen dann alle Variablen außer `NO_CODING` zählen.
+Das gilt auch bei ganz leeren Listen und reinen NA-Platzhaltern.
+
+**Missings werden weiterhin für alle Designzeilen vergeben**, auch für
+technische Variablen: Eine Auslassung vor einer späteren relevanten Bearbeitung bleibt bei
+0 Punkten. Eine Auslassung nach der letzten Bearbeitung wird mit **O → NR: TRUE**
+zu Not reached mit `NA`. Ein Rohwert wie `"0"` entscheidet das nicht.
+
 Bereits als Auslassung kodierte Antworten bleiben mit
 **`recode_omissions_to_not_reached = FALSE`** Auslassungen.
 Setze diese Option auf **`TRUE`**, wenn auch abschließende Auslassungen als
@@ -218,18 +235,20 @@ einer späteren Bearbeitung zur Auslassung wird. Das gilt auch für ergänzte
 Designzeilen, noch fehlende Codes bei Status `NOT_REACHED` oder `NA` und
 NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt erhalten.
 Beide Optionen sind unabhängig und stehen standardmäßig auf `FALSE`.
+Für die Referenzstudien setzen wir hier beide auf `TRUE`.
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design,
-                                recode_omissions_to_not_reached = FALSE,
-                                preserve_not_reached = FALSE)
+                                recode_omissions_to_not_reached = TRUE,
+                                preserve_not_reached = TRUE)
 
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
 ```
 
 `id_used` ist `TRUE`, wenn eine Person mindestens einen gespeicherten
-Kodierstatus hat. Der Filter übernimmt diese Personen in `analysis_data`.
+Kodierstatus hat, auch bei einer technischen Variable. Der Filter übernimmt
+diese Personen in `analysis_data`.
 
 Innerhalb einer Unit gilt **Seite → Abschnitt → natürlicher Variablenname**
 (z. B. `V2` vor `V10`). Ableitungen mit eindeutig zugeordneten Quellen folgen
@@ -238,7 +257,8 @@ direkt ihrer letzten Quelle, auch bei mehrstufigen Ableitungen.
 Positionslücken enthalten; ohne passende Variablenmetadaten steht hier `NA`.
 
 **Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges Ergebnis
-zählt aber als Bearbeitung: Mit `preserve_not_reached = FALSE` wird eine davor
+zählt als Bearbeitung, wenn es zu einem Item oder dessen Quellen gehört
+(oder die Ersatzregel für die Unit gilt): Mit `preserve_not_reached = FALSE` wird eine davor
 liegende Not-reached-Quelle zur Auslassung mit 0 Punkten; mit `TRUE` bleibt sie
 Not reached. `code_status` bleibt dabei unverändert;
 Missing-Art und Punktzahl stehen in `code_type` und `code_score`.

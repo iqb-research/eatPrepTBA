@@ -36,15 +36,24 @@ source_order_fixture <- function(ids, sources = list(), types = rep("A", length(
       code_type = unname(type_map[types]), code_id = unname(id_map[types]),
       code_status = unname(status_map[types]), code_score = unname(score_map[types])
     )
-  list(units = tibble::tibble(unit_key = "U1", unit_codes = list(codes)),
+  list(units = tibble::tibble(
+    unit_key = "U1", unit_codes = list(codes),
+    items_list = list(tibble::tibble(variable_id = ids, item_id = paste0("I", seq_along(ids))))
+  ),
        design = design, coded = coded)
 }
 
-source_order_complete <- function(f, recode = FALSE) {
-  suppressMessages(complete_design(
+source_order_complete <- function(f, recode = FALSE, expect_fallback = FALSE) {
+  boundary_warnings <- character()
+  out <- withCallingHandlers(suppressMessages(complete_design(
     f$coded, f$units, f$design, identifiers = "login_code",
     recode_omissions_to_not_reached = recode
-  ))
+  )), eatPrepTBA_item_boundary_fallback = function(w) {
+    boundary_warnings <<- c(boundary_warnings, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  expect_length(boundary_warnings, as.integer(expect_fallback))
+  out
 }
 
 source_order_ids <- function(out, ids, column = "code_id") {
@@ -149,12 +158,12 @@ test_that("missing source metadata uses positional fallback without inferring na
       codes$variable_sources[[1]] <- tibble::tibble(variable_source_ref = "duplicate_reference")
     }
     f$units$unit_codes[[1]] <- codes
-    expect_equal(source_order_complete(f)$variable_id, ids, info = kind)
+    expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, ids, info = kind)
   }
 
   # Fallback still honours an existing page and section, including inherited pages.
   f$units$unit_codes[[1]]$variable_page[[1]] <- 2
-  expect_equal(source_order_complete(f)$variable_id, c("01a", "01b", "02", "01"))
+  expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("01a", "01b", "02", "01"))
 })
 
 test_that("derive_sources is a fallback for absent or empty prepared source lists", {
@@ -175,13 +184,13 @@ test_that("derive_sources is a fallback for absent or empty prepared source list
     variable_source_ref = c(codes$variable_ref[[2]], "unknown_reference")
   )
   f$units$unit_codes[[1]] <- codes
-  expect_equal(source_order_complete(f)$variable_id, c("01", "01a", "01b", "02"))
+  expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("01", "01a", "01b", "02"))
 
   # Nonempty malformed entries are not equivalent to absent source metadata.
   for (entry in list("unknown_reference", list(variable_source_ref = "unknown_reference"))) {
     codes$variable_sources[[1]] <- entry
     f$units$unit_codes[[1]] <- codes
-    expect_equal(source_order_complete(f)$variable_id, c("01", "01a", "01b", "02"))
+    expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("01", "01a", "01b", "02"))
   }
 })
 
@@ -210,15 +219,15 @@ test_that("direct-source flags separate immediate dependencies from the expanded
 test_that("cycles fall back to positions without blocking independent derivations", {
   f <- source_order_fixture(c("A", "D", "X", "Y", "Z"),
     sources = list(D = "X", X = "Y", Y = "X", Z = "A"))
-  expect_equal(source_order_complete(f)$variable_id, c("A", "Z", "D", "X", "Y"))
+  expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("A", "Z", "D", "X", "Y"))
 
   f <- source_order_fixture(c("D", "B", "E"), sources = list(D = "D", E = "B"))
-  expect_equal(source_order_complete(f)$variable_id, c("B", "E", "D"))
+  expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("B", "E", "D"))
 
   # A known dependency on a variable with missing source metadata is still usable.
   f <- source_order_fixture(c("D", "B", "A"),
     sources = list(D = character(), A = "D"))
-  expect_equal(source_order_complete(f)$variable_id, c("B", "D", "A"))
+  expect_equal(source_order_complete(f, expect_fallback = TRUE)$variable_id, c("B", "D", "A"))
 })
 
 test_that("sources never resolve against variables of another unit", {
@@ -233,7 +242,7 @@ test_that("sources never resolve against variables of another unit", {
   f <- list(units = dplyr::bind_rows(first$units, second$units),
             design = dplyr::bind_rows(first$design, second$design),
             coded = dplyr::bind_rows(first$coded, second$coded))
-  out <- source_order_complete(f)
+  out <- source_order_complete(f, expect_fallback = TRUE)
   expect_equal(out$variable_id[out$unit_key == "U1"], c("01", "A"))
   expect_equal(out$variable_id[out$unit_key == "U2"], c("external", "01"))
   expect_identical(out$variable_position, c(1:2, 1:2))
@@ -261,6 +270,7 @@ source_order_raw_units <- function() {
   })
   tibble::tibble(
     ws_id = 1L, unit_id = 1L, unit_key = "U1",
+    items_list = list(tibble::tibble(variable_id = c("01", "02"), item_id = c("I1", "I2"))),
     coding_scheme = as.character(jsonlite::toJSON(
       list(variableCodings = variables), auto_unbox = TRUE, null = "null")),
     unit_variables = list(tibble::tibble(
