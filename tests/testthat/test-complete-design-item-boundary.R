@@ -58,6 +58,92 @@ item_boundary_row <- function(result, id, key = "U") {
   result[result$variable_id == id & result$unit_key == key, , drop = FALSE]
 }
 
+item_boundary_raw_units <- function(score_technical = FALSE) {
+  ids <- c("ItemBefore", "audio_5", "ItemAfter")
+  refs <- c("answer_before", "play_count", "answer_after")
+  variables <- lapply(seq_along(ids), function(i) {
+    list(id = refs[i], alias = ids[i], sourceType = "BASE",
+      sourceParameters = list(processing = list(), solverExpression = NULL),
+      deriveSources = list(), processing = list(), codeModel = "basic",
+      codes = if (i != 2L || score_technical) {
+        list(list(id = 1, type = "FULL_CREDIT", score = 1,
+                  ruleSetOperatorAnd = TRUE, ruleSets = list()))
+      } else list())
+  })
+  tibble::tibble(
+    ws_id = 1L, unit_id = 1L, unit_key = "U",
+    coding_scheme = as.character(jsonlite::toJSON(
+      list(variableCodings = variables), auto_unbox = TRUE, null = "null")),
+    unit_variables = list(tibble::tibble(
+      variable_ref = refs, variable_type = c("text", "integer", "text"),
+      variable_format = "", variable_multiple = FALSE, variable_page = 1L
+    )),
+    variable_pages = list(tibble::tibble(
+      variable_ref = refs, variable_page = 1L, variable_section = 1:3,
+      variable_element = 1:3, variable_content = NA_integer_,
+      variable_page_always_visible = FALSE
+    )),
+    items_list = list(tibble::tibble(
+      variable_id = ids[c(1, 3)], variable_ref = refs[c(1, 3)],
+      item_id = c("I1", "I2")
+    ))
+  )
+}
+
+test_that("real scheme preparation retains technical zero omissions between mapped items", {
+  f <- item_boundary_fixture(c("A", "O", "A"), items = c(1, 3),
+                             ids = c("ItemBefore", "audio_5", "ItemAfter"))
+  # No prebuilt unit_codes: complete_design must prepare the actual JSON scheme.
+  f$units <- item_boundary_raw_units()
+  f$coded$value[2] <- "0"
+  for (supplied_omission in c(FALSE, TRUE)) {
+    f$coded$code_id[2] <- if (supplied_omission) -99 else NA_real_
+    f$coded$code_type[2] <- if (supplied_omission) "MISSING_BY_OMISSION" else NA_character_
+    f$coded$code_score[2] <- if (supplied_omission) 0 else NA_real_
+    for (recode in c(FALSE, TRUE)) for (preserve in c(FALSE, TRUE)) {
+      expect_no_warning(out <- item_boundary_run(f, recode, preserve))
+      expect_identical(out$variable_id, f$design$variable_id)
+      expect_identical(out$variable_position, 1:3)
+      expect_equal(out$code_id, c(1, -99, 1))
+      expect_equal(out$code_score, c(1, 0, 1))
+      expect_identical(out$code_type, c("FULL_CREDIT", "MISSING_BY_OMISSION", "FULL_CREDIT"))
+      expect_identical(out$value, f$coded$value)
+      expect_identical(out$code_status, f$coded$code_status)
+      expect_identical(add_item_id(out, f$units)$item_id, c("I1", NA_character_, "I2"))
+    }
+  }
+  # The same raw zero with a genuine NO_CODING status remains unscored.
+  f$coded$code_status[2] <- "NO_CODING"
+  f$coded$code_type[2] <- NA_character_
+  f$coded$code_id[2] <- f$coded$code_score[2] <- NA_real_
+  expect_no_warning(out <- item_boundary_run(f))
+  technical <- item_boundary_row(out, "audio_5")
+  expect_equal(technical$code_id, -93)
+  expect_identical(technical$code_type, "NO_CODING")
+  expect_true(is.na(technical$code_score))
+  expect_identical(technical$value, "0")
+  expect_identical(technical$code_status, "NO_CODING")
+})
+
+test_that("real scheme preparation excludes independent scored technical variables from the boundary", {
+  f <- item_boundary_fixture(c("O", "A", "NR"), items = c(1, 3),
+                             ids = c("ItemBefore", "audio_5", "ItemAfter"))
+  f$units <- item_boundary_raw_units(score_technical = TRUE)
+  f$coded$value[2] <- "1"
+  expect_no_warning(out <- item_boundary_run(f))
+  expect_equal(out$code_id, c(-96, 1, -96))
+  expect_equal(out$code_score, c(NA_real_, 1, NA_real_))
+  expect_identical(out$code_status, f$coded$code_status)
+  expect_identical(out$value, f$coded$value)
+
+  # Only changing the mapping makes that same later response protect the omission.
+  f$units$items_list[[1]] <- dplyr::bind_rows(f$units$items_list[[1]],
+    tibble::tibble(variable_id = "audio_5", variable_ref = "play_count", item_id = "I3"))
+  expect_no_warning(mapped <- item_boundary_run(f))
+  expect_equal(mapped$code_id, c(-99, 1, -96))
+  expect_equal(mapped$code_score, c(0, 1, NA_real_))
+})
+
 test_that("only mapped items contribute boundaries under all missing options", {
   f <- item_boundary_fixture(c("NR", "O", "A"), items = 1:2)
   for (recode in c(FALSE, TRUE)) for (preserve in c(FALSE, TRUE)) {
