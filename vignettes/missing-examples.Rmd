@@ -94,8 +94,13 @@ make_fixture <- function(rows) {
       codes$derive_sources <- list(character(), "ref_01a", "ref_01b",
                                   character(), "ref_fehlt")
     }
-    items <- tibble::tibble(variable_id = ids,
-      item_id = paste0(key, "_", ids), item_no = seq_along(ids))
+    item_ids <- ids
+    if (rows$case_id[[1L]] == 15L) item_ids <- setdiff(ids, "V01")
+    if (rows$case_id[[1L]] %in% c(17L, 18L)) {
+      item_ids <- setdiff(ids, c("01a", "01b"))
+    }
+    items <- tibble::tibble(variable_id = item_ids,
+      item_id = paste0(key, "_", item_ids), item_no = seq_along(item_ids))
     if (rows$case_id[[1L]] == 14L) {
       items <- tibble::tibble(variable_id = ids[c(2, 4, 1, 3)],
         item_id = paste0(key, "_I", c("02", "03", "09", "11")),
@@ -297,8 +302,9 @@ In der neuen Version bleibt `code_status` unverändert.
 
 Für die MNR-Grenze zählen neu nur Items und die Variablen, aus denen sie
 berechnet werden. `NO_CODING` zählt nie. Missings werden weiterhin für alle
-Zeilen vergeben. In den 18 Versionsbeispielen sind alle Variablen Items;
-[am Ende](#itemgrenze) stehen Beispiele mit Hilfsvariablen.
+Zeilen vergeben. Die Versionsbeispiele enthalten Items und ihre Quellen.
+So sind `01a` und `01b` Quellen für das Item `01`, keine eigenen Items.
+[Am Ende](#itemgrenze) stehen Beispiele mit unabhängigen Hilfsvariablen.
 
 **O** steht für Auslassung, **NR** für nicht erreicht. Die neue Version bietet
 zwei unabhängige Optionen (`TRUE` = aktiviert, `FALSE` = deaktiviert):

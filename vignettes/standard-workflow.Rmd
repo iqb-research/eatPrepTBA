@@ -235,11 +235,12 @@ einer späteren Bearbeitung zur Auslassung wird. Das gilt auch für ergänzte
 Designzeilen, noch fehlende Codes bei Status `NOT_REACHED` oder `NA` und
 NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt erhalten.
 Beide Optionen sind unabhängig und stehen standardmäßig auf `FALSE`.
+Für die Referenzstudien setzen wir hier beide auf `TRUE`.
 
 ```{r complete, eval=FALSE}
 design_coded <- complete_design(coded = coded, units = units, design = design,
-                                recode_omissions_to_not_reached = FALSE,
-                                preserve_not_reached = FALSE)
+                                recode_omissions_to_not_reached = TRUE,
+                                preserve_not_reached = TRUE)
 
 count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
