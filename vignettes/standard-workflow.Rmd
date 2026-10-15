@@ -219,7 +219,7 @@ Für die betroffene Unit dürfen dann alle Variablen außer `NO_CODING` zählen.
 Das gilt auch bei ganz leeren Listen und reinen NA-Platzhaltern.
 
 **Missings werden weiterhin für alle Designzeilen vergeben**, auch für
-technische Variablen: Eine Auslassung vor einer späteren Antwort bleibt bei
+technische Variablen: Eine Auslassung vor einer späteren relevanten Bearbeitung bleibt bei
 0 Punkten. Eine Auslassung nach der letzten Bearbeitung wird mit **O → NR: TRUE**
 zu Not reached mit `NA`. Ein Rohwert wie `"0"` entscheidet das nicht.
 

@@ -13,6 +13,14 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
+```{r utf8-locale, include=FALSE}
+# Set this before knitr parses any chunks containing non-ASCII text.
+vignette_locale <- Sys.getlocale("LC_CTYPE")
+if (.Platform$OS.type == "windows" && !l10n_info()[["UTF-8"]]) {
+  Sys.setlocale("LC_CTYPE", ".UTF-8")
+}
+```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, error = FALSE)
 library(eatPrepTBA)
@@ -485,3 +493,7 @@ Variablen außer `NO_CODING` auf Bearbeitung. Fehlende Positionsangaben
 (`variable_position = NA`) schränken die Prüfung der Reihenfolge ein.
 
 Der Ablauf mit eigenen Daten steht im [Standard-Workflow](standard-workflow.html).
+
+```{r restore-locale, include=FALSE}
+Sys.setlocale("LC_CTYPE", vignette_locale)
+```
