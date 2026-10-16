@@ -1,20 +1,13 @@
-# eatPrepTBA 0.9.8.9041 [2026-10-16]
-
-## bug fixes
-
-* NR provenance handling now accepts factor response JSONs and optional payload columns containing logical `NA`, including units without an NR transformation rule.
-* NR provenance is processed in batches through V8, which is already used by the auto-coder. Units without relevant payloads skip annotation, identical payloads are processed once, and variable lookups are prepared once per unit.
-
 # eatPrepTBA 0.9.8.9040 [2026-10-16]
 
 ## bug fixes
 
-* `code_responses()` now retains confirmed not-reached provenance in the logical column `coding_from_not_reached`, including manual NR conversions. An effective regular manual override replaces the original response's provenance. Unknown provenance is `NA`; derived responses do not inherit it from their sources.
-* `complete_design()` excludes confirmed NR-to-value conversions from establishing the not-reached boundary. These responses retain their analytical codes, scores, and technical statuses. Genuine later work continues to establish the boundary. The rule does not depend on missing values, and the two missing options retain their existing meaning and defaults. Older coded data without the provenance column retain their previous treatment; rerun coding from the original response payloads to capture provenance.
+* `code_responses()` records confirmed not-reached origins in `coding_from_not_reached`. `complete_design()` no longer treats codes created from NR as evidence of later work; their codes, scores, and statuses remain intact. Effective manual overrides are respected, and derived results do not inherit the marker. Both missing options keep their existing meaning and defaults. Rerun coding from the original responses to apply this correction to older datasets.
+* Provenance handling accepts factor JSONs and optional payload columns containing `NA`. It skips unnecessary processing and batches the remaining JSON work through V8 to reduce runtime.
 
 ## tests
 
-* Added regressions using the auto-coder for NR transformations, aliases, subforms, and manual overrides, plus completion tests covering both missing options, later work, derived results, custom missing schemes, and unknown provenance.
+* Added auto-coder and completion regressions covering NR transformations, aliases, subforms, manual overrides, factor and missing payloads, numeric precision, both missing options, later work, derived results, and custom missing schemes.
 
 # eatPrepTBA 0.9.8.9039 [2026-10-15]
 
