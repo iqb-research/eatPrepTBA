@@ -27,7 +27,7 @@ code_responses(
 \item{missings}{Data frame (optional). Provide missing meta data with \code{code_id}, \code{code_status}, \code{code_score}, and \code{code_type}. Defaults to \code{NULL} and uses default scheme.}
 }
 \value{
-A tibble.
+A tibble, including logical \code{coding_from_not_reached}.
 }
 \description{
 This function automatically codes responses by using the \code{eatAutoCode}
@@ -36,4 +36,16 @@ and \code{\link[=read_responses]{read_responses()}}. Rows with \code{responses =
 schemes are prepared and are not sent to the auto-coder; they represent units
 with no stored response payload and are left for \code{\link[=complete_design]{complete_design()}} to
 classify against the full test design.
+}
+\details{
+The logical column \code{coding_from_not_reached} records whether a response was
+supplied as \code{NOT_REACHED} and its own coding rule treated that status as a
+changed value (\code{TAKE_NOT_REACHED_AS_VALUE_CHANGED}). It is captured before
+coding, independently of whether \code{value} is missing. Manual codes that are
+applied take precedence: an effective regular override is not marked as originating from
+NR, while a manual NR converted by this function is marked accordingly.
+Unknown provenance is \code{NA}; generated derived responses do not inherit the
+flag from their sources. The flag is returned with either value of \code{prepare}.
+\code{\link[=complete_design]{complete_design()}} uses confirmed NR provenance only for its not-reached
+boundary; the response's analytical code and technical status are retained.
 }

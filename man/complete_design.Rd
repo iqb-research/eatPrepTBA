@@ -83,6 +83,13 @@ The trailing missing sequence is determined separately for each person,
 booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
+An optional logical \code{coding_from_not_reached} column in \code{coded} records
+results produced by treating a known not-reached state as changed for coding.
+Only \code{TRUE} excludes that row from establishing the not-reached boundary;
+\code{FALSE}, \code{NA}, and an absent column retain the usual boundary treatment.
+This provenance does not itself change the row's code, score, or technical
+status, and is not propagated to derived results. A column of the same name
+in \code{design} is ignored; provenance is taken from \code{coded} only.
 A valid derived result included in the boundary can turn preceding
 not-reached sources into omissions unless
 \code{preserve_not_reached = TRUE}. Derived missing codes still

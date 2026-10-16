@@ -47,6 +47,7 @@ utils::globalVariables(c(
   "codes",
   "codingType",
   "coding_scheme",
+  "coding_from_not_reached",
   "color",
   "count",
   "data",

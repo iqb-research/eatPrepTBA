@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9040 [2026-10-16]
+
+## bug fixes
+
+* `code_responses()` now retains confirmed not-reached provenance in the logical column `coding_from_not_reached`, including manual NR conversions. An effective regular manual override replaces the original response's provenance. Unknown provenance is `NA`; derived responses do not inherit it from their sources.
+* `complete_design()` excludes confirmed NR-to-value conversions from establishing the not-reached boundary. These responses retain their analytical codes, scores, and technical statuses. Genuine later work continues to establish the boundary. The rule does not depend on missing values, and the two missing options retain their existing meaning and defaults. Older coded data without the provenance column retain their previous treatment; rerun coding from the original response payloads to capture provenance.
+
+## tests
+
+* Added regressions using the auto-coder for NR transformations, aliases, subforms, and manual overrides, plus completion tests covering both missing options, later work, derived results, custom missing schemes, and unknown provenance.
+
 # eatPrepTBA 0.9.8.9039 [2026-10-15]
 
 ## bug fixes
