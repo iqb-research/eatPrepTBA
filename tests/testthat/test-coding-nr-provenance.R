@@ -44,6 +44,17 @@ test_that("NR provenance follows input status and schema without inspecting valu
   expect_identical(records, original)
 })
 
+test_that("a scalar processing rule accepted by the coder retains NR provenance", {
+  variable <- nr_provenance_variable()
+  variable$sourceParameters$processing <- "TAKE_NOT_REACHED_AS_VALUE_CHANGED"
+  scheme <- nr_provenance_scheme(list(variable))
+  input <- tibble::tibble(responses = '[{"id":"alias","status":"NOT_REACHED","value":false}]')
+  expected <- eatAutoCode::code_responses_array(scheme, input)
+  actual <- eatAutoCode::code_responses_array(scheme, annotate_nr_response_payloads(scheme, input))
+  expect_identical(actual[names(expected)], expected)
+  expect_identical(actual$coding_from_not_reached, TRUE)
+})
+
 test_that("NR provenance handles alias precedence and the derived-shadow exception", {
   scheme <- nr_provenance_scheme(list(
     nr_provenance_variable("base", "input"),
@@ -88,6 +99,42 @@ test_that("ordinary payloads retain their representation and stale markers are r
     '[{"id":"alias","status":"NOT_REACHED","coding_from_not_reached":true}]', scheme
   )
   expect_false(records[[1]]$coding_from_not_reached)
+})
+
+test_that("factor payloads and optional missing columns retain coder results", {
+  for (transform in c(FALSE, TRUE)) {
+    scheme <- nr_provenance_scheme(list(nr_provenance_variable(transform = transform)))
+    input <- tibble::tibble(
+      row_identifier = 1:4,
+      responses = factor(c(
+        '[{"id":"alias","status":"NOT_REACHED","value":false}]',
+        '[{"id":"alias","status":"VALUE_CHANGED","value":true}]',
+        '[{"id":"alias","status":"NOT_REACHED","value":false}]',
+        '[{"id":"alias","status":"VALUE_CHANGED","value":true}]'
+      )), geometry_variables = NA, manual = NA
+    )
+    expected <- eatAutoCode::code_responses_array(scheme, input)
+    annotated <- annotate_nr_response_payloads(scheme, input)
+    actual <- eatAutoCode::code_responses_array(scheme, annotated)
+    expect_identical(actual[names(expected)], expected)
+    if (transform) {
+      expect_identical(actual$coding_from_not_reached, c(TRUE, FALSE, TRUE, FALSE))
+    } else {
+      expect_identical(annotated, input)
+    }
+    expect_identical(annotate_nr_response_payloads(scheme, input[FALSE, ]), input[FALSE, ])
+
+    input$geometry_variables <- factor(c(
+      NA, '[{"id":"alias","status":"NOT_REACHED","value":false}]', NA, NA
+    ))
+    input$manual <- factor(c(
+      NA, NA, '[{"id":"alias","status":"CODING_COMPLETE","code":1,"score":1}]', NA
+    ))
+    expected <- eatAutoCode::code_responses_array(scheme, input)
+    actual <- eatAutoCode::code_responses_array(scheme, annotate_nr_response_payloads(scheme, input))
+    expect_identical(actual[names(expected)], expected)
+    if (transform) expect_identical(actual$coding_from_not_reached, c(TRUE, TRUE, FALSE, FALSE))
+  }
 })
 
 test_that("malformed and absent payloads retain the existing coder error behavior", {

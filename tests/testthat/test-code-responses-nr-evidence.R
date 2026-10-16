@@ -211,6 +211,30 @@ test_that("existing manual JSON overrides raw NR provenance with its effective s
   }
 })
 
+test_that("optional NA payloads and factor JSON retain public coding behavior", {
+  for (units in list(minimal_units(), nr_evidence_units())) {
+    for (prepare in c(FALSE, TRUE)) {
+      responses <- nr_evidence_responses(
+        '[{"id":"V1","status":"NOT_REACHED","value":false}]'
+      )
+      expected <- suppressMessages(code_responses(responses, units, prepare = prepare))
+      variants <- list(
+        dplyr::mutate(responses, geometry_variables = NA),
+        dplyr::mutate(responses, manual = NA),
+        dplyr::mutate(responses, responses = factor(responses)),
+        dplyr::mutate(responses, responses = factor(responses),
+                      geometry_variables = NA, manual = NA)
+      )
+      for (input in variants) {
+        original <- input
+        actual <- suppressMessages(code_responses(input, units, prepare = prepare))
+        expect_identical(actual, expected)
+        expect_identical(input, original)
+      }
+    }
+  }
+})
+
 test_that("missing payloads and absent schemes retain a logical provenance column", {
   for (prepare in c(FALSE, TRUE)) {
     responses <- nr_evidence_responses(NA_character_)

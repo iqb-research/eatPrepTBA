@@ -1,3 +1,10 @@
+# eatPrepTBA 0.9.8.9041 [2026-10-16]
+
+## bug fixes
+
+* NR provenance handling now accepts factor response JSONs and optional payload columns containing logical `NA`, including units without an NR transformation rule.
+* NR provenance is processed in batches through V8, which is already used by the auto-coder. Units without relevant payloads skip annotation, identical payloads are processed once, and variable lookups are prepared once per unit.
+
 # eatPrepTBA 0.9.8.9040 [2026-10-16]
 
 ## bug fixes
