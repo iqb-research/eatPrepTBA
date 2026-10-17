@@ -1,3 +1,15 @@
+# eatPrepTBA 0.9.8.9041 [2026-10-17]
+
+## bug fixes
+
+* Studio VariableInfo 2.0 types and formats are read in the same spelling as 1.x. Known values are normalized and unknown values retained, including workspaces containing both versions. Missing optional page information no longer breaks coding-scheme preparation; page positions continue to come from unit definitions when requested.
+* A rejected unit rename (HTTP 409) now raises an `eatPrepTBA_unit_key_conflict` error identifying the unit and workspace and explaining that none of the settings in that request were saved. Other request errors retain their existing handling.
+* `login_studio()` identifies a version mismatch (HTTP 521) with an `eatPrepTBA_studio_version_mismatch` error and instructions to use the instance's exact version, including prerelease suffixes.
+
+## documentation
+
+* Updated Studio examples for instances upgraded to 21.0.0, with instructions to retain the current instance version until its upgrade and log in again afterwards.
+
 # eatPrepTBA 0.9.8.9040 [2026-10-17]
 
 ## bug fixes

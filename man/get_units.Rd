@@ -30,9 +30,16 @@ Current Studio Lite versions store item-variable links as
 \code{variableId}/\code{variableReadOnlyId} is still read for backward compatibility.
 Retired internal fields such as \code{position}, \code{locked}, and \code{weighting} are
 ignored. Use \code{item_no} for the row order in the item list, \code{item_order} for
-the Studio/spec \code{order} value, and call
-\code{get_units(..., unit_definition = TRUE)} when page locations via
-\code{variable_pages} are needed.
+the Studio/spec \code{order} value, and call \code{get_units(..., unit_definition = TRUE)}
+when page locations via \code{variable_pages} are needed.
+VariableInfo 1 and 2 records may coexist in a workspace. Known uppercase
+VariableInfo 2 type and format values are returned with their legacy spelling
+(for example, \code{NO_VALUE} becomes \code{no-value} and \code{TEXT_SELECTION} becomes
+\code{text-selection}); unknown values retain their spelling. Missing formats
+become empty strings; omitted value lists are handled like empty lists. VariableInfo 2
+has no page field, so \code{variable_page} is \code{NA} for those records. When unit
+definitions are retrieved, \code{\link[=add_coding_scheme]{add_coding_scheme()}} uses the extracted locations
+in preference to legacy page fields.
 }
 \section{Functions}{
 \itemize{

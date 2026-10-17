@@ -3,6 +3,15 @@
 #' @description
 #' This function updates the Studio metadata, i.e., versions for player, editor, or schemer, and the groups and the states of a single unit. To change multiple units, use [change_units_settings()]. Please note that invalid inputs will result in a default version (e.g., the newest one in case of `editor`, `player`, or `schemer`) or be ignored (in case of group_name or `state`).
 #'
+#' @details
+#' From Studio Lite 21, changing a unit key to one already used in the workspace
+#' (ignoring case) rejects the entire settings request with HTTP 409. In this case,
+#' this function raises an error of class `eatPrepTBA_unit_key_conflict`; none of
+#' the settings submitted in that request were changed. The error includes
+#' `unit_id`, `unit_key`, and `ws_id` fields and the original HTTP error as its
+#' `parent`. Studio validates the key, so an unchanged key remains editable even
+#' if duplicate keys already exist in the workspace.
+#'
 #' @param workspace [WorkspaceStudio-class]. Workspace information necessary to retrieve unit information and resources from the API.
 #' @param unit_id Integer. Unit ID to be changed.
 #' @param unit_key Character. New unit key. Please note that this has to be between 3 and 20 characters, whereas only capital and small letters of a-z, digits of 0-9, and underscores _ are allowed.
@@ -68,19 +77,45 @@ setMethod("change_unit_settings",
                 state = state
               )
 
+            key_conflict <- NULL
             run_req <- function() {
-              base_req(method = "PATCH",
-                       endpoint = c("workspaces", ws_id, "units", unit_id, "properties")) %>%
-                httr2::req_body_json(data = body, auto_unbox = TRUE) %>%
-                httr2::req_perform()
+              tryCatch(
+                base_req(method = "PATCH",
+                         endpoint = c("workspaces", ws_id, "units", unit_id, "properties")) %>%
+                  httr2::req_body_json(data = body, auto_unbox = TRUE) %>%
+                  httr2::req_perform(),
+                httr2_http_409 = function(cnd) {
+                  # Only a submitted key can cause the duplicate-key conflict.
+                  if (is.null(body$key)) stop(cnd)
+                  key_conflict <<- cnd
+                  NULL
+                }
+              )
             }
 
             # For the error message
             message <- glue::glue("Settings could not be changed for unit with
                                   id {{.unit-id {unit_id}}} {{.url https://www.iqb-studio.de/#/a/{ws_id}/{unit_id}/properties}}.")
 
-            run_safe(run_req,
-                     error_message = message)
+            result <- run_safe(run_req,
+                               error_message = message)
+
+            # Raise after run_safe so callers can catch a rejected rename.
+            if (!is.null(key_conflict)) {
+              rlang::abort(
+                paste0("Unit key '", body$key, "' is already in use in workspace ",
+                       ws_id, " (unit ", unit_id, "; HTTP 409). ",
+                       "None of the settings in this request were changed."),
+                class = "eatPrepTBA_unit_key_conflict",
+                unit_id = unit_id,
+                unit_key = body$key,
+                ws_id = ws_id,
+                status = 409L,
+                parent = key_conflict
+              )
+            }
+
+            result
 
           })
 
