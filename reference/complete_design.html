@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -143,6 +143,13 @@ The trailing missing sequence is determined separately for each person,
 booklet, and testlet, including positions within a partly answered unit.
 Existing valid, invalid, and technical-error results retain their previous
 treatment; derived results are not reclassified from their source variables.
+An optional logical <code>coding_from_not_reached</code> column in <code>coded</code> records
+results produced by treating a known not-reached state as changed for coding.
+Only <code>TRUE</code> excludes that row from establishing the not-reached boundary;
+<code>FALSE</code>, <code>NA</code>, and an absent column retain the usual boundary treatment.
+This provenance does not itself change the row's code, score, or technical
+status, and is not propagated to derived results. A column of the same name
+in <code>design</code> is ignored; provenance is taken from <code>coded</code> only.
 A valid derived result included in the boundary can turn preceding
 not-reached sources into omissions unless
 <code>preserve_not_reached = TRUE</code>. Derived missing codes still

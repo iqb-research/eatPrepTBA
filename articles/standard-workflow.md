@@ -1,6 +1,6 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-**Paketstand: eatPrepTBA 0.9.8.9039.**
+**Paketstand: eatPrepTBA 0.9.8.9040.**
 
 Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 **einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
@@ -226,45 +226,22 @@ Anschließend die Status wie in Abschnitt 3 prüfen.
 
 ## 5. Design vervollständigen und Missings zuweisen
 
-**Der Antwortexport allein enthält nicht alle vorgesehenen Antworten.**
 [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
-ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
-Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
-getrennt je Person, Testheft und Testlet (Testabschnitt).
+ergänzt fehlende Zeilen: Alle laut Testdesign vorgesehenen Antworten
+sollen im Datensatz stehen. Bei fehlenden Antworten wird geprüft, ob die
+Person danach im selben Testabschnitt weitergearbeitet hat.
 
-**Als Bearbeitung zählen nur Items und ihre Quellen.** Maßgeblich sind
-die Item-Verknüpfungen in `units`. Quellen sind die Variablen, aus denen
-ein Item berechnet wird, auch über mehrere Schritte. Sie brauchen weder
-eine eigene Itemzuordnung noch eigene Punkte. **`NO_CODING` zählt nie
-als Bearbeitung.**
+Für die Referenzstudien verwenden wir zwei Einstellungen:
 
-Unverknüpfte Einträge in der Itemliste sind normal und werden
-übersprungen. Eine vorhandene Liste mit ausschließlich unverknüpften
-Einträgen trägt deshalb nichts zur Grenze bei. Fehlen dagegen die
-Metadaten ganz, widersprechen sie sich oder fehlt eine benötigte
-Variable im Schema, gibt es eine Warnung: Für die betroffene Unit dürfen
-dann alle Variablen außer `NO_CODING` zählen. Das gilt auch bei ganz
-leeren Listen und reinen NA-Platzhaltern.
+- **`recode_omissions_to_not_reached = TRUE`:** Auslassungen nach der
+  letzten Bearbeitung werden zu „nicht erreicht“ (NR). Ihre Punktzahl
+  wird `NA`.
+- **`preserve_not_reached = TRUE`:** Bereits als NR erkannte Antworten
+  bleiben NR, auch wenn danach noch eine Bearbeitung folgt.
 
-**Missings werden weiterhin für alle Designzeilen vergeben**, auch für
-technische Variablen: Eine Auslassung vor einer späteren relevanten
-Bearbeitung bleibt bei 0 Punkten. Eine Auslassung nach der letzten
-Bearbeitung wird mit **O → NR: TRUE** zu Not reached mit `NA`. Ein
-Rohwert wie `"0"` entscheidet das nicht.
-
-Bereits als Auslassung kodierte Antworten bleiben mit
-**`recode_omissions_to_not_reached = FALSE`** Auslassungen. Setze diese
-Option auf **`TRUE`**, wenn auch abschließende Auslassungen als Not
-reached eingeordnet werden sollen. Bei **Auslassung – Antwort –
-Auslassung** wird dann nur die letzte Auslassung zu Not reached, sofern
-danach im selben Testlet keine weitere Bearbeitung folgt.
-
-**`preserve_not_reached = TRUE`** verhindert umgekehrt, dass Not reached
-vor einer späteren Bearbeitung zur Auslassung wird. Das gilt auch für
-ergänzte Designzeilen, noch fehlende Codes bei Status `NOT_REACHED` oder
-`NA` und NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt
-erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
-`FALSE`. Für die Referenzstudien setzen wir hier beide auf `TRUE`.
+Beispiel im selben Testabschnitt: **Auslassung – Antwort – Auslassung**
+wird zu **Auslassung – Antwort – NR**. Die erste Auslassung behält 0
+Punkte. Ohne Angabe stehen beide Optionen auf `FALSE`.
 
 ``` r
 
@@ -276,29 +253,33 @@ count(design_coded, id_used, code_type)
 analysis_data <- filter(design_coded, id_used)
 ```
 
-`id_used` ist `TRUE`, wenn eine Person mindestens einen gespeicherten
-Kodierstatus hat, auch bei einer technischen Variable. Der Filter
-übernimmt diese Personen in `analysis_data`.
+Der Filter `id_used` behält Personen mit mindestens einem gespeicherten
+Kodierstatus. Die endgültige Missing-Art steht in `code_type`, die
+Punktzahl in `code_score`. `code_status` bleibt unverändert.
 
-Innerhalb einer Unit gilt **Seite → Abschnitt → natürlicher
-Variablenname** (z. B. `V2` vor `V10`). Ableitungen mit eindeutig
-zugeordneten Quellen folgen direkt ihrer letzten Quelle, auch bei
-mehrstufigen Ableitungen. `variable_position` zeigt diese Reihenfolge
-als Zahl ab 1. Ein Teildesign kann Positionslücken enthalten; ohne
-passende Variablenmetadaten steht hier `NA`.
+Als Bearbeitung zählen Items und die Variablen, aus denen sie berechnet
+werden. Fehlen dafür nötige Angaben in `units`, können auch andere
+Variablen mitzählen; die Funktion gibt dann eine Warnung aus. Bereits
+berechnete Itemergebnisse werden hier nicht neu berechnet.
 
-**Ableitungen werden nicht neu berechnet.** Ein vorhandenes gültiges
-Ergebnis zählt als Bearbeitung, wenn es zu einem Item oder dessen
-Quellen gehört (oder die Ersatzregel für die Unit gilt): Mit
-`preserve_not_reached = FALSE` wird eine davor liegende
-Not-reached-Quelle zur Auslassung mit 0 Punkten; mit `TRUE` bleibt sie
-Not reached. `code_status` bleibt dabei unverändert; Missing-Art und
-Punktzahl stehen in `code_type` und `code_score`.
+**Besonderheit bei Markieraufgaben:** Sie können einen Code bekommen,
+obwohl sie gar nicht erreicht wurden. Ein solcher Code zählt nicht als
+Beleg dafür, dass die Person weitergearbeitet hat. Code und Punktzahl
+bleiben erhalten. Damit dies auch für bestehende Datensätze
+funktioniert,
+[`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+erneut mit den ursprünglichen Antworten und gegebenenfalls den manuellen
+Codes ausführen. Zusätzliche Einstellungen sind nicht nötig.
 
-Die [Missing-Szenarien im
-Versionsvergleich](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.md)
-zeigen die Entscheidungen an konkreten Beispielen, einschließlich der
-Sortierregeln bei fehlenden Angaben oder nicht zuordenbaren Quellen.
+Der Herkunftsmarker gilt für die jeweilige Antwort. Ein daraus
+berechnetes reguläres Itemergebnis, etwa eine Summe oder Kopie, kann
+weiterhin als Bearbeitung zählen. Das ist auch bei ausschließlich aus NR
+umgewandelten Quellen möglich. `preserve_not_reached = TRUE` schützt
+dann bereits vorhandenes NR, macht eine davorliegende Auslassung aber
+nicht zu NR.
+
+Weitere Fälle zeigen die
+[Missing-Beispiele](https://iqb-research.github.io/eatPrepTBA/articles/missing-examples.md).
 
 Aufgaben, die laut Design gar nicht vorgesehen waren, sind **Missing by
 Design**; ihre Zellen bleiben beim späteren Umformen `NA`.

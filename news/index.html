@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,22 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9040" id="eatpreptba-0989040-2026-10-17">eatPrepTBA 0.9.8.9040 [2026-10-17]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989040-2026-10-17"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9040">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9040"></a></h3>
+<ul><li>
+<code><a href="../reference/code_responses.html">code_responses()</a></code> records confirmed not-reached origins in <code>coding_from_not_reached</code>. <code><a href="../reference/complete_design.html">complete_design()</a></code> no longer treats codes created from NR as evidence of later work; their codes, scores, and statuses remain intact. Effective manual overrides are respected, and derived results do not inherit the marker. Both missing options keep their existing meaning and defaults. Rerun coding from the original responses to apply this correction to older datasets.</li>
+<li>Provenance handling accepts factor JSONs and optional payload columns containing <code>NA</code>. It skips unnecessary processing and batches the remaining JSON work through V8 to reduce runtime.</li>
+<li>Effective manual non-NR status overrides clear stale NR provenance even when their processing metadata cannot be matched. Manual serialization distinguishes inherited provenance from an explicit unknown marker without changing missing status, code, or score fields.</li>
+<li>Replaced the deprecated <code><a href="https://dplyr.tidyverse.org/reference/case_match.html" class="external-link">dplyr::case_match()</a></code> call in <code><a href="../reference/complete_design.html">complete_design()</a></code> while preserving missing-code mappings and output types.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9040">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9040"></a></h3>
+<ul><li>Added auto-coder and completion regressions covering NR transformations, aliases, subforms, manual overrides, factor and missing payloads, numeric precision, both missing options, later work, derived results, and custom missing schemes.</li>
+<li>Added compatibility checks against a pinned eatAutoCode reference and current upstream on Windows and Linux. The supported minimum is eatAutoCode 0.5.0.9006; checks cover provenance transport, coding-result preservation, overlays, and derived-result boundaries.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9039" id="eatpreptba-0989039-2026-10-15">eatPrepTBA 0.9.8.9039 [2026-10-15]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989039-2026-10-15"></a></h2>
 <div class="section level3">

@@ -123,14 +123,21 @@ derivation level are not additional sorting keys. The trailing missing
 sequence is determined separately for each person, booklet, and testlet,
 including positions within a partly answered unit. Existing valid,
 invalid, and technical-error results retain their previous treatment;
-derived results are not reclassified from their source variables. A
-valid derived result included in the boundary can turn preceding
-not-reached sources into omissions unless `preserve_not_reached = TRUE`.
-Derived missing codes still follow the usual missing rules; no
-derivation is recalculated. Newly completed rows retain `NA` in
-`code_status`. The two missing options are independent: preserving NR
-does not turn inner omissions into NR. With both options `TRUE`,
-existing and newly inferred NR remain NR, and trailing omissions
+derived results are not reclassified from their source variables. An
+optional logical `coding_from_not_reached` column in `coded` records
+results produced by treating a known not-reached state as changed for
+coding. Only `TRUE` excludes that row from establishing the not-reached
+boundary; `FALSE`, `NA`, and an absent column retain the usual boundary
+treatment. This provenance does not itself change the row's code, score,
+or technical status, and is not propagated to derived results. A column
+of the same name in `design` is ignored; provenance is taken from
+`coded` only. A valid derived result included in the boundary can turn
+preceding not-reached sources into omissions unless
+`preserve_not_reached = TRUE`. Derived missing codes still follow the
+usual missing rules; no derivation is recalculated. Newly completed rows
+retain `NA` in `code_status`. The two missing options are independent:
+preserving NR does not turn inner omissions into NR. With both options
+`TRUE`, existing and newly inferred NR remain NR, and trailing omissions
 additionally become NR. Missing schemes still assign the corresponding
 codes and scores.
 

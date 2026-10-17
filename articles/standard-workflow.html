@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9039</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
 
     
     
-<p><strong>Paketstand: eatPrepTBA 0.9.8.9039.</strong></p>
+<p><strong>Paketstand: eatPrepTBA 0.9.8.9040.</strong></p>
 <p>Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 <strong>einer Zeile je Person und einer Punktespalte je ausgewerteter
 Aufgabe (Item)</strong>. Dazu werden die Antworten kodiert, Missings
@@ -320,45 +320,25 @@ berechnet. Anschließend die Status wie in Abschnitt 3 prüfen.</p>
 <div class="section level2">
 <h2 id="design-vervollständigen-und-missings-zuweisen">5. Design vervollständigen und Missings zuweisen<a class="anchor" aria-label="anchor" href="#design-vervollst%C3%A4ndigen-und-missings-zuweisen"></a>
 </h2>
-<p><strong>Der Antwortexport allein enthält nicht alle vorgesehenen
-Antworten.</strong> <a href="../reference/complete_design.html"><code>complete_design()</code></a>
-ergänzt fehlende Zeilen aus dem Design. Es unterscheidet nicht erreichte
-Variablen am Ende von Auslassungen vor einer späteren Bearbeitung –
-getrennt je Person, Testheft und Testlet (Testabschnitt).</p>
-<p><strong>Als Bearbeitung zählen nur Items und ihre Quellen.</strong>
-Maßgeblich sind die Item-Verknüpfungen in <code>units</code>. Quellen
-sind die Variablen, aus denen ein Item berechnet wird, auch über mehrere
-Schritte. Sie brauchen weder eine eigene Itemzuordnung noch eigene
-Punkte. <strong><code>NO_CODING</code> zählt nie als
-Bearbeitung.</strong></p>
-<p>Unverknüpfte Einträge in der Itemliste sind normal und werden
-übersprungen. Eine vorhandene Liste mit ausschließlich unverknüpften
-Einträgen trägt deshalb nichts zur Grenze bei. Fehlen dagegen die
-Metadaten ganz, widersprechen sie sich oder fehlt eine benötigte
-Variable im Schema, gibt es eine Warnung: Für die betroffene Unit dürfen
-dann alle Variablen außer <code>NO_CODING</code> zählen. Das gilt auch
-bei ganz leeren Listen und reinen NA-Platzhaltern.</p>
-<p><strong>Missings werden weiterhin für alle Designzeilen
-vergeben</strong>, auch für technische Variablen: Eine Auslassung vor
-einer späteren relevanten Bearbeitung bleibt bei 0 Punkten. Eine
-Auslassung nach der letzten Bearbeitung wird mit <strong>O → NR:
-TRUE</strong> zu Not reached mit <code>NA</code>. Ein Rohwert wie
-<code>"0"</code> entscheidet das nicht.</p>
-<p>Bereits als Auslassung kodierte Antworten bleiben mit
-<strong><code>recode_omissions_to_not_reached = FALSE</code></strong>
-Auslassungen. Setze diese Option auf <strong><code>TRUE</code></strong>,
-wenn auch abschließende Auslassungen als Not reached eingeordnet werden
-sollen. Bei <strong>Auslassung – Antwort – Auslassung</strong> wird dann
-nur die letzte Auslassung zu Not reached, sofern danach im selben
-Testlet keine weitere Bearbeitung folgt.</p>
-<p><strong><code>preserve_not_reached = TRUE</code></strong> verhindert
-umgekehrt, dass Not reached vor einer späteren Bearbeitung zur
-Auslassung wird. Das gilt auch für ergänzte Designzeilen, noch fehlende
-Codes bei Status <code>NOT_REACHED</code> oder <code>NA</code> und
-NR-Ableitungen. Auch zuvor aus Auslassungen erzeugtes NR bleibt
-erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
-<code>FALSE</code>. Für die Referenzstudien setzen wir hier beide auf
-<code>TRUE</code>.</p>
+<p><a href="../reference/complete_design.html"><code>complete_design()</code></a>
+ergänzt fehlende Zeilen: Alle laut Testdesign vorgesehenen Antworten
+sollen im Datensatz stehen. Bei fehlenden Antworten wird geprüft, ob die
+Person danach im selben Testabschnitt weitergearbeitet hat.</p>
+<p>Für die Referenzstudien verwenden wir zwei Einstellungen:</p>
+<ul>
+<li>
+<strong><code>recode_omissions_to_not_reached = TRUE</code>:</strong>
+Auslassungen nach der letzten Bearbeitung werden zu „nicht erreicht“
+(NR). Ihre Punktzahl wird <code>NA</code>.</li>
+<li>
+<strong><code>preserve_not_reached = TRUE</code>:</strong> Bereits
+als NR erkannte Antworten bleiben NR, auch wenn danach noch eine
+Bearbeitung folgt.</li>
+</ul>
+<p>Beispiel im selben Testabschnitt: <strong>Auslassung – Antwort –
+Auslassung</strong> wird zu <strong>Auslassung – Antwort – NR</strong>.
+Die erste Auslassung behält 0 Punkte. Ohne Angabe stehen beide Optionen
+auf <code>FALSE</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design_coded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/complete_design.html">complete_design</a></span><span class="op">(</span>coded <span class="op">=</span> <span class="va">coded</span>, units <span class="op">=</span> <span class="va">units</span>, design <span class="op">=</span> <span class="va">design</span>,</span>
 <span>                                recode_omissions_to_not_reached <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -366,29 +346,29 @@ erhalten. Beide Optionen sind unabhängig und stehen standardmäßig auf
 <span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span>, <span class="va">code_type</span><span class="op">)</span></span>
 <span><span class="va">analysis_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">design_coded</span>, <span class="va">id_used</span><span class="op">)</span></span></code></pre></div>
-<p><code>id_used</code> ist <code>TRUE</code>, wenn eine Person
-mindestens einen gespeicherten Kodierstatus hat, auch bei einer
-technischen Variable. Der Filter übernimmt diese Personen in
-<code>analysis_data</code>.</p>
-<p>Innerhalb einer Unit gilt <strong>Seite → Abschnitt → natürlicher
-Variablenname</strong> (z. B. <code>V2</code> vor <code>V10</code>).
-Ableitungen mit eindeutig zugeordneten Quellen folgen direkt ihrer
-letzten Quelle, auch bei mehrstufigen Ableitungen.
-<code>variable_position</code> zeigt diese Reihenfolge als Zahl ab 1.
-Ein Teildesign kann Positionslücken enthalten; ohne passende
-Variablenmetadaten steht hier <code>NA</code>.</p>
-<p><strong>Ableitungen werden nicht neu berechnet.</strong> Ein
-vorhandenes gültiges Ergebnis zählt als Bearbeitung, wenn es zu einem
-Item oder dessen Quellen gehört (oder die Ersatzregel für die Unit
-gilt): Mit <code>preserve_not_reached = FALSE</code> wird eine davor
-liegende Not-reached-Quelle zur Auslassung mit 0 Punkten; mit
-<code>TRUE</code> bleibt sie Not reached. <code>code_status</code>
-bleibt dabei unverändert; Missing-Art und Punktzahl stehen in
-<code>code_type</code> und <code>code_score</code>.</p>
-<p>Die <a href="missing-examples.html">Missing-Szenarien im
-Versionsvergleich</a> zeigen die Entscheidungen an konkreten Beispielen,
-einschließlich der Sortierregeln bei fehlenden Angaben oder nicht
-zuordenbaren Quellen.</p>
+<p>Der Filter <code>id_used</code> behält Personen mit mindestens einem
+gespeicherten Kodierstatus. Die endgültige Missing-Art steht in
+<code>code_type</code>, die Punktzahl in <code>code_score</code>.
+<code>code_status</code> bleibt unverändert.</p>
+<p>Als Bearbeitung zählen Items und die Variablen, aus denen sie
+berechnet werden. Fehlen dafür nötige Angaben in <code>units</code>,
+können auch andere Variablen mitzählen; die Funktion gibt dann eine
+Warnung aus. Bereits berechnete Itemergebnisse werden hier nicht neu
+berechnet.</p>
+<p><strong>Besonderheit bei Markieraufgaben:</strong> Sie können einen
+Code bekommen, obwohl sie gar nicht erreicht wurden. Ein solcher Code
+zählt nicht als Beleg dafür, dass die Person weitergearbeitet hat. Code
+und Punktzahl bleiben erhalten. Damit dies auch für bestehende
+Datensätze funktioniert, <code><a href="../reference/code_responses.html">code_responses()</a></code> erneut mit den
+ursprünglichen Antworten und gegebenenfalls den manuellen Codes
+ausführen. Zusätzliche Einstellungen sind nicht nötig.</p>
+<p>Der Herkunftsmarker gilt für die jeweilige Antwort. Ein daraus
+berechnetes reguläres Itemergebnis, etwa eine Summe oder Kopie, kann
+weiterhin als Bearbeitung zählen. Das ist auch bei ausschließlich aus NR
+umgewandelten Quellen möglich. <code>preserve_not_reached = TRUE</code>
+schützt dann bereits vorhandenes NR, macht eine davorliegende Auslassung
+aber nicht zu NR.</p>
+<p>Weitere Fälle zeigen die <a href="missing-examples.html">Missing-Beispiele</a>.</p>
 <p>Aufgaben, die laut Design gar nicht vorgesehen waren, sind
 <strong>Missing by Design</strong>; ihre Zellen bleiben beim späteren
 Umformen <code>NA</code>.</p>
