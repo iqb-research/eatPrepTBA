@@ -1,13 +1,16 @@
-# eatPrepTBA 0.9.8.9040 [2026-10-16]
+# eatPrepTBA 0.9.8.9040 [2026-10-17]
 
 ## bug fixes
 
 * `code_responses()` records confirmed not-reached origins in `coding_from_not_reached`. `complete_design()` no longer treats codes created from NR as evidence of later work; their codes, scores, and statuses remain intact. Effective manual overrides are respected, and derived results do not inherit the marker. Both missing options keep their existing meaning and defaults. Rerun coding from the original responses to apply this correction to older datasets.
 * Provenance handling accepts factor JSONs and optional payload columns containing `NA`. It skips unnecessary processing and batches the remaining JSON work through V8 to reduce runtime.
+* Effective manual non-NR status overrides clear stale NR provenance even when their processing metadata cannot be matched. Manual serialization distinguishes inherited provenance from an explicit unknown marker without changing missing status, code, or score fields.
+* Replaced the deprecated `dplyr::case_match()` call in `complete_design()` while preserving missing-code mappings and output types.
 
 ## tests
 
 * Added auto-coder and completion regressions covering NR transformations, aliases, subforms, manual overrides, factor and missing payloads, numeric precision, both missing options, later work, derived results, and custom missing schemes.
+* Added compatibility checks against a pinned eatAutoCode reference and current upstream on Windows and Linux. The supported minimum is eatAutoCode 0.5.0.9006; checks cover provenance transport, coding-result preservation, overlays, and derived-result boundaries.
 
 # eatPrepTBA 0.9.8.9039 [2026-10-15]
 

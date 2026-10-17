@@ -138,6 +138,121 @@ test_that("effective manual codes determine NR origin before status promotion", 
   expect_true(is.null(out[["code_score"]]) || all(is.na(out[["code_score"]])))
 })
 
+test_that("effective manual raw-ID overrides remain evidence under every missing option", {
+  units <- nr_evidence_units()
+  scheme <- jsonlite::parse_json(units$coding_scheme)
+  earlier <- scheme$variableCodings[[1]]
+  earlier$id <- "earlier_ref"
+  earlier$alias <- "Earlier"
+  earlier$sourceParameters$processing <- list()
+  scheme$variableCodings <- c(list(earlier), scheme$variableCodings)
+  units$coding_scheme <- as.character(jsonlite::toJSON(
+    scheme, auto_unbox = TRUE, null = "null"
+  ))
+  marker_codes <- units$unit_codes[[1]]
+  marker_codes$variable_page <- 2L
+  earlier_codes <- marker_codes
+  earlier_codes$variable_id <- "Earlier"
+  earlier_codes$variable_ref <- "earlier_ref"
+  earlier_codes$variable_page <- 1L
+  earlier_codes$variable_source_processing <- list(character())
+  units$unit_codes <- list(dplyr::bind_rows(earlier_codes, marker_codes))
+  units$items_list <- list(tibble::tibble(
+    variable_id = c("Earlier", "V1"), variable_ref = c("earlier_ref", "v1"),
+    item_id = c("I0", "I1")
+  ))
+  responses <- nr_evidence_responses(paste0(
+    '[{"id":"earlier_ref","status":"DISPLAYED","value":null},',
+    '{"id":"v1","status":"NOT_REACHED","value":false}]'
+  ))
+  manual <- nr_evidence_manual(responses, -98L)
+  # The overlay matches this raw ID, even though prepared metadata uses V1.
+  manual$variable_id <- "v1"
+
+  for (prepare in c(FALSE, TRUE)) {
+    coded <- suppressMessages(code_responses(
+      responses, units, prepare = prepare, codes_manual = manual
+    ))
+    expect_identical(coded$coding_from_not_reached[coded$variable_id == "V1"], FALSE)
+    expect_identical(coded$code_status[coded$variable_id == "V1"], "INVALID")
+    expect_equal(coded$code_id[coded$variable_id == "V1"], -98L)
+    # Completion consumes the prepared schema, including code_type.
+    if (!prepare) next
+    design <- dplyr::mutate(
+      dplyr::select(coded, group_id, login_name, login_code, booklet_id,
+                    unit_key, unit_alias, variable_id),
+      booklet_no = 1L, testlet_no = 1L, unit_booklet_no = 1L
+    )
+    for (recode in c(FALSE, TRUE)) {
+      for (preserve in c(FALSE, TRUE)) {
+        complete <- function(input) suppressMessages(complete_design(
+          input, units, design, preserve_not_reached = preserve,
+          recode_omissions_to_not_reached = recode
+        ))
+        out <- complete(coded)
+        control <- complete(dplyr::select(coded, -coding_from_not_reached))
+        expect_identical(dplyr::select(out, -coding_from_not_reached), control)
+        expect_equal(out$code_id[out$variable_id == "Earlier"], -99L)
+        expect_identical(out$code_type[out$variable_id == "Earlier"], "MISSING_BY_OMISSION")
+        expect_identical(out$code_status[out$variable_id == "Earlier"], "DISPLAYED")
+      }
+    }
+  }
+})
+
+test_that("manual JSON distinguishes unknown overrides from inherited fields", {
+  manual <- tibble::tibble(
+    id = c("regular", "promoted", "unknown", "inherited"),
+    code = c(1L, -96L, NA_integer_, 123L),
+    score = c(1, 0, NA_real_, NA_real_),
+    status = c("CODING_COMPLETE", "CODING_COMPLETE", "NOT_REACHED", NA_character_),
+    coding_from_not_reached = c(FALSE, TRUE, NA, NA)
+  )
+  records <- jsonlite::parse_json(serialize_manual_response_payload(manual))
+  expect_identical(records[[1]]$coding_from_not_reached, FALSE)
+  expect_identical(records[[2]]$coding_from_not_reached, TRUE)
+  expect_true("coding_from_not_reached" %in% names(records[[3]]))
+  expect_null(records[[3]]$coding_from_not_reached)
+  expect_false("coding_from_not_reached" %in% names(records[[4]]))
+  expected <- jsonlite::parse_json(as.character(jsonlite::toJSON(
+    dplyr::select(manual, -coding_from_not_reached), auto_unbox = TRUE, null = "null"
+  )))
+  without_markers <- lapply(records, function(record) {
+    record$coding_from_not_reached <- NULL
+    record
+  })
+  expect_identical(without_markers, expected)
+})
+
+test_that("real manual overlays preserve mixed and entirely unknown provenance", {
+  units <- nr_evidence_units()
+  raw_ids <- c(rep("v1", 5), "V1", "V1")
+  statuses <- c("NOT_REACHED", "NOT_REACHED", "VALUE_CHANGED", "NOT_REACHED",
+                "VALUE_CHANGED", "VALUE_CHANGED", "NOT_REACHED")
+  responses <- nr_evidence_responses(paste0(
+    '[{"id":"', raw_ids, '","status":"', statuses, '","value":false}]'
+  ))
+  manual <- nr_evidence_manual(responses, c(-98L, -96L, -96L, 123L, 123L, -96L, 1L))
+  manual$variable_id <- raw_ids
+  for (prepare in c(FALSE, TRUE)) {
+    out <- suppressMessages(code_responses(
+      responses, units, prepare = prepare, codes_manual = manual
+    ))
+    out <- dplyr::arrange(out, login_code)
+    expect_identical(out$coding_from_not_reached, c(FALSE, NA, NA, TRUE, FALSE, TRUE, FALSE))
+    expect_identical(out$code_status, c("INVALID", rep("CODING_COMPLETE", 6)))
+    expect_equal(out$code_id, c(-98L, 0L, 0L, 0L, 0L, -96L, 1L))
+    expect_equal(out$code_score, c(rep(0, 6), 1))
+    expect_identical(out$value, rep("false", 7))
+
+    unknown <- suppressMessages(code_responses(
+      responses[2:3, ], units, prepare = prepare, codes_manual = manual[2:3, ]
+    ))
+    expect_identical(unknown$coding_from_not_reached, c(NA, NA))
+    expect_identical(unknown$code_status, rep("CODING_COMPLETE", 2))
+  }
+})
+
 test_that("actual coding provenance prevents artificial work in design completion", {
   units <- nr_evidence_units()
   scheme <- jsonlite::fromJSON(units$coding_scheme, simplifyVector = FALSE)

@@ -54,7 +54,6 @@ nr_evidence_fixture <- function(
 }
 
 nr_evidence_run <- function(f, recode = TRUE, preserve = FALSE, ...) {
-  rlang::local_options(lifecycle_verbosity = "quiet")
   suppressMessages(complete_design(
     f$coded, f$units, f$design, identifiers = "login_code",
     recode_omissions_to_not_reached = recode,
@@ -65,6 +64,7 @@ nr_evidence_run <- function(f, recode = TRUE, preserve = FALSE, ...) {
 nr_evidence_row <- function(out, id) out[out$variable_id == id, , drop = FALSE]
 
 test_that("known NR promotions are boundary-neutral under all missing options", {
+  rlang::local_options(lifecycle_verbosity = "error")
   f <- nr_evidence_fixture()
   for (recode in c(FALSE, TRUE)) {
     for (preserve in c(FALSE, TRUE)) {
@@ -179,6 +179,7 @@ test_that("newly completed rows retain unknown provenance and technical status",
 })
 
 test_that("the missing scheme applies without changing regular promoted codes", {
+  rlang::local_options(lifecycle_verbosity = "error")
   f <- nr_evidence_fixture()
   missings <- tibble::tribble(
     ~code_id, ~code_status, ~code_score, ~code_type,
@@ -189,8 +190,8 @@ test_that("the missing scheme applies without changing regular promoted codes", 
   )
   for (recode in c(FALSE, TRUE)) {
     out <- nr_evidence_run(f, recode = recode, missings = missings)
-    expect_equal(out$code_id, c(if (recode) -196 else -199, -196, 0, -196, -196))
-    expect_equal(out$code_score, c(if (recode) NA_real_ else 5, NA, 0, NA, NA))
+    expect_identical(out$code_id, c(if (recode) -196 else -199, -196, 0, -196, -196))
+    expect_identical(out$code_score, c(if (recode) NA_real_ else 5, NA, 0, NA, NA))
     expect_identical(out$code_status, f$coded$code_status)
   }
 })

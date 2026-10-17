@@ -238,16 +238,15 @@ complete_design <- function(coded,
         code_status %in% c("CODING_INCOMPLETE", "DERIVE_PENDING", "INTENDED_INCOMPLETE") ~ code_status,
         .default = code_type
       ),
-      code_id = dplyr::case_match(
-        code_type,
-        "MISSING_BY_OMISSION" ~ -99,
-        "MISSING_INVALID_RESPONSE" ~ -98,
-        "MISSING_CODING_IMPOSSIBLE" ~ -97,
-        "MISSING_NOT_REACHED" ~ -96,
-        "INTENDED_INCOMPLETE" ~ -95,
-        "NO_CODING" ~ -93,
+      code_id = dplyr::case_when(
+        code_type == "MISSING_BY_OMISSION" ~ -99,
+        code_type == "MISSING_INVALID_RESPONSE" ~ -98,
+        code_type == "MISSING_CODING_IMPOSSIBLE" ~ -97,
+        code_type == "MISSING_NOT_REACHED" ~ -96,
+        code_type == "INTENDED_INCOMPLETE" ~ -95,
+        code_type == "NO_CODING" ~ -93,
         # Should not be in the final dataset after manual coding!
-        c("CODING_INCOMPLETE", "DERIVE_PENDING") ~ -90,
+        code_type %in% c("CODING_INCOMPLETE", "DERIVE_PENDING") ~ -90,
 
         .default = code_id
       )

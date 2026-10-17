@@ -1,3 +1,17 @@
+# Missing status inherits the original response, including its provenance.
+# An explicit status override with unknown provenance must instead clear any
+# earlier marker. Preserve the existing omission of missing code/score/status.
+serialize_manual_response_payload <- function(manual) {
+  payload <- as.character(jsonlite::toJSON(manual, auto_unbox = TRUE, null = "null"))
+  unknown_overrides <- which(!is.na(manual$status) &
+                              is.na(manual$coding_from_not_reached))
+  if (!length(unknown_overrides)) return(payload)
+
+  records <- jsonlite::parse_json(payload)
+  for (i in unknown_overrides) records[[i]]["coding_from_not_reached"] <- list(NULL)
+  as.character(jsonlite::toJSON(records, auto_unbox = TRUE, null = "null"))
+}
+
 # Keep provenance on the JSON record so aliases, subforms, and overlays retain
 # the auto-coder's response identity. Process only payloads needing annotation.
 annotate_nr_response_payloads <- function(coding_scheme, unit_responses,

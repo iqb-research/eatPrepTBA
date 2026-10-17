@@ -241,6 +241,12 @@ Damit dies auch für bestehende Datensätze funktioniert, `code_responses()` ern
 mit den ursprünglichen Antworten und gegebenenfalls den manuellen Codes ausführen.
 Zusätzliche Einstellungen sind nicht nötig.
 
+Der Herkunftsmarker gilt für die jeweilige Antwort. Ein daraus berechnetes
+reguläres Itemergebnis, etwa eine Summe oder Kopie, kann weiterhin als
+Bearbeitung zählen. Das ist auch bei ausschließlich aus NR umgewandelten
+Quellen möglich. `preserve_not_reached = TRUE` schützt dann bereits vorhandenes
+NR, macht eine davorliegende Auslassung aber nicht zu NR.
+
 Weitere Fälle zeigen die [Missing-Beispiele](missing-examples.html).
 
 Aufgaben, die laut Design gar nicht vorgesehen waren, sind **Missing by Design**;

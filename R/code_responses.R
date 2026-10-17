@@ -20,8 +20,11 @@
 #' supplied as `NOT_REACHED` and its own coding rule treated that status as a
 #' changed value (`TAKE_NOT_REACHED_AS_VALUE_CHANGED`). It is captured before
 #' coding, independently of whether `value` is missing. Manual codes that are
-#' applied take precedence: an effective regular override is not marked as originating from
-#' NR, while a manual NR converted by this function is marked accordingly.
+#' applied take precedence: an effective non-NR status override clears the
+#' marker even when its variable's processing rule cannot be resolved. A manual
+#' NR converted by this function is marked accordingly. Manual records without
+#' a status override retain the original status and provenance; an explicit
+#' status override with unknown provenance replaces the previous marker with `NA`.
 #' Unknown provenance is `NA`; generated derived responses do not inherit the
 #' flag from their sources. The flag is returned with either value of `prepare`.
 #' [complete_design()] uses confirmed NR provenance only for its not-reached
@@ -220,8 +223,9 @@ code_responses <- function(responses,
         # Capture the effective manual status before promoting it for coding.
         # Explicit manual codes override provenance on the original response.
         coding_from_not_reached = dplyr::case_when(
-          is.na(transform_not_reached) | is.na(code_status) ~ NA,
-          .default = transform_not_reached & code_status == "NOT_REACHED"
+          is.na(code_status) ~ NA,
+          code_status != "NOT_REACHED" ~ FALSE,
+          .default = transform_not_reached
         ),
         # NEW: Transformation of specific missings before coding (only for manual codes)
         code_status = dplyr::case_when(
@@ -253,7 +257,7 @@ code_responses <- function(responses,
       dplyr::mutate(
         manual = purrr::map_chr(
           manual,
-          function(x) as.character(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null")),
+          serialize_manual_response_payload,
           .progress = list(
             type ="custom",
             extra = list(

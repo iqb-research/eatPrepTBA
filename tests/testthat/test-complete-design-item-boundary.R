@@ -37,7 +37,6 @@ item_boundary_fixture <- function(states, items = seq_along(states),
 }
 
 item_boundary_run <- function(fixture, recode = TRUE, preserve = TRUE, ...) {
-  rlang::local_options(lifecycle_verbosity = "quiet")
   complete_design(
     coded = fixture$coded, units = fixture$units, design = fixture$design,
     identifiers = "login_code", recode_omissions_to_not_reached = recode,

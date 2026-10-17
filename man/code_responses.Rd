@@ -42,8 +42,11 @@ The logical column \code{coding_from_not_reached} records whether a response was
 supplied as \code{NOT_REACHED} and its own coding rule treated that status as a
 changed value (\code{TAKE_NOT_REACHED_AS_VALUE_CHANGED}). It is captured before
 coding, independently of whether \code{value} is missing. Manual codes that are
-applied take precedence: an effective regular override is not marked as originating from
-NR, while a manual NR converted by this function is marked accordingly.
+applied take precedence: an effective non-NR status override clears the
+marker even when its variable's processing rule cannot be resolved. A manual
+NR converted by this function is marked accordingly. Manual records without
+a status override retain the original status and provenance; an explicit
+status override with unknown provenance replaces the previous marker with \code{NA}.
 Unknown provenance is \code{NA}; generated derived responses do not inherit the
 flag from their sources. The flag is returned with either value of \code{prepare}.
 \code{\link[=complete_design]{complete_design()}} uses confirmed NR provenance only for its not-reached

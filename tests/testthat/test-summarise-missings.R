@@ -184,8 +184,6 @@ test_that("validation prevents ambiguous keys, filtering and column names", {
 })
 
 test_that("completion and metadata mapping retain unanswered items and unused people", {
-  # complete_design() currently uses dplyr::case_match(), deprecated in 1.2.0.
-  rlang::local_options(lifecycle_verbosity = "quiet")
   units <- minimal_units()
   codes <- units$unit_codes[[1]][rep(1, 4), ]
   codes$variable_id <- c("V01a", "V01b", "V01", "V02")
