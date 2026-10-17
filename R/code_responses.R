@@ -15,7 +15,22 @@
 #' with no stored response payload and are left for [complete_design()] to
 #' classify against the full test design.
 #'
-#' @return A tibble.
+#' @details
+#' The logical column `coding_from_not_reached` records whether a response was
+#' supplied as `NOT_REACHED` and its own coding rule treated that status as a
+#' changed value (`TAKE_NOT_REACHED_AS_VALUE_CHANGED`). It is captured before
+#' coding, independently of whether `value` is missing. Manual codes that are
+#' applied take precedence: an effective non-NR status override clears the
+#' marker even when its variable's processing rule cannot be resolved. A manual
+#' NR converted by this function is marked accordingly. Manual records without
+#' a status override retain the original status and provenance; an explicit
+#' status override with unknown provenance replaces the previous marker with `NA`.
+#' Unknown provenance is `NA`; generated derived responses do not inherit the
+#' flag from their sources. The flag is returned with either value of `prepare`.
+#' [complete_design()] uses confirmed NR provenance only for its not-reached
+#' boundary; the response's analytical code and technical status are retained.
+#'
+#' @return A tibble, including logical `coding_from_not_reached`.
 #' @export
 code_responses <- function(responses,
                            units,
@@ -160,7 +175,6 @@ code_responses <- function(responses,
   if (!is.null(codes_manual)) {
     cli::cli_h3("Prepare manual codes")
 
-    # TODO: This should be somehow added to the coded object to signal that this could also become a NOT_REACHED or DISPLAYED state?
     pcs_variables_insert <-
       pcs_variables %>%
       dplyr::mutate(
@@ -206,6 +220,13 @@ code_responses <- function(responses,
       dplyr::mutate(
         code_status = dplyr::coalesce(code_status, code_status_miss),
         code_score = dplyr::coalesce(code_score, code_score_miss),
+        # Capture the effective manual status before promoting it for coding.
+        # Explicit manual codes override provenance on the original response.
+        coding_from_not_reached = dplyr::case_when(
+          is.na(code_status) ~ NA,
+          code_status != "NOT_REACHED" ~ FALSE,
+          .default = transform_not_reached
+        ),
         # NEW: Transformation of specific missings before coding (only for manual codes)
         code_status = dplyr::case_when(
           transform_displayed & code_status == "DISPLAYED" ~ "CODING_COMPLETE",
@@ -225,7 +246,7 @@ code_responses <- function(responses,
       codes_manual_prepared %>%
       dplyr::rename(id = variable_id, code = code_id, status = code_status, score = code_score) %>%
       tidyr::nest(
-        manual = c(id, code, score, status)
+        manual = c(id, code, score, status, coding_from_not_reached)
       ) %>%
       dplyr::arrange(unit_key)
 
@@ -236,7 +257,7 @@ code_responses <- function(responses,
       dplyr::mutate(
         manual = purrr::map_chr(
           manual,
-          function(x) as.character(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null")),
+          serialize_manual_response_payload,
           .progress = list(
             type ="custom",
             extra = list(
@@ -293,7 +314,24 @@ code_responses <- function(responses,
     dplyr::mutate(
       unit_codes = purrr::pmap(
         .l = list(coding_scheme, unit_responses),
-        .f = eatAutoCode::code_responses_array,
+        .f = function(coding_scheme, unit_responses) {
+          annotated <- annotate_nr_response_payloads(
+            coding_scheme, unit_responses,
+            manual_provenance_prepared = !is.null(codes_manual)
+          )
+          out <- eatAutoCode::code_responses_array(coding_scheme, annotated)
+          if (!"coding_from_not_reached" %in% names(out)) {
+            out$coding_from_not_reached <- rep(NA, nrow(out))
+          } else {
+            # JSON null may be returned as an empty list rather than logical NA.
+            out$coding_from_not_reached <- vapply(
+              as.list(out$coding_from_not_reached), function(x) {
+                if (is.logical(x) && length(x) == 1L) x else NA
+              }, logical(1)
+            )
+          }
+          out
+        },
         .progress = list(
           type ="custom",
           show_after = 0,
@@ -375,6 +413,7 @@ empty_coded_responses <- function(responses, prepare = FALSE) {
   out$code_id <- integer()
   out$code_score <- double()
   out$code_status <- character()
+  out$coding_from_not_reached <- logical()
 
   if (prepare) {
     out$variable_source_type <- character()

@@ -1,0 +1,71 @@
+name: Autocoder compatibility
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: ${{ matrix.os }} / ${{ matrix.autocoder }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        autocoder: [reference, main]
+        include:
+          - autocoder: reference
+            ref: 4c2084db1d20bcaf76132db56238f3f707d37965
+          - autocoder: main
+            ref: main
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      AUTOCODER_REF: ${{ matrix.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::remotes
+            any::testthat
+            any::pkgload
+          needs: check
+      - name: Install selected eatAutoCode revision
+        shell: Rscript {0}
+        run: |
+          remotes::install_github(
+            paste0("iqb-research/eatAutoCode@", Sys.getenv("AUTOCODER_REF")),
+            upgrade = "never", force = TRUE, build_vignettes = FALSE
+          )
+      - name: Report installed autocoder identity
+        shell: Rscript {0}
+        run: |
+          metadata <- utils::packageDescription("eatAutoCode")
+          cat("Requested revision:", Sys.getenv("AUTOCODER_REF"), "\n")
+          cat("eatAutoCode:", metadata$Version, "\n")
+          cat("RemoteSha:", metadata$RemoteSha, "\n")
+          bundled <- system.file("packageVersion.json", package = "eatAutoCode", mustWork = TRUE)
+          cat("Bundled coder metadata:\n", paste(readLines(bundled), collapse = "\n"), "\n")
+          stopifnot(length(metadata$RemoteSha) == 1L, nzchar(metadata$RemoteSha))
+          if (Sys.getenv("AUTOCODER_REF") != "main") {
+            stopifnot(identical(metadata$RemoteSha, Sys.getenv("AUTOCODER_REF")))
+          }
+      - name: Test real autocoder contracts and completion
+        shell: Rscript {0}
+        run: |
+          options(lifecycle_verbosity = "error")
+          testthat::test_local(
+            ".",
+            filter = "autocoder-compatibility|coding-nr-provenance|code-responses-nr-evidence|complete-design-nr-evidence",
+            stop_on_failure = TRUE,
+            stop_on_warning = TRUE
+          )
