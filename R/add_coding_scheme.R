@@ -201,7 +201,7 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
     if (tibble::has_name(units, "variable_pages")) {
       units_uv <-
         units_uv %>%
-        dplyr::select(-variable_page)
+        dplyr::select(-dplyr::any_of("variable_page"))
     }
 
     units_coding_nest <-

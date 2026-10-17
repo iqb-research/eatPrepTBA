@@ -32,7 +32,7 @@ change_unit_settings(
 )
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceStudio-class]{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
+\item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to retrieve unit information and resources from the API.}
 
 \item{unit_id}{Integer. Unit ID to be changed.}
 
@@ -54,6 +54,15 @@ change_unit_settings(
 }
 \description{
 This function updates the Studio metadata, i.e., versions for player, editor, or schemer, and the groups and the states of a single unit. To change multiple units, use \code{\link[=change_units_settings]{change_units_settings()}}. Please note that invalid inputs will result in a default version (e.g., the newest one in case of \code{editor}, \code{player}, or \code{schemer}) or be ignored (in case of group_name or \code{state}).
+}
+\details{
+From Studio Lite 21, changing a unit key to one already used in the workspace
+(ignoring case) rejects the entire settings request with HTTP 409. In this case,
+this function raises an error of class \code{eatPrepTBA_unit_key_conflict}; none of
+the settings submitted in that request were changed. The error includes
+\code{unit_id}, \code{unit_key}, and \code{ws_id} fields and the original HTTP error as its
+\code{parent}. Studio validates the key, so an unchanged key remains editable even
+if duplicate keys already exist in the workspace.
 }
 \section{Functions}{
 \itemize{

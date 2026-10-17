@@ -15,6 +15,14 @@
 #' ignored. Use `item_no` for the row order in the item list, `item_order` for
 #' the Studio/spec `order` value, and call `get_units(..., unit_definition = TRUE)`
 #' when page locations via `variable_pages` are needed.
+#' VariableInfo 1 and 2 records may coexist in a workspace. Known uppercase
+#' VariableInfo 2 type and format values are returned with their legacy spelling
+#' (for example, `NO_VALUE` becomes `no-value` and `TEXT_SELECTION` becomes
+#' `text-selection`); unknown values retain their spelling. Missing formats
+#' become empty strings; omitted value lists are handled like empty lists. VariableInfo 2
+#' has no page field, so `variable_page` is `NA` for those records. When unit
+#' definitions are retrieved, [add_coding_scheme()] uses the extracted locations
+#' in preference to legacy page fields.
 #' @return A tibble.
 #' @export
 #'
@@ -253,6 +261,7 @@ read_unit <- function(unit) {
   if (length(variables) > 0) {
     variables_prep <-
       variables %>%
+      purrr::map(normalize_studio_variable_info) %>%
       purrr::list_transpose() %>%
       tibble::as_tibble()
 
@@ -308,6 +317,38 @@ read_unit <- function(unit) {
       metadata = list(metadata),
       variables = list(variables)
     )
+}
+
+# Keep the public variable table compatible with VariableInfo 1, including
+# workspaces mixing old stored records and VariableInfo 2 from newer editors.
+# Only published enum values are translated; extension values retain spelling.
+normalize_studio_variable_info <- function(variable) {
+  types <- c(
+    STRING = "string", INTEGER = "integer", NUMBER = "number",
+    BOOLEAN = "boolean", ATTACHMENT = "attachment", JSON = "json",
+    NO_VALUE = "no-value", CODED = "coded"
+  )
+  formats <- c(
+    TEXT_SELECTION = "text-selection", IMAGE = "image",
+    CAPTURE_IMAGE = "capture-image", AUDIO = "audio", GGB_FILE = "ggb-file",
+    NON_NEGATIVE = "non-negative", LATEX = "latex", MATH_ML = "math-ml",
+    MATH_TABLE = "math-table", MATH_TEXT_MIX = "math-text-mix",
+    GGB_VARIABLE = "ggb-variable"
+  )
+  if (!is.null(variable$type) && variable$type %in% names(types)) {
+    variable$type <- unname(types[[variable$type]])
+  }
+  if (is.null(variable$format)) variable$format <- ""
+  if (variable$format %in% names(formats)) {
+    variable$format <- unname(formats[[variable$format]])
+  }
+  if (is.null(variable$alias)) variable$alias <- variable$id
+  if (is.null(variable$values)) variable$values <- list()
+  # VariableInfo 2 has no page. Keep missing positions explicit when combined
+  # with legacy variables; unit definitions supply authoritative locations.
+  # An untyped NA can combine with legacy numeric or character page fields.
+  if (is.null(variable$page)) variable$page <- NA
+  variable
 }
 
 list_to_logical <- function(x) {

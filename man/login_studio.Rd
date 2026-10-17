@@ -16,7 +16,10 @@ login_studio(
 \arguments{
 \item{base_url}{Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.}
 
-\item{app_version}{Character. App version of the IQB Studio instance. Defaults to "16.0.0"; the server version is not detected automatically. Set this explicitly to the version used by your Studio instance.}
+\item{app_version}{Character. Exact app version of the IQB Studio instance,
+including any prerelease suffix. Defaults to "16.0.0" for compatibility;
+the server version is not detected automatically. Set this explicitly to
+the version displayed by your instance, e.g. \code{"21.0.0"} after its upgrade.}
 
 \item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
 
@@ -33,6 +36,11 @@ An object of the \linkS4class{LoginStudio} class.
 Provides a routine to login to an instance of the IQB Studio Lite.
 }
 \details{
+Studio rejects a mismatching version with HTTP 521. In that case this
+function raises an \code{eatPrepTBA_studio_version_mismatch} error with a reminder
+to set \code{app_version} to the instance's exact version. After a Studio upgrade,
+log in again with the new version to create a new request function.
+
 The login request sends the username and password as a JSON body to
 \code{{base_url}/api/login}. An equivalent curl request is:
 
