@@ -144,10 +144,13 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
             dplyr::rename(
               variable_source_ref = "variable_ref",
               variable_source_page = "variable_page",
-              variable_source_section = "variable_section",
-              variable_source_content = "variable_content",
-              variable_source_element = "variable_element",
-              variable_source_page_always_visible = "variable_page_always_visible"),
+              variable_source_page_always_visible = "variable_page_always_visible",
+              # Definition paths omit components not used by any element.
+              dplyr::any_of(c(
+                variable_source_section = "variable_section",
+                variable_source_content = "variable_content",
+                variable_source_element = "variable_element"
+              ))),
           by = dplyr::join_by("ws_id", "unit_id", "unit_key", "variable_source_ref")
         ) %>%
         # Infer variable page
