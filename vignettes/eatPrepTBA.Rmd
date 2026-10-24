@@ -29,7 +29,7 @@ library(eatPrepTBA)
 ## IQB-Studio Login
 
 To log in to the IQB Studio, use [`login_studio()`](../reference/login_studio.html).
-The example uses Studio version `20.0.1`. Use the version shown by your Studio instance
+The example assumes an instance upgraded to Studio `21.0.0`. Use the exact version shown by your Studio instance
 (marked as `app_version` in the screenshot below, for example at
 <https://www.iqb-studio.de>). Workspace IDs below are examples;
 replace them with IDs available to your account.
@@ -37,9 +37,14 @@ The Studio version is not detected automatically; set it explicitly rather than
 relying on the package's older default.
 
 ```{r, eval=FALSE}
-app_version <- "20.0.1"
+app_version <- "21.0.0"
 login <- login_studio(keyring = TRUE, app_version = app_version)
 ```
+
+Before your instance is upgraded, keep its current version. A beta instance
+requires its full version, for example `21.0.0-beta.1`. A mismatching version
+produces HTTP 521 with a hint to correct `app_version`. After an upgrade, log in
+again and recreate the workspace object so subsequent requests use the new version.
 
 By default, credentials are entered in a dialog with masked password input,
 also outside RStudio when a GUI is available. If no dialog is available, or with
@@ -59,6 +64,21 @@ The function returns a `LoginStudio` object invisibly. It contains the workspace
 information and a request function that uses the access token for later API
 calls. Save it as `login` and pass it to `access_workspace()`. Printing `login`
 shows the workspace groups and workspaces available to your account.
+
+### Studio 21 compatibility
+
+Studio 21 can return VariableInfo 1.x and 2.0 in the same workspace. When reading
+units, eatPrepTBA converts known 2.0 types and formats to the previous spelling,
+for example `NO_VALUE` to `no-value` and `TEXT_SELECTION` to `text-selection`.
+Unknown values are retained. VariableInfo 2.0 has no `page` field; use
+`get_units(..., unit_definition = TRUE)` for page positions from the actual
+unit definition.
+
+Renaming a unit to a key already used by another unit in its workspace is
+rejected by Studio with HTTP 409, ignoring letter case. The entire settings
+request is rejected, including changes to other fields sent with the rename.
+eatPrepTBA reports this as an `eatPrepTBA_unit_key_conflict` error. Select a
+different key before submitting the settings again.
 
 
 ## Accessing a workspace

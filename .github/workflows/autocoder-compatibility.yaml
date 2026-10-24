@@ -21,7 +21,7 @@ jobs:
         autocoder: [reference, main]
         include:
           - autocoder: reference
-            ref: 4c2084db1d20bcaf76132db56238f3f707d37965
+            ref: 54f39a8e94f9a4d7e6fc05ccbfc607f183609b5a
           - autocoder: main
             ref: main
     env:

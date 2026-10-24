@@ -353,6 +353,15 @@ code_responses <- function(responses,
       "code_status" = "status"
     )))
 
+  # The coder omits these fields when no response has a code or score.
+  # Keep missing results explicit so preparation and completion can proceed.
+  if (!"code_id" %in% names(responses_coded)) {
+    responses_coded$code_id <- rep(NA_integer_, nrow(responses_coded))
+  }
+  if (!"code_score" %in% names(responses_coded)) {
+    responses_coded$code_score <- rep(NA_real_, nrow(responses_coded))
+  }
+
   if (prepare) {
     tryCatch(
       error = function(cnd) {
@@ -362,7 +371,6 @@ code_responses <- function(responses,
         # Default return
         return(responses_coded)
       },
-      # TODO: Does not work if no code_ids are available (e.g., only coding errors)
       responses_coded %>%
         tidyr::unnest(value, keep_empty = TRUE) %>%
         dplyr::semi_join(pcs_variables, by = dplyr::join_by("unit_key", "variable_id")) %>%
