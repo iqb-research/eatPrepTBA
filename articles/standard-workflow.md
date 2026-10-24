@@ -1,6 +1,6 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-**Paketstand: eatPrepTBA 0.9.8.9040.**
+**Paketstand: eatPrepTBA 0.9.8.9041.**
 
 Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 **einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
@@ -46,13 +46,15 @@ lädt die Units;
 [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
 bereitet ihre vorhandenen Kodierschemata für die Auswertung auf.
 
-Das Beispiel verwendet Studio-Version `20.0.1`. Falls auf deiner
-Studio-Anmeldeseite eine andere Version steht, trage diese bei
-`app_version` ein.
+Das Beispiel setzt eine bereits auf `21.0.0` aktualisierte
+Studio-Instanz voraus. Trage bei `app_version` die genaue Version deiner
+Anmeldeseite ein, einschließlich eines möglichen Beta-Zusatzes. Bis zum
+Update gilt die bisherige Version. Nach dem Update erneut anmelden und
+das Workspace-Objekt neu erstellen.
 
 ``` r
 
-studio_login <- login_studio(app_version = "20.0.1")
+studio_login <- login_studio(app_version = "21.0.0")
 studio <- access_workspace(studio_login, ws_id = 123)
 
 units <- get_units(studio, metadata = TRUE, unit_definition = TRUE)

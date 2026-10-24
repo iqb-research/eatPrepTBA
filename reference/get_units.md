@@ -9,7 +9,16 @@ compatibility. Retired internal fields such as `position`, `locked`, and
 `weighting` are ignored. Use `item_no` for the row order in the item
 list, `item_order` for the Studio/spec `order` value, and call
 `get_units(..., unit_definition = TRUE)` when page locations via
-`variable_pages` are needed.
+`variable_pages` are needed. VariableInfo 1 and 2 records may coexist in
+a workspace. Known uppercase VariableInfo 2 type and format values are
+returned with their legacy spelling (for example, `NO_VALUE` becomes
+`no-value` and `TEXT_SELECTION` becomes `text-selection`); unknown
+values retain their spelling. Missing formats become empty strings;
+omitted value lists are handled like empty lists. VariableInfo 2 has no
+page field, so `variable_page` is `NA` for those records. When unit
+definitions are retrieved,
+[`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+uses the extracted locations in preference to legacy page fields.
 
 ## Usage
 

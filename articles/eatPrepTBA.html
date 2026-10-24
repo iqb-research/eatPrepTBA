@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9041</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,15 +96,21 @@ German).</p>
 <h2 id="iqb-studio-login">IQB-Studio Login<a class="anchor" aria-label="anchor" href="#iqb-studio-login"></a>
 </h2>
 <p>To log in to the IQB Studio, use <a href="../reference/login_studio.html"><code>login_studio()</code></a>.
-The example uses Studio version <code>20.0.1</code>. Use the version
-shown by your Studio instance (marked as <code>app_version</code> in the
-screenshot below, for example at <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>). Workspace IDs below are
+The example assumes an instance upgraded to Studio <code>21.0.0</code>.
+Use the exact version shown by your Studio instance (marked as
+<code>app_version</code> in the screenshot below, for example at <a href="https://www.iqb-studio.de" class="external-link uri">https://www.iqb-studio.de</a>). Workspace IDs below are
 examples; replace them with IDs available to your account. The Studio
 version is not detected automatically; set it explicitly rather than
 relying on the package’s older default.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"20.0.1"</span></span>
+<code class="sourceCode R"><span><span class="va">app_version</span> <span class="op">&lt;-</span> <span class="st">"21.0.0"</span></span>
 <span><span class="va">login</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/login_studio.html">login_studio</a></span><span class="op">(</span>keyring <span class="op">=</span> <span class="cn">TRUE</span>, app_version <span class="op">=</span> <span class="va">app_version</span><span class="op">)</span></span></code></pre></div>
+<p>Before your instance is upgraded, keep its current version. A beta
+instance requires its full version, for example
+<code>21.0.0-beta.1</code>. A mismatching version produces HTTP 521 with
+a hint to correct <code>app_version</code>. After an upgrade, log in
+again and recreate the workspace object so subsequent requests use the
+new version.</p>
 <p>By default, credentials are entered in a dialog with masked password
 input, also outside RStudio when a GUI is available. If no dialog is
 available, or with <code>dialog = FALSE</code>, the function uses
@@ -121,6 +127,24 @@ contains the workspace information and a request function that uses the
 access token for later API calls. Save it as <code>login</code> and pass
 it to <code><a href="../reference/access_workspace.html">access_workspace()</a></code>. Printing <code>login</code> shows
 the workspace groups and workspaces available to your account.</p>
+<div class="section level3">
+<h3 id="studio-21-compatibility">Studio 21 compatibility<a class="anchor" aria-label="anchor" href="#studio-21-compatibility"></a>
+</h3>
+<p>Studio 21 can return VariableInfo 1.x and 2.0 in the same workspace.
+When reading units, eatPrepTBA converts known 2.0 types and formats to
+the previous spelling, for example <code>NO_VALUE</code> to
+<code>no-value</code> and <code>TEXT_SELECTION</code> to
+<code>text-selection</code>. Unknown values are retained. VariableInfo
+2.0 has no <code>page</code> field; use
+<code>get_units(..., unit_definition = TRUE)</code> for page positions
+from the actual unit definition.</p>
+<p>Renaming a unit to a key already used by another unit in its
+workspace is rejected by Studio with HTTP 409, ignoring letter case. The
+entire settings request is rejected, including changes to other fields
+sent with the rename. eatPrepTBA reports this as an
+<code>eatPrepTBA_unit_key_conflict</code> error. Select a different key
+before submitting the settings again.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="accessing-a-workspace">Accessing a workspace<a class="anchor" aria-label="anchor" href="#accessing-a-workspace"></a>

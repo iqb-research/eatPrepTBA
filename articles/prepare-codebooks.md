@@ -3,7 +3,7 @@
 ``` r
 
 library(eatPrepTBA)
-#> eatPrepTBA v0.9.8.9040
+#> eatPrepTBA v0.9.8.9041
 ```
 
 ## Overview
@@ -22,9 +22,10 @@ input when a GUI is available. Otherwise, the function uses the console.
 Use the same credentials as for your Studio instance, for example
 <https://www.iqb-studio.de>.
 
-The example uses Studio version `20.0.1`. If your Studio login page
-shows a different version, use that value for `app_version`. Replace the
-example workspace ID `1300` with an ID available to your account.
+The example assumes an instance upgraded to Studio `21.0.0`. If your
+Studio login page shows a different version, use that exact value for
+`app_version`, including any beta suffix. Replace the example workspace
+ID `1300` with an ID available to your account.
 
 For details on login, storing credentials with `keyring`, and selecting
 workspaces, see the [Get
@@ -34,7 +35,7 @@ page.
 ``` r
 
 
-login <- login_studio(keyring = TRUE, app_version = "20.0.1")
+login <- login_studio(keyring = TRUE, app_version = "21.0.0")
 
 workspace <- access_workspace(login = login, ws_id = 1300)
 ```

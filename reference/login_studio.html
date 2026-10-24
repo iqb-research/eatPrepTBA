@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9041</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,10 @@
 
 
 <dt id="arg-app-version">app_version<a class="anchor" aria-label="anchor" href="#arg-app-version"></a></dt>
-<dd><p>Character. App version of the IQB Studio instance. Defaults to "16.0.0"; the server version is not detected automatically. Set this explicitly to the version used by your Studio instance.</p></dd>
+<dd><p>Character. Exact app version of the IQB Studio instance,
+including any prerelease suffix. Defaults to "16.0.0" for compatibility;
+the server version is not detected automatically. Set this explicitly to
+the version displayed by your instance, e.g. <code>"21.0.0"</code> after its upgrade.</p></dd>
 
 
 <dt id="arg-keyring">keyring<a class="anchor" aria-label="anchor" href="#arg-keyring"></a></dt>
@@ -90,7 +93,11 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The login request sends the username and password as a JSON body to
+    <p>Studio rejects a mismatching version with HTTP 521. In that case this
+function raises an <code>eatPrepTBA_studio_version_mismatch</code> error with a reminder
+to set <code>app_version</code> to the instance's exact version. After a Studio upgrade,
+log in again with the new version to create a new request function.</p>
+<p>The login request sends the username and password as a JSON body to
 <code>{base_url}/api/login</code>. An equivalent curl request is:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>curl <span class="sc">--</span>request POST <span class="st">'{base_url}/api/login'</span> \</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="sc">--</span>header <span class="st">'app-version: {app_version}'</span> \</span>

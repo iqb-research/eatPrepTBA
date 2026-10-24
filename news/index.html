@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9040</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9041</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,27 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9041" id="eatpreptba-0989041-2026-10-24">eatPrepTBA 0.9.8.9041 [2026-10-24]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989041-2026-10-24"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-8-9041">bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-8-9041"></a></h3>
+<ul><li>Studio VariableInfo 2.0 types and formats are read in the same spelling as 1.x. Known values are normalized and unknown values retained, including workspaces containing both versions. Missing optional page information no longer breaks coding-scheme preparation; page positions continue to come from unit definitions when requested.</li>
+<li>A rejected unit rename (HTTP 409) now raises an <code>eatPrepTBA_unit_key_conflict</code> error identifying the unit and workspace and explaining that none of the settings in that request were saved. Other request errors retain their existing handling.</li>
+<li>
+<code><a href="../reference/login_studio.html">login_studio()</a></code> identifies a version mismatch (HTTP 521) with an <code>eatPrepTBA_studio_version_mismatch</code> error and instructions to use the instance’s exact version, including prerelease suffixes.</li>
+<li>Requires eatAutoCode 0.5.0.9008 or later for Studio 21’s partial-credit options for derived variables. The compatibility checks use this updated reference alongside current upstream.</li>
+<li>
+<code><a href="../reference/code_responses.html">code_responses()</a></code> supplies missing <code>code_id</code> and <code>code_score</code> columns as typed <code>NA</code> values when the auto-coder omits them. Preparation and <code><a href="../reference/complete_design.html">complete_design()</a></code> can then handle the result normally, preserving technical statuses and existing values.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9041">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9041"></a></h3>
+<ul><li>Added real-autocoder integration tests for partial-credit results through <code><a href="../reference/complete_design.html">complete_design()</a></code> and for response batches without numeric codes.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-9-8-9041">documentation<a class="anchor" aria-label="anchor" href="#documentation-0-9-8-9041"></a></h3>
+<ul><li>Updated Studio examples for instances upgraded to 21.0.0, with instructions to retain the current instance version until its upgrade and log in again afterwards.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9040" id="eatpreptba-0989040-2026-10-17">eatPrepTBA 0.9.8.9040 [2026-10-17]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989040-2026-10-17"></a></h2>
 <div class="section level3">

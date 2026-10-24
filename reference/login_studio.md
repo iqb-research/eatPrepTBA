@@ -24,9 +24,10 @@ login_studio(
 
 - app_version:
 
-  Character. App version of the IQB Studio instance. Defaults to
-  "16.0.0"; the server version is not detected automatically. Set this
-  explicitly to the version used by your Studio instance.
+  Character. Exact app version of the IQB Studio instance, including any
+  prerelease suffix. Defaults to "16.0.0" for compatibility; the server
+  version is not detected automatically. Set this explicitly to the
+  version displayed by your instance, e.g. `"21.0.0"` after its upgrade.
 
 - keyring:
 
@@ -59,6 +60,12 @@ An object of the
 class.
 
 ## Details
+
+Studio rejects a mismatching version with HTTP 521. In that case this
+function raises an `eatPrepTBA_studio_version_mismatch` error with a
+reminder to set `app_version` to the instance's exact version. After a
+Studio upgrade, log in again with the new version to create a new
+request function.
 
 The login request sends the username and password as a JSON body to
 `{base_url}/api/login`. An equivalent curl request is:

@@ -89,6 +89,17 @@ change_unit_settings(
   Numeric or character. New state id (when numeric) or label (when
   character).
 
+## Details
+
+From Studio Lite 21, changing a unit key to one already used in the
+workspace (ignoring case) rejects the entire settings request with HTTP
+409. In this case, this function raises an error of class
+`eatPrepTBA_unit_key_conflict`; none of the settings submitted in that
+request were changed. The error includes `unit_id`, `unit_key`, and
+`ws_id` fields and the original HTTP error as its `parent`. Studio
+validates the key, so an unchanged key remains editable even if
+duplicate keys already exist in the workspace.
+
 ## Functions
 
 - `change_unit_settings(WorkspaceStudio)`: Get unit information and
