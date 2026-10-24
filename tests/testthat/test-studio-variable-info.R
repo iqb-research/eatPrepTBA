@@ -49,7 +49,9 @@ studio_variable_info_unit <- function(version = "v2", id = 10L) {
        lastChangedMetadata = "2026-10-17T00:00:00Z")
 }
 
-studio_variable_info_get_units <- function(versions, unit_definition, legacy_pages = NULL) {
+studio_variable_info_get_units <- function(versions, unit_definition, legacy_pages = NULL,
+                                         layout = c("cloze", "direct", "mixed")) {
+  layout <- match.arg(layout)
   payload <- Map(studio_variable_info_unit, versions, seq_along(versions) + 9L)
   if (!is.null(legacy_pages)) {
     for (i in which(versions == "v1")) {
@@ -61,9 +63,11 @@ studio_variable_info_get_units <- function(versions, unit_definition, legacy_pag
   # Real definition extraction orders V10 before V2 before V1, whereas the
   # legacy page fields and the natural-name fallback give the reverse order.
   pages <- lapply(c("v10", "v2", "v1"), function(ref) {
-    list(alwaysVisible = FALSE, sections = list(list(elements = list(
-      list(type = "cloze", content = list(list(id = ref, type = "text-field")))
-    ))))
+    element <- list(id = ref, type = "text-field")
+    if (layout == "cloze" || (layout == "mixed" && ref == "v2")) {
+      element <- list(type = "cloze", content = list(element))
+    }
+    list(alwaysVisible = FALSE, sections = list(list(elements = list(element))))
   })
   definition <- as.character(jsonlite::toJSON(list(pages = pages), auto_unbox = TRUE))
   testthat::local_mocked_bindings(
@@ -218,3 +222,39 @@ test_that("previously saved v2 units can omit the legacy page column", {
     match(c("V10", "V2", "V1"), prepared$unit_codes[[1]]$variable_id)
   ], 0:2)
 })
+
+for (versions in list("v1", "v2", c("v1", "v2"))) {
+  for (layout in c("direct", "mixed")) {
+    test_that(paste("Studio", paste(versions, collapse = "+"),
+                    "preserves pages and completion for", layout, "elements"), {
+      units <- studio_variable_info_get_units(versions, TRUE, layout = layout)
+      for (pages in units$variable_pages) {
+        # Direct elements have no content path; mixed layouts have it only
+        # for the nested field. Exercise the real extractor in both cases.
+        expect_identical("variable_content" %in% names(pages), layout == "mixed")
+        if (layout == "mixed") {
+          expect_identical(is.na(pages$variable_content), pages$variable_ref != "v2")
+        }
+      }
+      expect_no_warning(prepared <- suppressMessages(add_coding_scheme(units)))
+      for (codes in prepared$unit_codes) {
+        expect_equal(codes$variable_page[match(c("V10", "V2", "V1", "D2"), codes$variable_id)],
+                     c(0, 1, 2, 1))
+        source <- codes$variable_sources[[match("D2", codes$variable_id)]]
+        expect_identical(source$variable_source_ref, "v2")
+        expect_equal(source$variable_source_page, 1)
+        expect_equal(source$variable_source_section, 0)
+        expect_equal(source$variable_source_element, 0)
+        if (layout == "mixed") expect_equal(source$variable_source_content, 0)
+      }
+      for (nr_origin in c(FALSE, TRUE)) {
+        expect_no_warning(out <- studio_variable_info_complete(prepared, nr_origin = nr_origin))
+        expect_identical(out$variable_id, rep(c("V10", "V2", "D2", "V1"), length(versions)))
+        expect_identical(out$variable_position, rep(1:4, length(versions)))
+        expect_equal(out$code_id[out$variable_id == "V10"],
+                     rep(if (nr_origin) -96 else -99, length(versions)))
+        expect_equal(out$code_id[out$variable_id == "V2"], rep(1, length(versions)))
+      }
+    })
+  }
+}

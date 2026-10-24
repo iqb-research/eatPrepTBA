@@ -1,3 +1,13 @@
+# eatPrepTBA 0.9.8.9042 [2026-10-24]
+
+## bug fixes
+
+* `add_coding_scheme()` accepts unit definitions without optional path components such as `variable_content` for direct input elements. Existing page positions and source information are preserved.
+
+## tests
+
+* Added integration coverage from actual definition extraction through `complete_design()` for direct and mixed element layouts with legacy, current, and mixed Studio variable metadata.
+
 # eatPrepTBA 0.9.8.9041 [2026-10-24]
 
 ## bug fixes
