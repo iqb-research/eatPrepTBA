@@ -48,9 +48,10 @@ prepare_codebook(
 
 - unit_keys:
 
-  Character. Keys (short names) of the units in the workspace the
-  codebook should be retrieved from. If set to `NULL` (default), the
-  codebook will be generated for the all units.
+  Character. Exact, case-sensitive unit keys (short names) returned by
+  [`list_units()`](https://iqb-research.github.io/eatPrepTBA/reference/list_units.md),
+  not numeric IDs or labels. Use `NULL` (default) for all units. An
+  empty vector or unknown keys raise an error before export.
 
 - missings:
 
@@ -98,7 +99,10 @@ prepare_codebook(
 
 - show_score:
 
-  Logical. Should the score be printed? Defaults to `FALSE`.
+  Logical. Should the score be printed? Defaults to `FALSE`. When
+  present in the export, `score` is returned as a numeric column.
+  Missing or blank scores become `NA_real_`; nonnumeric scores raise an
+  error.
 
 - code_label_to_upper:
 
@@ -110,6 +114,11 @@ prepare_codebook(
 A tibble.
 
 ## Details
+
+Missing downloads and exports containing no units, variables, or codes
+raise an explicit error. Check the selected units and export filters in
+that case. Download errors retain the original API error; preparation
+stops if any requested workspace export fails.
 
 To include missing-value codes maintained in Studio, set
 `missings_profile` to the exact profile label shown in Studio's codebook

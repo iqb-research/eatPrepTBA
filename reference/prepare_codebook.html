@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9042</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9043</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,7 +87,9 @@
 
 
 <dt id="arg-unit-keys">unit_keys<a class="anchor" aria-label="anchor" href="#arg-unit-keys"></a></dt>
-<dd><p>Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to <code>NULL</code> (default), the codebook will be generated for the all units.</p></dd>
+<dd><p>Character. Exact, case-sensitive unit keys (short names)
+returned by <code><a href="list_units.html">list_units()</a></code>, not numeric IDs or labels. Use <code>NULL</code> (default)
+for all units. An empty vector or unknown keys raise an error before export.</p></dd>
 
 
 <dt id="arg-missings">missings<a class="anchor" aria-label="anchor" href="#arg-missings"></a></dt>
@@ -130,7 +132,9 @@ raises an error before downloading.</p></dd>
 
 
 <dt id="arg-show-score">show_score<a class="anchor" aria-label="anchor" href="#arg-show-score"></a></dt>
-<dd><p>Logical. Should the score be printed? Defaults to <code>FALSE</code>.</p></dd>
+<dd><p>Logical. Should the score be printed? Defaults to <code>FALSE</code>.
+When present in the export, <code>score</code> is returned as a numeric column.
+Missing or blank scores become <code>NA_real_</code>; nonnumeric scores raise an error.</p></dd>
 
 
 <dt id="arg-code-label-to-upper">code_label_to_upper<a class="anchor" aria-label="anchor" href="#arg-code-label-to-upper"></a></dt>
@@ -143,7 +147,11 @@ raises an error before downloading.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>To include missing-value codes maintained in Studio, set <code>missings_profile</code>
+    <p>Missing downloads and exports containing no units, variables, or codes raise
+an explicit error. Check the selected units and export filters in that case.
+Download errors retain the original API error; preparation stops if any
+requested workspace export fails.</p>
+<p>To include missing-value codes maintained in Studio, set <code>missings_profile</code>
 to the exact profile label shown in Studio's codebook export dialog.
 These codes are returned separately for each unit by Studio and added to
 each variable in the prepared table. The numeric Studio <code>code</code> is used as

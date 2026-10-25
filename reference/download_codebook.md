@@ -61,9 +61,10 @@ download_codebook(
 
 - unit_keys:
 
-  Character. Keys (short names) of the units in the workspace the
-  codebook should be retrieved from. If set to `NULL` (default), the
-  codebook will be generated for the all units.
+  Character. Exact, case-sensitive unit keys (short names) returned by
+  [`list_units()`](https://iqb-research.github.io/eatPrepTBA/reference/list_units.md),
+  not numeric IDs or labels. Use `NULL` (default) for all units. An
+  empty vector or unknown keys raise an error before export.
 
 - format:
 
@@ -113,6 +114,10 @@ download_codebook(
   Defaults to `TRUE`.
 
 ## Details
+
+Unit keys are checked across all selected workspaces before exporting.
+If no units are available, the function raises an error. A failed
+download stops further exports and retains the original API error.
 
 Missing-value profiles are configured in Studio. Use the exact profile
 label shown in Studio's codebook export dialog. A selected profile is

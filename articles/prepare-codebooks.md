@@ -3,7 +3,7 @@
 ``` r
 
 library(eatPrepTBA)
-#> eatPrepTBA v0.9.8.9042
+#> eatPrepTBA v0.9.8.9043
 ```
 
 ## Overview
@@ -179,6 +179,22 @@ The `unit_keys` argument of
 can be used to restrict the codebook to specific units. By default,
 `unit_keys = NULL`, meaning that all units are included automatically.
 
+Use the exact unit keys (short names), including case, rather than
+numeric IDs or labels. To check your selection against the workspace:
+
+``` r
+
+available_keys <- list_units(workspace) |>
+  purrr::map(\(ws) purrr::map_chr(ws$units, "unit_key")) |>
+  unlist(use.names = FALSE)
+setdiff(selected_units, available_keys) # Should be character(0).
+```
+
+Unknown keys and an empty selection (`character(0)`) raise an error
+before export. If Studio returns an entirely empty codebook, check the
+selected units, their coding schemes, and the export filters, especially
+`only_coded`.
+
 ``` r
 
 cb_D2_D3 <- prepare_codebook(
@@ -313,6 +329,12 @@ entry whose numeric `code` is `-97`.
 The tabular codebook created by
 [`prepare_codebook()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_codebook.md)
 can also be exported as an Excel file for easier inspection and sharing.
+
+With `show_score = TRUE`, the `score` column contains numeric values,
+including scores supplied by Studio as numeric strings. Missing or blank
+scores, including those of appended missing-value codes, become
+`NA_real_` and appear as empty cells in Excel. Nonnumeric scores raise
+an error instead of being silently replaced by missing values.
 
 This example uses the separate `writexl` package. Install it once if
 needed:

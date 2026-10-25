@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9042</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9043</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,9 @@
 
 
 <dt id="arg-unit-keys">unit_keys<a class="anchor" aria-label="anchor" href="#arg-unit-keys"></a></dt>
-<dd><p>Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to <code>NULL</code> (default), the codebook will be generated for the all units.</p></dd>
+<dd><p>Character. Exact, case-sensitive unit keys (short names)
+returned by <code><a href="list_units.html">list_units()</a></code>, not numeric IDs or labels. Use <code>NULL</code> (default)
+for all units. An empty vector or unknown keys raise an error before export.</p></dd>
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>
@@ -146,7 +148,10 @@ profile is selected. An unknown label raises an error before downloading.</p></d
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Missing-value profiles are configured in Studio. Use the exact profile label
+    <p>Unit keys are checked across all selected workspaces before exporting. If no
+units are available, the function raises an error. A failed download stops
+further exports and retains the original API error.</p>
+<p>Missing-value profiles are configured in Studio. Use the exact profile label
 shown in Studio's codebook export dialog. A selected profile is checked via
 <code>admin/settings/missings-profiles</code> using the workspace's login before export.
 Its missing-value codes are included in the downloaded JSON or DOCX file.
