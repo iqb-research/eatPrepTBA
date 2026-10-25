@@ -38,7 +38,9 @@ prepare_codebook(
 \arguments{
 \item{workspace}{\linkS4class{WorkspaceStudio}. Workspace information necessary to download codebook via the API.}
 
-\item{unit_keys}{Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to \code{NULL} (default), the codebook will be generated for the all units.}
+\item{unit_keys}{Character. Exact, case-sensitive unit keys (short names)
+returned by \code{\link[=list_units]{list_units()}}, not numeric IDs or labels. Use \code{NULL} (default)
+for all units. An empty vector or unknown keys raise an error before export.}
 
 \item{missings}{Tibble (optional). Missing-value codes with columns \code{id},
 \code{label}, and \code{description}, added to each variable. When a Studio profile
@@ -63,7 +65,9 @@ raises an error before downloading.}
 
 \item{closed}{Logical. Should items that could be automatically coded be printed? Defaults to \code{TRUE}.}
 
-\item{show_score}{Logical. Should the score be printed? Defaults to \code{FALSE}.}
+\item{show_score}{Logical. Should the score be printed? Defaults to \code{FALSE}.
+When present in the export, \code{score} is returned as a numeric column.
+Missing or blank scores become \code{NA_real_}; nonnumeric scores raise an error.}
 
 \item{code_label_to_upper}{Logical. Should the code labels be printed in capital letters? Defaults to \code{TRUE}.}
 }
@@ -74,6 +78,11 @@ A tibble.
 This function is a wrapper around \code{\link[=download_codebook]{download_codebook()}} that provides a rectangular codebook.
 }
 \details{
+Missing downloads and exports containing no units, variables, or codes raise
+an explicit error. Check the selected units and export filters in that case.
+Download errors retain the original API error; preparation stops if any
+requested workspace export fails.
+
 To include missing-value codes maintained in Studio, set \code{missings_profile}
 to the exact profile label shown in Studio's codebook export dialog.
 These codes are returned separately for each unit by Studio and added to

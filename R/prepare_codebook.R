@@ -1,7 +1,9 @@
 #' Prepares a rectangular codebook
 #'
 #' @param workspace [WorkspaceStudio-class]. Workspace information necessary to download codebook via the API.
-#' @param unit_keys Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to `NULL` (default), the codebook will be generated for the all units.
+#' @param unit_keys Character. Exact, case-sensitive unit keys (short names)
+#'   returned by [list_units()], not numeric IDs or labels. Use `NULL` (default)
+#'   for all units. An empty vector or unknown keys raise an error before export.
 #' @param missings Tibble (optional). Missing-value codes with columns `id`,
 #'   `label`, and `description`, added to each variable. When a Studio profile
 #'   is also selected, these codes replace profile codes with the same `id`;
@@ -18,12 +20,19 @@
 #' @param manual Logical. Should only items with manual coding be printed? Defaults to `TRUE`.
 #' @param closed Logical. Should items that could be automatically coded be printed? Defaults to `TRUE`.
 #' @param show_score Logical. Should the score be printed? Defaults to `FALSE`.
+#'   When present in the export, `score` is returned as a numeric column.
+#'   Missing or blank scores become `NA_real_`; nonnumeric scores raise an error.
 #' @param code_label_to_upper Logical. Should the code labels be printed in capital letters? Defaults to `TRUE`.
 #'
 #' @description
 #' This function is a wrapper around [download_codebook()] that provides a rectangular codebook.
 #'
 #' @details
+#' Missing downloads and exports containing no units, variables, or codes raise
+#' an explicit error. Check the selected units and export filters in that case.
+#' Download errors retain the original API error; preparation stops if any
+#' requested workspace export fails.
+#'
 #' To include missing-value codes maintained in Studio, set `missings_profile`
 #' to the exact profile label shown in Studio's codebook export dialog.
 #' These codes are returned separately for each unit by Studio and added to
@@ -108,6 +117,11 @@ setMethod("prepare_codebook",
                               show_score = show_score,
                               code_label_to_upper = code_label_to_upper)
 
+            codebook_paths <- list.files(tmp_codebooks, "\\.json$", full.names = TRUE)
+            if (!length(codebook_paths)) {
+              cli::cli_abort("No JSON codebook was downloaded. Check {.arg unit_keys}, {.fn list_units}, and any preceding download error messages.")
+            }
+
             missing_codes <- missings
             if (!is.null(missing_codes)) {
               missing_codes <-
@@ -117,7 +131,7 @@ setMethod("prepare_codebook",
             }
 
             codebooks <-
-              list.files(tmp_codebooks, "\\.json$", full.names = TRUE) %>%
+              codebook_paths %>%
               tibble::enframe(name = NULL, value = "path") %>%
               dplyr::mutate(
                 codebook = purrr::map(path, jsonlite::read_json)
@@ -126,11 +140,23 @@ setMethod("prepare_codebook",
               dplyr::mutate(
                 codebook = purrr::map(codebook, prepare_codebook_units)
               ) %>%
-              tidyr::unnest(codebook) %>%
+              tidyr::unnest(codebook)
+
+            if (!nrow(codebooks)) {
+              cli::cli_abort("The Studio JSON codebook contains no units. Check the selected units and export filters.")
+            }
+
+            codebooks <- codebooks %>%
               dplyr::mutate(
                 variables = purrr::map(variables, prepare_codebook_variables)
               ) %>%
-              tidyr::unnest(variables) %>%
+              tidyr::unnest(variables)
+
+            if (!nrow(codebooks)) {
+              cli::cli_abort("The Studio JSON codebook contains no variables. Check {.arg only_coded}, {.arg derived}, {.arg manual}, and {.arg closed} and the coding schemes of the selected units.")
+            }
+
+            codebooks <- codebooks %>%
               dplyr::mutate(
                 codes = purrr::map2(codes, missings, function(codes, profile_codes) {
                   combined_missing_codes <- combine_codebook_missing_codes(
@@ -141,6 +167,10 @@ setMethod("prepare_codebook",
               ) %>%
               dplyr::select(-missings) %>%
               tidyr::unnest(codes)
+
+            if (!nrow(codebooks)) {
+              cli::cli_abort("The Studio JSON codebook contains no codes for the selected variables, and no missing-value codes were added. Check the coding schemes and export filters.")
+            }
 
             return(codebooks)
           })
@@ -212,10 +242,21 @@ prepare_codebook_codes <- function(codes,
     codes <- list(codes)
   }
 
-  c(
+  codes <- c(
     codes,
     missing_codes %>% purrr::map(function(x) x[code_entries])
-  ) %>%
+  )
+
+  if (any(purrr::map_lgl(codes, function(code) "score" %in% names(code)))) {
+    # Normalize before transposing so absent scores keep their row and
+    # mixed input types cannot be silently coerced by list simplification.
+    codes <- purrr::map(codes, function(code) {
+      code$score <- prepare_codebook_score(code$score)
+      code
+    })
+  }
+
+  codes %>%
     purrr::list_transpose() %>%
     tibble::as_tibble() %>%
     dplyr::rename(any_of(c(
@@ -223,5 +264,23 @@ prepare_codebook_codes <- function(codes,
       "code_label" = "label",
       "code_description" = "description"
     )))
+}
+
+prepare_codebook_score <- function(score) {
+  if (is.null(score)) return(NA_real_)
+  if (length(score) != 1L || !is.atomic(score)) {
+    cli::cli_abort("Each codebook {.field score} must be a single number or missing.")
+  }
+  if (is.na(score) || (is.character(score) && !nzchar(trimws(score)))) {
+    return(NA_real_)
+  }
+  if (!is.numeric(score) && !is.character(score)) {
+    cli::cli_abort("Invalid codebook {.field score}: {.val {score}}. Expected a number or a numeric string.")
+  }
+  numeric_score <- suppressWarnings(as.numeric(score))
+  if (!is.finite(numeric_score)) {
+    cli::cli_abort("Invalid codebook {.field score}: {.val {score}}. Expected a finite number or a numeric string.")
+  }
+  numeric_score
 }
 

@@ -46,7 +46,9 @@ download_codebook(
 
 \item{file_prefix}{Character (optional). Path prefix, e.g., a date to keep track of different versions of the codebook.}
 
-\item{unit_keys}{Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to \code{NULL} (default), the codebook will be generated for the all units.}
+\item{unit_keys}{Character. Exact, case-sensitive unit keys (short names)
+returned by \code{\link[=list_units]{list_units()}}, not numeric IDs or labels. Use \code{NULL} (default)
+for all units. An empty vector or unknown keys raise an error before export.}
 
 \item{format}{Character. Either \code{"docx"} (default) or \code{"json"}.}
 
@@ -74,6 +76,10 @@ profile is selected. An unknown label raises an error before downloading.}
 This function downloads codebooks from the IQB Studio.
 }
 \details{
+Unit keys are checked across all selected workspaces before exporting. If no
+units are available, the function raises an error. A failed download stops
+further exports and retains the original API error.
+
 Missing-value profiles are configured in Studio. Use the exact profile label
 shown in Studio's codebook export dialog. A selected profile is checked via
 \code{admin/settings/missings-profiles} using the workspace's login before export.

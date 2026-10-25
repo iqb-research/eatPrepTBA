@@ -3,7 +3,9 @@
 #' @param workspace [WorkspaceStudio-class]. Workspace information necessary to download codebook via the API.
 #' @param path Character. Path of the directory for the codebook files to be downloaded to. The default filename is determined by the id and the label of the IQB Studio workspace.
 #' @param file_prefix Character (optional). Path prefix, e.g., a date to keep track of different versions of the codebook.
-#' @param unit_keys Character. Keys (short names) of the units in the workspace the codebook should be retrieved from. If set to `NULL` (default), the codebook will be generated for the all units.
+#' @param unit_keys Character. Exact, case-sensitive unit keys (short names)
+#'   returned by [list_units()], not numeric IDs or labels. Use `NULL` (default)
+#'   for all units. An empty vector or unknown keys raise an error before export.
 #' @param format Character. Either `"docx"` (default) or `"json"`.
 #' @param missings_profile Character (optional). Exact, case-sensitive label of
 #'   a missing-value profile configured in Studio. With `NULL` (default), no
@@ -21,6 +23,10 @@
 #' This function downloads codebooks from the IQB Studio.
 #'
 #' @details
+#' Unit keys are checked across all selected workspaces before exporting. If no
+#' units are available, the function raises an error. A failed download stops
+#' further exports and retains the original API error.
+#'
 #' Missing-value profiles are configured in Studio. Use the exact profile label
 #' shown in Studio's codebook export dialog. A selected profile is checked via
 #' `admin/settings/missings-profiles` using the workspace's login before export.
@@ -79,6 +85,8 @@ setMethod("download_codebook",
                    show_score = FALSE,
                    code_label_to_upper = TRUE) {
             format <- match.arg(format)
+            checkmate::assert_character(unit_keys, null.ok = TRUE, any.missing = FALSE,
+                                        min.len = 1, min.chars = 1)
             checkmate::assert_string(missings_profile, null.ok = TRUE, min.chars = 1)
 
             if (!is.null(missings_profile)) {
@@ -92,8 +100,17 @@ setMethod("download_codebook",
             # Prepare units (with or without filter)
             units <- list_units(workspace)
 
-            # TODO: Add mechanism to detect units that are not in the workspace
             if (!is.null(unit_keys)) {
+              available_keys <- unlist(purrr::map(units, function(ws) {
+                purrr::map_chr(ws$units, "unit_key")
+              }), use.names = FALSE)
+              unknown_keys <- setdiff(unit_keys, available_keys)
+              if (length(unknown_keys)) {
+                cli::cli_abort(c(
+                  "Unknown {.arg unit_keys} in the selected Studio workspace(s): {.val {unknown_keys}}.",
+                  "i" = "Use the exact unit keys (short names) returned by {.fn list_units}, including case; do not use unit IDs or labels."
+                ))
+              }
               units <-
                 units %>%
                 purrr::map(
@@ -119,6 +136,10 @@ setMethod("download_codebook",
                   return(ws)
                 }
               )
+
+            if (!length(unit_ids)) {
+              cli::cli_abort("No units are available for codebook export in the selected Studio workspace(s). Check {.fn list_units} and any preceding API error messages.")
+            }
 
             # Normalize query params
             run_req <- function(ws) {
@@ -165,9 +186,15 @@ setMethod("download_codebook",
               purrr::map(
                 function(ws) {
                   final_path <- stringr::str_glue("{path}/{file_prefix}{ws$ws_label}.{format}")
-                  run_safe(run_req(ws),
-                           error_message = "Codebook could not be generated. Please check if you have already,
-                     opened {.file {final_path}} (that migh cause the error).")
+                  tryCatch(
+                    run_req(ws)(),
+                    error = function(cnd) {
+                      cli::cli_abort(
+                        "Codebook of workspace {.ws-id {ws$ws_id}}: {.ws-label {ws$ws_label}} could not be downloaded to {.file {final_path}}.",
+                        parent = cnd
+                      )
+                    }
+                  )
 
                 })
           })
