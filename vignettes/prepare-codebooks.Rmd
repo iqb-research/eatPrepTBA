@@ -263,7 +263,7 @@ If your tibble contains a code ID that is also in the profile, your entry replac
 
 The tabular codebook created by `prepare_codebook()` can also be exported as an Excel file for easier inspection and sharing.
 
-With `show_score = TRUE`, the `score` column preserves Studio's score text. Missing scores, including those of appended missing-value codes, are represented by `NA` and become empty cells in Excel.
+With `show_score = TRUE`, the `score` column contains numeric values, including scores supplied by Studio as numeric strings. Missing or blank scores, including those of appended missing-value codes, become `NA_real_` and appear as empty cells in Excel. Nonnumeric scores raise an error instead of being silently replaced by missing values.
 
 This example uses the separate `writexl` package. Install it once if needed:
 

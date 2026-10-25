@@ -66,8 +66,8 @@ raises an error before downloading.}
 \item{closed}{Logical. Should items that could be automatically coded be printed? Defaults to \code{TRUE}.}
 
 \item{show_score}{Logical. Should the score be printed? Defaults to \code{FALSE}.
-When present in the export, \code{score} is returned as a character column;
-missing scores are \code{NA}, so the table can be written directly to Excel.}
+When present in the export, \code{score} is returned as a numeric column.
+Missing or blank scores become \code{NA_real_}; nonnumeric scores raise an error.}
 
 \item{code_label_to_upper}{Logical. Should the code labels be printed in capital letters? Defaults to \code{TRUE}.}
 }

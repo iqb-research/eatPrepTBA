@@ -20,8 +20,8 @@
 #' @param manual Logical. Should only items with manual coding be printed? Defaults to `TRUE`.
 #' @param closed Logical. Should items that could be automatically coded be printed? Defaults to `TRUE`.
 #' @param show_score Logical. Should the score be printed? Defaults to `FALSE`.
-#'   When present in the export, `score` is returned as a character column;
-#'   missing scores are `NA`, so the table can be written directly to Excel.
+#'   When present in the export, `score` is returned as a numeric column.
+#'   Missing or blank scores become `NA_real_`; nonnumeric scores raise an error.
 #' @param code_label_to_upper Logical. Should the code labels be printed in capital letters? Defaults to `TRUE`.
 #'
 #' @description
@@ -242,26 +242,45 @@ prepare_codebook_codes <- function(codes,
     codes <- list(codes)
   }
 
-  columns <- c(
+  codes <- c(
     codes,
     missing_codes %>% purrr::map(function(x) x[code_entries])
-  ) %>%
-    purrr::list_transpose()
+  )
 
-  if ("score" %in% names(columns)) {
-    # Missing codes have no score. Keep one scalar per row, including NA,
-    # and preserve Studio's score text instead of retaining a list-column.
-    columns$score <- purrr::map_chr(columns$score, function(score) {
-      if (is.null(score)) NA_character_ else as.character(score)
+  if (any(purrr::map_lgl(codes, function(code) "score" %in% names(code)))) {
+    # Normalize before transposing so absent scores keep their row and
+    # mixed input types cannot be silently coerced by list simplification.
+    codes <- purrr::map(codes, function(code) {
+      code$score <- prepare_codebook_score(code$score)
+      code
     })
   }
 
-  columns %>%
+  codes %>%
+    purrr::list_transpose() %>%
     tibble::as_tibble() %>%
     dplyr::rename(any_of(c(
       "code_id" = "id",
       "code_label" = "label",
       "code_description" = "description"
     )))
+}
+
+prepare_codebook_score <- function(score) {
+  if (is.null(score)) return(NA_real_)
+  if (length(score) != 1L || !is.atomic(score)) {
+    cli::cli_abort("Each codebook {.field score} must be a single number or missing.")
+  }
+  if (is.na(score) || (is.character(score) && !nzchar(trimws(score)))) {
+    return(NA_real_)
+  }
+  if (!is.numeric(score) && !is.character(score)) {
+    cli::cli_abort("Invalid codebook {.field score}: {.val {score}}. Expected a number or a numeric string.")
+  }
+  numeric_score <- suppressWarnings(as.numeric(score))
+  if (!is.finite(numeric_score)) {
+    cli::cli_abort("Invalid codebook {.field score}: {.val {score}}. Expected a finite number or a numeric string.")
+  }
+  numeric_score
 }
 

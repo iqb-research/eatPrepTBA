@@ -12,7 +12,7 @@ prepare_codebook_score_example <- function() {
         variables = list(
           list(id = "text", label = "Text scores",
                codes = list(make_code("1", "1"), make_code("2", "0.5"),
-                            make_code("3", ""), make_code("4", "not scored"))),
+                            make_code("3", ""), make_code("4", " 2.5 "))),
           list(id = "numeric", label = "Numeric scores",
                codes = list(make_code("1", 1), make_code("0", 0), make_code("2", 0.5))),
           list(id = "absent", label = "No score field", codes = list(make_code("1"))),
@@ -30,23 +30,45 @@ prepare_codebook_score_example <- function() {
   )
 }
 
-test_that("scores remain scalar text with NA for profile and user missing codes", {
+test_that("scores are numeric with NA for profile and user missing codes", {
   out <- prepare_codebook_score_example()
-  expect_type(out$score, "character")
+  expect_type(out$score, "double")
   expect_equal(out$score[out$variable_id == "text"],
-               c("1", "0.5", "", "not scored", NA_character_, NA_character_))
+               c(1, 0.5, NA_real_, 2.5, NA_real_, NA_real_))
   expect_equal(out$score[out$variable_id == "numeric"],
-               c("1", "0", "0.5", NA_character_, NA_character_))
+               c(1, 0, 0.5, NA_real_, NA_real_))
   expect_true(all(is.na(out$score[out$variable_id %in% c("absent", "null")])))
   expect_equal(nrow(out), 17L)
   expect_false(any(vapply(out, is.list, logical(1))))
 })
 
-test_that("scores are scalar without appended missing codes too", {
-  for (score in list("1", 1, NULL)) {
+test_that("scores are numeric without appended missing codes too", {
+  for (score in list("1", 1L, 1)) {
     code <- list(id = "1", label = "Correct", description = "Right", score = score)
     out <- eatPrepTBA:::prepare_codebook_codes(code, missing_codes = NULL)
-    expect_identical(out$score, if (is.null(score)) NA_character_ else "1")
+    expect_identical(out$score, 1)
+  }
+})
+
+test_that("missing and blank scores remain numeric NA", {
+  for (score in list(NULL, NA_real_, NA_character_, NA, "", " \t ")) {
+    code <- list(id = "1", label = "Correct", description = "Right", score = score)
+    out <- eatPrepTBA:::prepare_codebook_codes(code, missing_codes = NULL)
+    expect_identical(out$score, NA_real_)
+  }
+})
+
+test_that("invalid scores fail instead of being silently converted to missing or numbers", {
+  for (score in list("not scored", "1 point", "1,5", "NaN", "Inf", Inf, TRUE)) {
+    codes <- list(list(id = "1", label = "Valid", description = "Valid", score = 1),
+                  list(id = "2", label = "Invalid", description = "Invalid", score = score))
+    expect_error(eatPrepTBA:::prepare_codebook_codes(codes, missing_codes = NULL),
+                 "Invalid codebook.*score")
+  }
+  for (score in list(c(1, 2), list(value = 1))) {
+    code <- list(id = "1", label = "Invalid", description = "Invalid", score = score)
+    expect_error(eatPrepTBA:::prepare_codebook_codes(code, missing_codes = NULL),
+                 "score.*must be a single number")
   }
 })
 
@@ -65,9 +87,7 @@ test_that("codebooks with scores and missing codes can be exported to Excel", {
   on.exit(unlink(path), add = TRUE)
 
   expect_no_error(writexl::write_xlsx(out, path))
-  restored <- readxl::read_xlsx(path, col_types = "text")
-  # Empty strings and NA both appear as blank cells in Excel.
-  expected <- out
-  expected$score[expected$score == "" & !is.na(expected$score)] <- NA_character_
-  expect_equal(restored, expected)
+  restored <- readxl::read_xlsx(path)
+  expect_type(restored$score, "double")
+  expect_equal(restored, out)
 })
