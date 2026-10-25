@@ -1,3 +1,15 @@
+# eatPrepTBA 0.9.8.9043 [2026-10-25]
+
+## bug fixes
+
+* Codebook exports validate unit keys and report empty selections or workspaces explicitly. `prepare_codebook()` identifies missing downloads and empty exports instead of failing on missing columns such as `variables`. Download failures retain their original API error and stop preparation across workspaces.
+* `prepare_codebook()` returns exported scores as a character column with `NA` for missing scores. Adding profile or user missing-value codes no longer creates a list-column that prevents Excel export.
+
+## tests
+
+* Added regressions for unknown and empty unit selections, selection across workspaces, failed downloads, empty JSON exports, and temporary-directory cleanup.
+* Added score regressions and an Excel export/read-back check covering missing-value codes and variables with and without scores.
+
 # eatPrepTBA 0.9.8.9042 [2026-10-24]
 
 ## bug fixes
