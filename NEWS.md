@@ -1,3 +1,14 @@
+# eatPrepTBA 0.9.8.9044 [2026-10-26]
+
+## new features
+
+* Added `get_studio_version` to to automatically extract the current IQB Studio Lite app-version from the JavaScript files.
+* Updated `login_studio` to use `get_studio_version` by default and no longer require (but still allow) to manually enter a studio version. Changed default setting to `app-version = NULL`.
+
+## documentation
+
+* Updated the documentation for `login_studio` to reflect these changes.
+
 # eatPrepTBA 0.9.8.9043 [2026-10-25]
 
 ## bug fixes
