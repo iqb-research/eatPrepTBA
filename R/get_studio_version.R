@@ -13,13 +13,13 @@
 get_studio_version <- function(base_url) {
 
   # HTML-Abruf
-  html <- httr2::request(base_url) |>
-    httr2::req_perform() |>
+  html <- httr2::request(base_url) %>%
+    httr2::req_perform() %>%
     httr2::resp_body_string()
 
   # JavaScript-Dateien finden
-  js_files <- xml2::read_html(html) |>
-    rvest::html_elements("script[src]") |>
+  js_files <- xml2::read_html(html) %>%
+    rvest::html_elements("script[src]") %>%
     rvest::html_attr("src")
 
   # Hauptdatei auswählen (hier ist app-version enthalten)
@@ -33,8 +33,8 @@ get_studio_version <- function(base_url) {
   main_files_url <- xml2::url_absolute(main_files, base_url)
 
   # JavaScript herunterladen
-  js <- httr2::request(main_files_url[1]) |>
-    httr2::req_perform() |>
+  js <- httr2::request(main_files_url[1]) %>%
+    httr2::req_perform() %>%
     httr2::resp_body_string()
 
   # Variable ermitteln, die APP_VERSION zugewiesen wird
