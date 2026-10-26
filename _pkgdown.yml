@@ -2,7 +2,12 @@ url: https://iqb-research.github.io/eatPrepTBA/
 template:
   bootstrap: 5
 navbar:
+  structure:
+    left: [intro, reference, articles, workshop, tutorials, news]
   components:
+    workshop:
+      text: Workshop
+      href: https://sachseka.github.io/eatPrepTBAworkshop/
     articles:
       text: Articles
       menu:
