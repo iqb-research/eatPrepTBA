@@ -41,3 +41,12 @@ pak::pak("iqb-research/eatPrepTBA")
 Start with the [Studio introduction](https://iqb-research.github.io/eatPrepTBA/articles/eatPrepTBA.html)
 to connect to a workspace and retrieve units. For response coding, missing values,
 and a scaling data set, see the [standard workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.html) (in German).
+
+### Workshop materials
+
+The [eatPrepTBA workshop](https://sachseka.github.io/eatPrepTBAworkshop/)
+(in German; Karoline Sachse, IQB Methoden-Team, 26 October 2026) provides
+slides, a handout, and commented R scripts with synthetic example data.
+It covers package structure and APIs, response coding and scaling data,
+selected log analyses, and codebooks. Basic R knowledge is required;
+the local examples need no IQB-Studio or Testcenter account.
