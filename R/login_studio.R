@@ -4,10 +4,8 @@
 #' Provides a routine to login to an instance of the IQB Studio Lite.
 #'
 #' @param base_url Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.
-#' @param app_version Character. Exact app version of the IQB Studio instance,
-#'   including any prerelease suffix. Defaults to "16.0.0" for compatibility;
-#'   the server version is not detected automatically. Set this explicitly to
-#'   the version displayed by your instance, e.g. `"21.0.0"` after its upgrade.
+#' @param app_version Character. Exact app version of the IQB Studio instance, including any prerelease suffix.
+#'   If `NULL`, the version is retrieved automatically.
 #' @param keyring Logical. Should the [keyring] package be used to save the passkey? This saves your credentials to your local machine. Defaults to `FALSE`.
 #' @param change_key Logical. If your password on the domain has changed - should the [keyring] password be changed? Defaults to `FALSE`.
 #' @param dialog Logical. Should credentials be entered using a GUI dialog with masked password input (`TRUE`) or using the console (`FALSE`). Defaults to `TRUE`.
@@ -36,20 +34,29 @@
 #' separately in the local credential store and reused on later logins.
 #' @export
 login_studio <- function(base_url = "https://www.iqb-studio.de/",
-                         app_version = "16.0.0",
+                         app_version = NULL,
                          keyring = FALSE,
                          change_key = FALSE,
                          dialog = TRUE,
                          verbose = FALSE) {
   cli_setting()
 
-  # Input validation using checkmate
+  # Validate arguments before automatic version detection performs network requests.
   assert_url(base_url, "base_url")
-  checkmate::assert_character(app_version, len = 1)
+  checkmate::assert_character(app_version, len = 1, null.ok = TRUE)
   checkmate::assert_logical(keyring, len = 1)
   checkmate::assert_logical(change_key, len = 1)
   checkmate::assert_logical(dialog, len = 1)
   checkmate::assert_logical(verbose, len = 1)
+
+  # Define app_version automatically, or use manual input
+  app_version <- if (is.null(app_version)) {
+    get_studio_version(base_url)
+    } else {
+      app_version
+      }
+
+  checkmate::assert_character(app_version, len = 1)
 
   # Authentication
   credentials <- get_credentials(base_url = base_url,

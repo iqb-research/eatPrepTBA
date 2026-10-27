@@ -21,6 +21,7 @@ test_that("show methods emit informative output for S4 objects", {
 
 test_that("login_studio and login_testcenter build invisible login objects from mocked API responses", {
   testthat::local_mocked_bindings(
+    get_studio_version = function(base_url) "16.0.0",
     get_credentials = function(...) list(name = "user", password = "pw"),
     generate_base_req = function(type, base_url, auth_token, app_version = NULL, insecure = FALSE) {
       function(method, endpoint, query = NULL) list(type = type, method = method, endpoint = endpoint)

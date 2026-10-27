@@ -27,6 +27,7 @@ reference:
     Functions and classes for communicating with the IQB Testcenter API
 - subtitle: Functions for access
   contents:
+  - get_studio_version
   - login_studio
   - login_testcenter
   - access_workspace

@@ -17,6 +17,7 @@ studio_version_response <- function(req, status = 200L) {
 
 test_that("Studio login keeps the exact instance version on every request", {
   testthat::local_mocked_bindings(
+    get_studio_version = function(...) stop("version detection should not run"),
     get_credentials = function(...) list(name = "user", password = "pw"),
     .package = "eatPrepTBA"
   )
@@ -40,6 +41,121 @@ test_that("Studio login keeps the exact instance version on every request", {
     subsequent <- login@base_req("GET", c("workspaces", 1, "units"))
     expect_equal(subsequent$headers[["app-version"]], version)
   }
+})
+
+test_that("Studio version detection reads the version from the main script", {
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(url = base_url),
+    req_perform = function(req, ...) req,
+    resp_body_string = function(resp, ...) {
+      if (identical(resp$url, "https://studio.example/")) {
+        return('<html><script src="/assets/main-test.js"></script></html>')
+      }
+      'provide:"APP_VERSION",useValue:hi;var hi="21.0.0";'
+    },
+    .package = "httr2"
+  )
+
+  expect_equal(get_studio_version("https://studio.example/"), "21.0.0")
+})
+
+test_that("Studio version detection handles JavaScript declaration variants", {
+  script <- NULL
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(url = base_url),
+    req_perform = function(req, ...) req,
+    resp_body_string = function(resp, ...) {
+      if (identical(resp$url, "https://studio.example/")) {
+        return('<html><script src="/assets/main-test.js"></script></html>')
+      }
+      script
+    },
+    .package = "httr2"
+  )
+
+  scripts <- c(
+    'provide:"APP_VERSION",useValue:hi;const hi="21.0.0";',
+    'provide:"APP_VERSION",useValue:hi;let hi="21.0.0";',
+    'provide:"APP_VERSION",useValue:hi;var other="x",hi="21.0.0";',
+    'provide:"APP_VERSION",useValue:$version;const $version="21.0.0";'
+  )
+  for (variant in scripts) {
+    script <- variant
+    expect_equal(get_studio_version("https://studio.example/"), "21.0.0")
+  }
+})
+
+test_that("Studio version detection reads literal versions from older bundles", {
+  script <- NULL
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(url = base_url),
+    req_perform = function(req, ...) req,
+    resp_body_string = function(resp, ...) {
+      if (identical(resp$url, "https://studio.example/")) {
+        return('<html><script src="/assets/main-test.js"></script></html>')
+      }
+      script
+    },
+    .package = "httr2"
+  )
+
+  scripts <- c(
+    'provide:"APP_VERSION",useValue:"16.0.0";',
+    "provide:'APP_VERSION',useValue:'20.0.0';"
+  )
+  for (i in seq_along(scripts)) {
+    script <- scripts[i]
+    expect_equal(
+      get_studio_version("https://studio.example/"),
+      c("16.0.0", "20.0.0")[i]
+    )
+  }
+})
+
+test_that("Studio version detection reports missing scripts and versions", {
+  page <- '<html><script src="/assets/main-test.js"></script></html>'
+  script <- 'provide:"APP_VERSION",useValue:hi;var hi="21.0.0";'
+  testthat::local_mocked_bindings(
+    request = function(base_url) list(url = base_url),
+    req_perform = function(req, ...) req,
+    resp_body_string = function(resp, ...) {
+      if (identical(resp$url, "https://studio.example/")) page else script
+    },
+    .package = "httr2"
+  )
+
+  page <- "<html></html>"
+  expect_error(get_studio_version("https://studio.example/"),
+               "Keine JavaScript-Hauptdatei")
+
+  page <- '<html><script src="/assets/main-test.js"></script></html>'
+  script <- 'provide:"APP_VERSION",useValue:hi;'
+  expect_error(get_studio_version("https://studio.example/"),
+               "Versionsnummer konnte nicht ausgelesen werden")
+})
+
+test_that("detected Studio version is used in login and API headers", {
+  testthat::local_mocked_bindings(
+    get_studio_version = function(base_url) "16.0.0",
+    get_credentials = function(...) list(name = "user", password = "pw"),
+    .package = "eatPrepTBA"
+  )
+  requests <- list()
+  testthat::local_mocked_bindings(
+    req_perform = function(req, ...) {
+      requests[[length(requests) + 1L]] <<- req
+      studio_version_response(req)
+    },
+    .package = "httr2"
+  )
+
+  login <- login_studio("https://studio.example/", dialog = FALSE)
+  subsequent <- login@base_req("GET", "workspaces")
+
+  expect_equal(login@app_version, "16.0.0")
+  expect_equal(vapply(requests, function(req) req$headers[["app-version"]], ""),
+               c("16.0.0", "16.0.0"))
+  expect_equal(subsequent$headers[["app-version"]], "16.0.0")
 })
 
 test_that("Studio HTTP 521 identifies a version mismatch at either login step", {
