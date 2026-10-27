@@ -41,6 +41,14 @@ login_studio <- function(base_url = "https://www.iqb-studio.de/",
                          verbose = FALSE) {
   cli_setting()
 
+  # Validate arguments before automatic version detection performs network requests.
+  assert_url(base_url, "base_url")
+  checkmate::assert_character(app_version, len = 1, null.ok = TRUE)
+  checkmate::assert_logical(keyring, len = 1)
+  checkmate::assert_logical(change_key, len = 1)
+  checkmate::assert_logical(dialog, len = 1)
+  checkmate::assert_logical(verbose, len = 1)
+
   # Define app_version automatically, or use manual input
   app_version <- if (is.null(app_version)) {
     get_studio_version(base_url)
@@ -48,13 +56,7 @@ login_studio <- function(base_url = "https://www.iqb-studio.de/",
       app_version
       }
 
-  # Input validation using checkmate
-  assert_url(base_url, "base_url")
   checkmate::assert_character(app_version, len = 1)
-  checkmate::assert_logical(keyring, len = 1)
-  checkmate::assert_logical(change_key, len = 1)
-  checkmate::assert_logical(dialog, len = 1)
-  checkmate::assert_logical(verbose, len = 1)
 
   # Authentication
   credentials <- get_credentials(base_url = base_url,

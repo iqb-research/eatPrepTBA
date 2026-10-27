@@ -6,7 +6,7 @@
 \usage{
 login_studio(
   base_url = "https://www.iqb-studio.de/",
-  app_version = "16.0.0",
+  app_version = NULL,
   keyring = FALSE,
   change_key = FALSE,
   dialog = TRUE,
@@ -16,10 +16,8 @@ login_studio(
 \arguments{
 \item{base_url}{Character. Base URL of the hosted instance of the IQB Studio Lite. Default is the https://www.iqb-studio.de/.}
 
-\item{app_version}{Character. Exact app version of the IQB Studio instance,
-including any prerelease suffix. Defaults to "16.0.0" for compatibility;
-the server version is not detected automatically. Set this explicitly to
-the version displayed by your instance, e.g. \code{"21.0.0"} after its upgrade.}
+\item{app_version}{Character. Exact app version of the IQB Studio instance, including any prerelease suffix.
+If \code{NULL}, the version is retrieved automatically.}
 
 \item{keyring}{Logical. Should the \link[keyring:keyring-package]{keyring::keyring} package be used to save the passkey? This saves your credentials to your local machine. Defaults to \code{FALSE}.}
 

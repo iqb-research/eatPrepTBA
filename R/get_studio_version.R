@@ -11,6 +11,8 @@
 #' @export
 
 get_studio_version <- function(base_url) {
+  # Validiere URL
+  assert_url(base_url, "base_url")
 
   # HTML-Abruf
   html <- httr2::request(base_url) %>%
@@ -37,6 +39,17 @@ get_studio_version <- function(base_url) {
     httr2::req_perform() %>%
     httr2::resp_body_string()
 
+  # Ältere Studioversionen packen den String direkt in useValue.
+  literal_match <- regexec(
+    "provide\\s*:\\s*[\"']APP_VERSION[\"']\\s*,\\s*useValue\\s*:\\s*[\"']([^\"']+)[\"']",
+    js,
+    perl = TRUE
+  )
+  literal_result <- regmatches(js, literal_match)[[1]]
+  if (length(literal_result) >= 2) {
+    return(literal_result[2])
+  }
+
   # Variable ermitteln, die APP_VERSION zugewiesen wird
   # Sucht nach folgendemn Muster: provide : '"APP_VERSION" , useValue : {Variablenname}'
   # z.B.: 'provide:"APP_VERSION",useValue:hi'
@@ -56,8 +69,17 @@ get_studio_version <- function(base_url) {
 
   # Definitionsmuster für die zuvor ermittelte Variable erstellen
   # Beispiel: var hi = "21.0.0"
+  regex_special_chars <- c(".", "\\", "^", "$", "|", "(", ")",
+                           "[", "]", "{", "}", "*", "+", "?")
+  version_var_chars <- strsplit(version_var, "", fixed = TRUE)[[1]]
+  escaped_version_var <- paste0(
+    ifelse(version_var_chars %in% regex_special_chars,
+           paste0("\\", version_var_chars), version_var_chars),
+    collapse = ""
+  )
+
   version_pattern <- paste0(
-    'var\\s+', version_var,
+    '(?:var|let|const)\\s+(?:[^;,]+,\\s*)*', escaped_version_var,
     '\\s*=\\s*["\']([^"\']+)["\']'
   )
 

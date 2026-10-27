@@ -2,12 +2,16 @@
 
 ## new features
 
-* Added `get_studio_version` to to automatically extract the current IQB Studio Lite app-version from the JavaScript files.
-* Updated `login_studio` to use `get_studio_version` by default and no longer require (but still allow) to manually enter a studio version. Changed default setting to `app-version = NULL`.
+* Added `get_studio_version()` to retrieve the IQB Studio Lite version from its main JavaScript bundle. It supports version strings provided directly in `useValue` and version variables declared with `var`, `let`, or `const`, including comma-separated declarations and variable names containing `$`.
+* Updated `login_studio()` to detect the instance version when `app_version = NULL`. Explicitly supplied versions skip detection, and invalid arguments are checked before the automatic network lookup. The detected version is used in the login request and subsequent API request headers.
+
+## tests
+
+* Added regression coverage for successful version detection, missing scripts and version declarations, direct version strings from older bundles, JavaScript declaration variants, and propagation of detected or explicitly supplied versions to API headers. Updated the existing mocked login test to stub automatic detection.
 
 ## documentation
 
-* Updated the documentation for `login_studio` to reflect these changes.
+* Added the `get_studio_version()` reference and updated `login_studio()` documentation to describe automatic version detection and explicit version input.
 
 # eatPrepTBA 0.9.8.9043 [2026-10-25]
 
