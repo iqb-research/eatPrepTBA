@@ -49,6 +49,8 @@ Functions and classes for communicating with the IQB Testcenter API
 
 ### Functions for access
 
+- [`get_studio_version()`](https://iqb-research.github.io/eatPrepTBA/reference/get_studio_version.md)
+  : Get current app version of IQB Studio Lite
 - [`login_studio()`](https://iqb-research.github.io/eatPrepTBA/reference/login_studio.md)
   : Generate a LoginStudio object for the IQB Studio Lite
 - [`login_testcenter()`](https://iqb-research.github.io/eatPrepTBA/reference/login_testcenter.md)

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9043</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9044</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,22 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9044" id="eatpreptba-0989044-2026-10-26">eatPrepTBA 0.9.8.9044 [2026-10-26]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989044-2026-10-26"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-8-9044">new features<a class="anchor" aria-label="anchor" href="#new-features-0-9-8-9044"></a></h3>
+<ul><li>Added <code><a href="../reference/get_studio_version.html">get_studio_version()</a></code> to retrieve the IQB Studio Lite version from its main JavaScript bundle. It supports version strings provided directly in <code>useValue</code> and version variables declared with <code>var</code>, <code>let</code>, or <code>const</code>, including comma-separated declarations and variable names containing <code>$</code>.</li>
+<li>Updated <code><a href="../reference/login_studio.html">login_studio()</a></code> to detect the instance version when <code>app_version = NULL</code>. Explicitly supplied versions skip detection, and invalid arguments are checked before the automatic network lookup. The detected version is used in the login request and subsequent API request headers.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9044">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9044"></a></h3>
+<ul><li>Added regression coverage for successful version detection, missing scripts and version declarations, direct version strings from older bundles, JavaScript declaration variants, and propagation of detected or explicitly supplied versions to API headers. Updated the existing mocked login test to stub automatic detection.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-9-8-9044">documentation<a class="anchor" aria-label="anchor" href="#documentation-0-9-8-9044"></a></h3>
+<ul><li>Added the <code><a href="../reference/get_studio_version.html">get_studio_version()</a></code> reference and updated <code><a href="../reference/login_studio.html">login_studio()</a></code> documentation to describe automatic version detection and explicit version input.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9043" id="eatpreptba-0989043-2026-10-25">eatPrepTBA 0.9.8.9043 [2026-10-25]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989043-2026-10-25"></a></h2>
 <div class="section level3">
