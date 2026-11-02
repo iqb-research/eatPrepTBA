@@ -20,8 +20,8 @@ to manage TBA studies.
 ## Package governance
 
 This package was originally authored and created by Philipp Franikowski.
-**Current package maintenance** is provided by Karoline A. Sachse,
-Kristoph Schumann, and Jakob Schaefer.
+**Current development and package maintenance** are provided by Karoline
+A. Sachse, Kristoph Schumann, and Jakob Schäfer.
 
 ## Installation
 
