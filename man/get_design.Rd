@@ -10,11 +10,15 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 \S4method{get_design}{WorkspaceTestcenter}(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 }
 \arguments{
-\item{workspace}{\link[=WorkspaceTestcenter-class]{WorkspaceTestcenter}. Workspace information necessary to retrieve design information.}
+\item{workspace}{\linkS4class{WorkspaceTestcenter}. Workspace information necessary to retrieve design information.}
 
-\item{units}{Tibble (optional). Unit data retrieved from the IQB Studio after setting the argument \code{metadata = TRUE} for \code{\link[=get_units]{get_units()}} -- otherwise the item values could only be inferred from the variable source tree, i.e., item scores are taken from variable scores that are no source variables for other derived variables. Could optionally also contain \code{unit_codes} prepared by \code{add_coding_scheme()} (saves some time).}
+\item{units}{Tibble (optional). Unit data retrieved from \code{\link[=get_units]{get_units()}}. Coding
+schemes supply the variables for each unit. Units without a coding scheme
+use \code{unit_variables$variable_id} instead, for example StarS units. May also
+contain \code{unit_codes} prepared by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save time.}
 
-\item{overwrite}{Logical. Should column \code{unit_codes} be overwritten if they exist on \code{units}. Defaults to \code{FALSE}, i.e., \code{unit_codes} will be used if they were added to \code{units} beforehand by applying \code{add_coding_schemes()}.}
+\item{overwrite}{Logical. Should existing \code{unit_codes} be rebuilt? Defaults
+to \code{FALSE}, which reuses codes prepared by \code{\link[=add_coding_scheme]{add_coding_scheme()}}.}
 
 \item{mode}{Character. Only testtakers with the specified modes will be filtered. Defaults to \code{"run-hot-return"}.}
 }
@@ -22,7 +26,28 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 A tibble.
 }
 \description{
-This function returns a frame of all booklets and testtakers in a given Testcenter instance. Optionally, coding schemes can be used to add variables that provides for a dataset to be merged to coded responses. Please note that adding a the units object will remove the other test parts from the design that are not reflected by the units. A remedy would be to retrieve all units that are used in the test.
+Returns the assigned booklets and units for testtakers in a Testcenter
+workspace. Supplying \code{units} expands the design to variables and restricts
+it to units with available variables. Supply all units used in the test.
+With \code{units = NULL}, the result remains at unit level, without \code{variable_id}.
+}
+\details{
+Variable selection is performed separately for each unit, supporting mixed
+tests with and without coding schemes. Existing schemes supply their base
+and derived variables, excluding deactivated (\code{BASE_NO_VALUE}) variables.
+Only a missing or empty scheme (without \code{variableCodings}) allows a fallback
+to \code{unit_variables}; a scheme containing only deactivated variables does not.
+Cached \code{unit_codes} are reused unless \code{overwrite = TRUE}. Empty cached
+results allow the fallback only if the underlying scheme is missing or empty;
+otherwise they remain empty until rebuilt with \code{overwrite = TRUE}.
+The fallback uses the normalized IDs from \code{\link[=get_units]{get_units()}}, including its alias
+handling. Duplicate IDs are collapsed and missing or blank IDs are ignored.
+Units without any available variable IDs contribute no variable-level rows.
+
+The variable list comes from unit metadata, not observed responses, so it can
+include variables that nobody answered. For StarS data, check that the IDs in
+the unit metadata match those returned by \code{\link[=prepare_coded]{prepare_coded()}}. A variable-level
+design alone does not supply the coding metadata required by \code{\link[=complete_design]{complete_design()}}.
 }
 \section{Functions}{
 \itemize{
