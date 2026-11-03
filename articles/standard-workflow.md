@@ -1,6 +1,6 @@
 # Vom Testcenter zum Skalierungsdatensatz
 
-**Paketstand: eatPrepTBA 0.9.8.9044.**
+**Paketstand: eatPrepTBA 0.9.8.9045.**
 
 Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 **einer Zeile je Person und einer Punktespalte je ausgewerteter Aufgabe
@@ -107,8 +107,14 @@ entpackt die Rohantworten zur eigenen Weiterverarbeitung; es vergibt
 keine Codes oder Scores. Bereits im Export gespeicherte Kodierungen
 lassen sich mit
 [`prepare_coded(responses)`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coded.md)
-entpacken. Die folgenden Schritte zeigen den Weg **mit** Kodierschemata;
-die entpackten Daten sind dafür kein direkter Ersatz.
+entpacken. Auch ohne Kodierschema kann
+`get_design(testcenter, units = units)` die Variablen ergänzen, sofern
+sie in `units$unit_variables` enthalten sind. Die folgenden Schritte
+zeigen den Weg **mit** Kodierschemata; die entpackten Daten sind dafür
+kein direkter Ersatz. Insbesondere setzt die spätere Missing-Ergänzung
+mit
+[`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+weiterhin passende Kodiermetadaten und aufbereitete Codes voraus.
 
 ### Das vollständige Testdesign laden
 
@@ -126,9 +132,21 @@ Erhebung liegen:
 
 Die Dateien müssen dem Stand der Durchführung entsprechen. Die
 Variablenliste wird aus den Kodierschemata im zuvor aus Studio geladenen
-Objekt `units` ergänzt. Seiten und Abschnitte kommen aus der
-Unitdefinition; die Beziehungen zwischen Ableitungen und ihren Quellen
-stehen im Kodierschema.
+Objekt `units` ergänzt. Fehlt einer Unit das Kodierschema oder enthält
+es keine Variableneinträge, verwendet
+[`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
+stattdessen deren `unit_variables$variable_id`. Das gilt auch für
+Testhefte mit einer Mischung aus Units mit und ohne Kodierschema.
+Vorhandene Schemata bestimmen weiterhin die abgeleiteten und
+ausgeschlossenen Variablen; bereits vorbereitete `unit_codes` werden
+berücksichtigt, solange `overwrite = FALSE` bleibt. Die Variablenliste
+stammt aus den Unitmetadaten und wird nicht aus beobachteten Antworten
+rekonstruiert. Ohne `units` liefert
+[`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
+nur das Design bis zur Unit-Ebene, ohne `variable_id`.
+
+Seiten und Abschnitte kommen aus der Unitdefinition; die Beziehungen
+zwischen Ableitungen und ihren Quellen stehen im Kodierschema.
 
 ``` r
 

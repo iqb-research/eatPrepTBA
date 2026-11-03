@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9044</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9045</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,7 @@
 
     
     
-<p><strong>Paketstand: eatPrepTBA 0.9.8.9044.</strong></p>
+<p><strong>Paketstand: eatPrepTBA 0.9.8.9045.</strong></p>
 <p>Dieser Workflow führt von Testcenter-Antworten zu einem Datensatz mit
 <strong>einer Zeile je Person und einer Punktespalte je ausgewerteter
 Aufgabe (Item)</strong>. Dazu werden die Antworten kodiert, Missings
@@ -170,9 +170,14 @@ mit <a href="../reference/read_responses.html"><code>read_responses()</code></a>
 entpackt die Rohantworten zur eigenen Weiterverarbeitung; es vergibt
 keine Codes oder Scores. Bereits im Export gespeicherte Kodierungen
 lassen sich mit <a href="../reference/prepare_coded.html"><code>prepare_coded(responses)</code></a>
-entpacken. Die folgenden Schritte zeigen den Weg <strong>mit</strong>
-Kodierschemata; die entpackten Daten sind dafür kein direkter
-Ersatz.</p>
+entpacken. Auch ohne Kodierschema kann
+<code>get_design(testcenter, units = units)</code> die Variablen
+ergänzen, sofern sie in <code>units$unit_variables</code> enthalten
+sind. Die folgenden Schritte zeigen den Weg <strong>mit</strong>
+Kodierschemata; die entpackten Daten sind dafür kein direkter Ersatz.
+Insbesondere setzt die spätere Missing-Ergänzung mit
+<code><a href="../reference/complete_design.html">complete_design()</a></code> weiterhin passende Kodiermetadaten und
+aufbereitete Codes voraus.</p>
 </div>
 <div class="section level3">
 <h3 id="das-vollständige-testdesign-laden">Das vollständige Testdesign laden<a class="anchor" aria-label="anchor" href="#das-vollst%C3%A4ndige-testdesign-laden"></a>
@@ -193,9 +198,19 @@ referenzierte Units und ihre Reihenfolge innerhalb der Testlets.</li>
 </ul>
 <p>Die Dateien müssen dem Stand der Durchführung entsprechen. Die
 Variablenliste wird aus den Kodierschemata im zuvor aus Studio geladenen
-Objekt <code>units</code> ergänzt. Seiten und Abschnitte kommen aus der
-Unitdefinition; die Beziehungen zwischen Ableitungen und ihren Quellen
-stehen im Kodierschema.</p>
+Objekt <code>units</code> ergänzt. Fehlt einer Unit das Kodierschema
+oder enthält es keine Variableneinträge, verwendet
+<code><a href="../reference/get_design.html">get_design()</a></code> stattdessen deren
+<code>unit_variables$variable_id</code>. Das gilt auch für Testhefte mit
+einer Mischung aus Units mit und ohne Kodierschema. Vorhandene Schemata
+bestimmen weiterhin die abgeleiteten und ausgeschlossenen Variablen;
+bereits vorbereitete <code>unit_codes</code> werden berücksichtigt,
+solange <code>overwrite = FALSE</code> bleibt. Die Variablenliste stammt
+aus den Unitmetadaten und wird nicht aus beobachteten Antworten
+rekonstruiert. Ohne <code>units</code> liefert <code><a href="../reference/get_design.html">get_design()</a></code>
+nur das Design bis zur Unit-Ebene, ohne <code>variable_id</code>.</p>
+<p>Seiten und Abschnitte kommen aus der Unitdefinition; die Beziehungen
+zwischen Ableitungen und ihren Quellen stehen im Kodierschema.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_design.html">get_design</a></span><span class="op">(</span><span class="va">testcenter</span>, units <span class="op">=</span> <span class="va">units</span>, mode <span class="op">=</span> <span class="st">"run-hot-return"</span><span class="op">)</span></span></code></pre></div>
 <p><code>mode</code> muss zum Anmeldemodus der Erhebung passen.
