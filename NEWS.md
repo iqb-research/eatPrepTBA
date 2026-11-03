@@ -1,3 +1,17 @@
+# eatPrepTBA (development version)
+
+## bug fixes
+
+* `get_design()` uses `unit_variables$variable_id` for units without a coding scheme or without variable entries in their scheme, supporting designs for units such as StarS alongside units with Autocode schemes (#97). Existing scheme exclusions, derived variables, and prepared `unit_codes` remain authoritative. Calling the function without `units` still returns a unit-level design.
+
+## tests
+
+* Added synthetic regression coverage for units without schemes, mixed designs, intentionally excluded variables, and prepared coding metadata.
+
+## documentation
+
+* Explained the alternative variable source and the distinction between recovering a design and preparing codes for `complete_design()` in the standard workflow.
+
 # eatPrepTBA 0.9.8.9044 [2026-10-26]
 
 ## new features
