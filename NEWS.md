@@ -1,4 +1,4 @@
-# eatPrepTBA (development version)
+# eatPrepTBA 0.9.8.9045 [2026-11-03]
 
 ## bug fixes
 
