@@ -1,5 +1,29 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9046 \[2026-11-05\]
+
+### new features
+
+- [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md)
+  warns when manual code records cannot be matched to response rows with
+  stored payloads. If none match, diagnostics identify possible
+  differences in any of the five matching keys, including `NA` versus
+  empty strings. The extra diagnostic joins run only when all records
+  fail to match; identifier values and coding behavior remain unchanged.
+
+### tests
+
+- Added regressions for all five matching keys, missing versus empty
+  login codes, partial matches, duplicate records, multiple identifier
+  differences, and unavailable response payloads. Integration checks
+  confirm that valid manual codes are still applied and unmatched
+  records do not change coding results.
+
+### documentation
+
+- Documented the matching keys, warning, and conditional diagnostics in
+  [`code_responses()`](https://iqb-research.github.io/eatPrepTBA/reference/code_responses.md).
+
 ## eatPrepTBA 0.9.8.9045 \[2026-11-03\]
 
 ### bug fixes

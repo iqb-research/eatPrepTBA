@@ -67,6 +67,14 @@ A tibble, including logical `coding_from_not_reached`.
 
 ## Details
 
+Manual codes are matched to response rows using `group_id`,
+`login_code`, `login_name`, `booklet_id`, and `unit_key`. A warning
+reports manual records without a matching response row with a nonmissing
+payload. If none match, the warning also reports how many records would
+match the other four keys when each key is omitted in turn. This
+diagnostic does not change the keys or check whether a variable-level
+override takes effect.
+
 The logical column `coding_from_not_reached` records whether a response
 was supplied as `NOT_REACHED` and its own coding rule treated that
 status as a changed value (`TAKE_NOT_REACHED_AS_VALUE_CHANGED`). It is

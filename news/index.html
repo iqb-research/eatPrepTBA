@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9045</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9046</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,22 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.8.9046" id="eatpreptba-0989046-2026-11-05">eatPrepTBA 0.9.8.9046 [2026-11-05]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989046-2026-11-05"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-8-9046">new features<a class="anchor" aria-label="anchor" href="#new-features-0-9-8-9046"></a></h3>
+<ul><li>
+<code><a href="../reference/code_responses.html">code_responses()</a></code> warns when manual code records cannot be matched to response rows with stored payloads. If none match, diagnostics identify possible differences in any of the five matching keys, including <code>NA</code> versus empty strings. The extra diagnostic joins run only when all records fail to match; identifier values and coding behavior remain unchanged.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="tests-0-9-8-9046">tests<a class="anchor" aria-label="anchor" href="#tests-0-9-8-9046"></a></h3>
+<ul><li>Added regressions for all five matching keys, missing versus empty login codes, partial matches, duplicate records, multiple identifier differences, and unavailable response payloads. Integration checks confirm that valid manual codes are still applied and unmatched records do not change coding results.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-9-8-9046">documentation<a class="anchor" aria-label="anchor" href="#documentation-0-9-8-9046"></a></h3>
+<ul><li>Documented the matching keys, warning, and conditional diagnostics in <code><a href="../reference/code_responses.html">code_responses()</a></code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8.9045" id="eatpreptba-0989045-2026-11-03">eatPrepTBA 0.9.8.9045 [2026-11-03]<a class="anchor" aria-label="anchor" href="#eatpreptba-0989045-2026-11-03"></a></h2>
 <div class="section level3">

@@ -17,7 +17,7 @@ classify against the full test design."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9045</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9046</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,13 @@ classify against the full test design.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The logical column <code>coding_from_not_reached</code> records whether a response was
+    <p>Manual codes are matched to response rows using <code>group_id</code>, <code>login_code</code>,
+<code>login_name</code>, <code>booklet_id</code>, and <code>unit_key</code>. A warning reports manual records
+without a matching response row with a nonmissing payload. If none match,
+the warning also reports how many records would match the other four keys
+when each key is omitted in turn. This diagnostic does not change the keys
+or check whether a variable-level override takes effect.</p>
+<p>The logical column <code>coding_from_not_reached</code> records whether a response was
 supplied as <code>NOT_REACHED</code> and its own coding rule treated that status as a
 changed value (<code>TAKE_NOT_REACHED_AS_VALUE_CHANGED</code>). It is captured before
 coding, independently of whether <code>value</code> is missing. Manual codes that are
