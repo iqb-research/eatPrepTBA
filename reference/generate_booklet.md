@@ -14,7 +14,7 @@ generate_booklet(
   testlets = NULL,
   app_version = "16.0.2",
   login = NULL,
-  booklet_config_version = c("18.0", "legacy-16"),
+  booklet_config_version = c("18.1", "18.0", "legacy-16"),
   custom_texts = NULL
 )
 ```
@@ -58,9 +58,10 @@ generate_booklet(
 
 - booklet_config_version:
 
-  Booklet configuration version. `"18.0"` emits the current Testcenter
-  booklet configuration keys. `"legacy-16"` emits the legacy key set
-  used by older Testcenter 16 workflows.
+  Booklet configuration and XML schema version. Defaults to `"18.1"`.
+  `"18.0"` selects the previous schema with the same configuration keys.
+  `"legacy-16"` uses the legacy Testcenter 16 key set and the raw-GitHub
+  schema URL for `app_version`.
 
 - custom_texts:
 

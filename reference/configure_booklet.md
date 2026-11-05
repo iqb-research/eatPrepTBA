@@ -6,7 +6,7 @@ Helper function to prepare booklet configuration header
 
 ``` r
 configure_booklet(
-  booklet_config_version = c("18.0", "legacy-16"),
+  booklet_config_version = c("18.1", "18.0", "legacy-16"),
   loading_mode = c("lazy", "eager"),
   log_policy = c("rich", "disabled", "lean", "debug"),
   browser_behaviour = c("standard", "preventNav"),
@@ -54,9 +54,10 @@ configure_booklet(
 
 - booklet_config_version:
 
-  Booklet configuration version. `"18.0"` emits the current Testcenter
-  booklet configuration keys. `"legacy-16"` emits the legacy key set
-  used by older Testcenter 16 workflows.
+  Booklet configuration version. Defaults to `"18.1"`. `"18.1"` and
+  `"18.0"` emit the same current Testcenter configuration keys.
+  `"legacy-16"` emits the legacy key set used by older Testcenter 16
+  workflows.
 
 - loading_mode:
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9047 \[2026-11-05\]
+
+### bug fixes
+
+- Newly generated booklets use the Testcenter Booklet XML schema 18.1 by
+  default (#100). Both
+  [`generate_booklets()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklets.md)
+  and
+  [`generate_booklet()`](https://iqb-research.github.io/eatPrepTBA/reference/generate_booklet.md)
+  still support explicit `booklet_config_version = "18.0"` and
+  `"legacy-16"` selections.
+
+### tests
+
+- Added XML header coverage for both booklet generators, including the
+  schema namespace, the new default, and explicit version selections.
+
+### documentation
+
+- Documented the default booklet schema 18.1 and the retained version
+  options. Updated legacy-argument warnings to apply to both current
+  configuration versions.
+
 ## eatPrepTBA 0.9.8.9046 \[2026-11-05\]
 
 ### new features
