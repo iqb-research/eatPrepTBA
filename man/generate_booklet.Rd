@@ -13,7 +13,7 @@ generate_booklet(
   testlets = NULL,
   app_version = "16.0.2",
   login = NULL,
-  booklet_config_version = c("18.0", "legacy-16"),
+  booklet_config_version = c("18.1", "18.0", "legacy-16"),
   custom_texts = NULL
 )
 }
@@ -34,9 +34,10 @@ generate_booklet(
 
 \item{login}{Target Testcenter instance. If it is available, the \code{app_version} will be overwritten.}
 
-\item{booklet_config_version}{Booklet configuration version. \code{"18.0"} emits
-the current Testcenter booklet configuration keys. \code{"legacy-16"} emits the
-legacy key set used by older Testcenter 16 workflows.}
+\item{booklet_config_version}{Booklet configuration and XML schema version.
+Defaults to \code{"18.1"}. \code{"18.0"} selects the previous schema with the same
+configuration keys. \code{"legacy-16"} uses the legacy Testcenter 16 key set and
+the raw-GitHub schema URL for \code{app_version}.}
 
 \item{custom_texts}{Optional named list of Testcenter custom text keys and
 replacement strings. These are emitted as booklet-level \code{CustomText} nodes

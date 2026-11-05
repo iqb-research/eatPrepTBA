@@ -8,9 +8,10 @@
 #' @param testlets Tbd.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
-#' @param booklet_config_version Booklet configuration version. `"18.0"` emits
-#'   the current Testcenter booklet configuration keys. `"legacy-16"` emits the
-#'   legacy key set used by older Testcenter 16 workflows.
+#' @param booklet_config_version Booklet configuration and XML schema version.
+#'   Defaults to `"18.1"`. `"18.0"` selects the previous schema with the same
+#'   configuration keys. `"legacy-16"` uses the legacy Testcenter 16 key set and
+#'   the raw-GitHub schema URL for `app_version`.
 #' @param custom_texts Optional named list of Testcenter custom text keys and
 #'   replacement strings. These are emitted as booklet-level `CustomText` nodes
 #'   directly after `Metadata`.
@@ -28,7 +29,7 @@ generate_booklet <- function(booklet_id,
                              testlets = NULL,
                              app_version = "16.0.2",
                              login = NULL,
-                             booklet_config_version = c("18.0", "legacy-16"),
+                             booklet_config_version = c("18.1", "18.0", "legacy-16"),
                              custom_texts = NULL) {
   cli_setting()
   # input validation
