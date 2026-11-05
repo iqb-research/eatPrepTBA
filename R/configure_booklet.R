@@ -1,8 +1,9 @@
 #' Helper function to prepare booklet configuration header
 #'
-#' @param booklet_config_version Booklet configuration version. `"18.0"` emits
-#'   the current Testcenter booklet configuration keys. `"legacy-16"` emits the
-#'   legacy key set used by older Testcenter 16 workflows.
+#' @param booklet_config_version Booklet configuration version. Defaults to
+#'   `"18.1"`. `"18.1"` and `"18.0"` emit the same current Testcenter configuration
+#'   keys. `"legacy-16"` emits the legacy key set used by older Testcenter 16
+#'   workflows.
 #' @param loading_mode Loading mode.
 #' @param log_policy Log policy.
 #' @param browser_behaviour Browser navigation behaviour.
@@ -40,7 +41,7 @@
 #'
 #' @keywords internal
 configure_booklet <- function(
-    booklet_config_version = c("18.0", "legacy-16"),
+    booklet_config_version = c("18.1", "18.0", "legacy-16"),
     loading_mode = c("lazy", "eager"),
     log_policy = c("rich", "disabled", "lean", "debug"),
     browser_behaviour = c("standard", "preventNav"),
@@ -520,7 +521,7 @@ legacy_on_off_to_true_false <- function(x, on = "on", off = "off") {
 warn_legacy_booklet_arg <- function(arg, action) {
   warning(
     sprintf(
-      "Booklet configuration argument `%s` is deprecated for booklet_config_version = \"18.0\"; %s.",
+      "Booklet configuration argument `%s` is deprecated for non-legacy booklet configurations; %s.",
       arg,
       action
     ),
@@ -532,7 +533,7 @@ warn_legacy_only_booklet_arg <- function(value, arg) {
   if (!is.null(value)) {
     warn_legacy_booklet_arg(
       arg,
-      "it has no current 18.0 equivalent and is only emitted in legacy-16 mode"
+      "it has no equivalent in current configurations and is only emitted in legacy-16 mode"
     )
   }
 }

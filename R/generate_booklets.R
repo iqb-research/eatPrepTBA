@@ -3,9 +3,10 @@
 #' @param booklets Must be a tibble with the columns `booklet_id`, `booklet_label`, and `booklet_units`.Optionally, the columns `booklet_description` (character), `booklet_configuration` (list), and `booklet_custom_texts` (named list) can be added. The (list) column `booklet_units` is a nested tibble with columns `testlet_id`, `testlet_label`, and `units`. Optionally, it can contain the columns `testlet_restrictions` and `testlets`. Finally, the (list) column `units` is again a nested tibble with columns `unit_key`, `unit_alias`, `unit_label`, and `unit_labelshort`. The optional `testlets` column can contain nested tibbles with the same structure as `booklet_units`.
 #' @param app_version Version of the target Testcenter instance. Defaults to `"16.0.0"`.
 #' @param login Target Testcenter instance. If it is available, the `app_version` will be overwritten.
-#' @param booklet_config_version Booklet configuration version. `"18.0"` emits
-#'   the current Testcenter booklet configuration keys. `"legacy-16"` emits the
-#'   legacy key set used by older Testcenter 16 workflows.
+#' @param booklet_config_version Booklet configuration and XML schema version.
+#'   Defaults to `"18.1"`. `"18.0"` selects the previous schema with the same
+#'   configuration keys. `"legacy-16"` uses the legacy Testcenter 16 key set and
+#'   the raw-GitHub schema URL for `app_version`.
 #'
 #' @description
 #' Please note that the function currently only works for units that are nested within
@@ -16,7 +17,7 @@ generate_booklets <- function(
     booklets,
     app_version = "16.0.2",
     login = NULL,
-    booklet_config_version = c("18.0", "legacy-16")
+    booklet_config_version = c("18.1", "18.0", "legacy-16")
 ) {
 
   cli_setting()
@@ -151,7 +152,7 @@ prepare_booklet_metadata <- function(booklet_id, booklet_label, booklet_descript
 
 # Booklet Configuration
 prepare_booklet_configuration <- function(booklet_configuration,
-                                          booklet_config_version = "18.0") {
+                                          booklet_config_version = "18.1") {
   if (length(booklet_configuration) == 1L &&
       is.null(names(booklet_configuration)) &&
       is.null(booklet_configuration[[1]])) {
@@ -184,7 +185,7 @@ prepare_booklet_xml <- function(booklet_metadata,
                                 booklet_configuration,
                                 booklet_units,
                                 app_version,
-                                booklet_config_version = "18.0",
+                                booklet_config_version = "18.1",
                                 booklet_custom_texts = NULL) {
   booklet_children <- list(
     Metadata = booklet_metadata,

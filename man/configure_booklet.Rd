@@ -5,7 +5,7 @@
 \title{Helper function to prepare booklet configuration header}
 \usage{
 configure_booklet(
-  booklet_config_version = c("18.0", "legacy-16"),
+  booklet_config_version = c("18.1", "18.0", "legacy-16"),
   loading_mode = c("lazy", "eager"),
   log_policy = c("rich", "disabled", "lean", "debug"),
   browser_behaviour = c("standard", "preventNav"),
@@ -49,9 +49,10 @@ configure_booklet(
 )
 }
 \arguments{
-\item{booklet_config_version}{Booklet configuration version. \code{"18.0"} emits
-the current Testcenter booklet configuration keys. \code{"legacy-16"} emits the
-legacy key set used by older Testcenter 16 workflows.}
+\item{booklet_config_version}{Booklet configuration version. Defaults to
+\code{"18.1"}. \code{"18.1"} and \code{"18.0"} emit the same current Testcenter configuration
+keys. \code{"legacy-16"} emits the legacy key set used by older Testcenter 16
+workflows.}
 
 \item{loading_mode}{Loading mode.}
 

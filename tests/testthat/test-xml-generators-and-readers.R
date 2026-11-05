@@ -436,7 +436,9 @@ test_that("generate_booklets emits current booklet config by default", {
     booklet_id = "B1",
     booklet_label = "Booklet 1",
     booklet_units = list(
-      tibble::tibble(unit_key = "U1", unit_label = "Unit 1")
+      tibble::tibble(
+        units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+      )
     )
   )
 
@@ -446,7 +448,7 @@ test_that("generate_booklets emits current booklet config by default", {
 
   expect_match(
     as.character(xml),
-    "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.0",
+    "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.1",
     fixed = TRUE
   )
   expect_true("header_content" %in% keys)
@@ -462,7 +464,9 @@ test_that("generate_booklets can emit legacy-16 booklet config", {
     booklet_id = "B1",
     booklet_label = "Booklet 1",
     booklet_units = list(
-      tibble::tibble(unit_key = "U1", unit_label = "Unit 1")
+      tibble::tibble(
+        units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+      )
     )
   )
 
@@ -482,6 +486,68 @@ test_that("generate_booklets can emit legacy-16 booklet config", {
   expect_equal(values[["ask_for_fullscreen"]], "ON")
   expect_false("header_content" %in% keys)
   expect_false("force_response_complete" %in% keys)
+})
+
+test_that("both booklet generators use the selected schema on the root", {
+  booklets <- tibble::tibble(
+    booklet_id = "B1",
+    booklet_label = "Booklet 1",
+    booklet_units = list(
+      tibble::tibble(
+        units = list(tibble::tibble(unit_key = "U1", unit_label = "Unit 1"))
+      )
+    )
+  )
+  generators <- list(
+    generate_booklet = function(...) {
+      generate_booklet(
+        booklet_id = "B1",
+        booklet_label = "Booklet 1",
+        units = tibble::tibble(id = "U1", label = "Unit 1"),
+        ...
+      )
+    },
+    generate_booklets = function(...) {
+      generate_booklets(booklets, ...)$booklet_xml[[1]]
+    }
+  )
+  version_args <- list(
+    default = list(),
+    "18.1" = list(booklet_config_version = "18.1"),
+    "18.0" = list(booklet_config_version = "18.0"),
+    "legacy-16" = list(booklet_config_version = "legacy-16")
+  )
+  schema_locations <- c(
+    default = "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.1",
+    "18.1" = "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.1",
+    "18.0" = "https://w3id.org/iqb/spec/testcenter-booklet-xml/18.0",
+    "legacy-16" = "https://raw.githubusercontent.com/iqb-berlin/testcenter/16.0.2/definitions/vo_Booklet.xsd"
+  )
+
+  for (generator_name in names(generators)) {
+    for (version in names(version_args)) {
+      xml <- do.call(generators[[generator_name]], version_args[[version]])
+      root <- xml2::xml_root(xml)
+      ns <- xml2::xml_ns(root)
+      info <- paste(generator_name, version)
+
+      expect_equal(
+        as.character(ns[["xsi"]]),
+        "http://www.w3.org/2001/XMLSchema-instance",
+        info = info
+      )
+      expect_equal(
+        xml2::xml_attr(root, "xsi:noNamespaceSchemaLocation", ns = ns),
+        schema_locations[[version]],
+        info = info
+      )
+      expect_equal(
+        xml2::xml_attr(xml2::xml_find_all(root, "./Units/Unit"), "id"),
+        "U1",
+        info = info
+      )
+    }
+  }
 })
 
 test_that("configure_booklet maps deprecated arguments in current mode", {
