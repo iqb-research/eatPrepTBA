@@ -38,6 +38,13 @@ with no stored response payload and are left for \code{\link[=complete_design]{c
 classify against the full test design.
 }
 \details{
+Manual codes are matched to response rows using \code{group_id}, \code{login_code},
+\code{login_name}, \code{booklet_id}, and \code{unit_key}. A warning reports manual records
+without a matching response row with a nonmissing payload. If none match,
+the warning also reports how many records would match the other four keys
+when each key is omitted in turn. This diagnostic does not change the keys
+or check whether a variable-level override takes effect.
+
 The logical column \code{coding_from_not_reached} records whether a response was
 supplied as \code{NOT_REACHED} and its own coding rule treated that status as a
 changed value (\code{TAKE_NOT_REACHED_AS_VALUE_CHANGED}). It is captured before
