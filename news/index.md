@@ -1,5 +1,24 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9048 \[2026-11-06\]
+
+### bug fixes
+
+- [`get_design()`](https://iqb-research.github.io/eatPrepTBA/reference/get_design.md)
+  recovers explicitly declared variable IDs from StarS unit definitions
+  when both a coding scheme and usable `unit_variables` are unavailable.
+  This extends the fallback introduced in .9045 to StarS units whose
+  Studio variable table is empty. Load definitions with
+  `get_units(..., unit_definition = TRUE)`. Existing metadata, coding
+  schemes, exclusions, and cached codes keep their precedence; implicit
+  player defaults are not inferred.
+
+### tests
+
+- Added coverage for the StarS 0.15 `BUTTONS` definition with ID
+  `interact` and `run-hot-restart`, mixed variable sources, explicit
+  meta variables, unrelated references, and malformed definitions.
+
 ## eatPrepTBA 0.9.8.9047 \[2026-11-05\]
 
 ### bug fixes

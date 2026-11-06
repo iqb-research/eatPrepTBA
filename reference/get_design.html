@@ -13,7 +13,7 @@ With units = NULL, the result remains at unit level, without variable_id."><meta
 
     <a class="navbar-brand me-2" href="../index.html">eatPrepTBA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9047</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.8.9048</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,8 +73,10 @@ With <code>units = NULL</code>, the result remains at unit level, without <code>
 <dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
 <dd><p>Tibble (optional). Unit data retrieved from <code><a href="get_units.html">get_units()</a></code>. Coding
 schemes supply the variables for each unit. Units without a coding scheme
-use <code>unit_variables$variable_id</code> instead, for example StarS units. May also
-contain <code>unit_codes</code> prepared by <code><a href="add_coding_scheme.html">add_coding_scheme()</a></code> to save time.</p></dd>
+use <code>unit_variables$variable_id</code> instead. If these are unavailable, explicit
+variable IDs in a StarS <code>unit_definition</code> are used. Retrieve definitions with
+<code>get_units(..., unit_definition = TRUE)</code>. May also contain <code>unit_codes</code>
+prepared by <code><a href="add_coding_scheme.html">add_coding_scheme()</a></code> to save time.</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -102,10 +104,15 @@ results allow the fallback only if the underlying scheme is missing or empty;
 otherwise they remain empty until rebuilt with <code>overwrite = TRUE</code>.
 The fallback uses the normalized IDs from <code><a href="get_units.html">get_units()</a></code>, including its alias
 handling. Duplicate IDs are collapsed and missing or blank IDs are ignored.
+If no usable metadata IDs remain, StarS definitions supply explicit IDs from
+<code>interactionParameters$variableId</code>, <code>variableInfo</code>, and the selection/outcome
+fields of <code>closingMetaButtons</code>. Reference IDs and unrelated JSON fields are
+not included. Implicit player defaults are not inferred; definitions must
+explicitly name the variables needed for the design.
 Units without any available variable IDs contribute no variable-level rows.</p>
-<p>The variable list comes from unit metadata, not observed responses, so it can
+<p>The variable list comes from metadata or definitions, not observed responses, so it can
 include variables that nobody answered. For StarS data, check that the IDs in
-the unit metadata match those returned by <code><a href="prepare_coded.html">prepare_coded()</a></code>. A variable-level
+the metadata or definitions match those returned by <code><a href="prepare_coded.html">prepare_coded()</a></code>. A variable-level
 design alone does not supply the coding metadata required by <code><a href="complete_design.html">complete_design()</a></code>.</p>
     </div>
     <div class="section level2">

@@ -27,8 +27,11 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
   Tibble (optional). Unit data retrieved from
   [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md).
   Coding schemes supply the variables for each unit. Units without a
-  coding scheme use `unit_variables$variable_id` instead, for example
-  StarS units. May also contain `unit_codes` prepared by
+  coding scheme use `unit_variables$variable_id` instead. If these are
+  unavailable, explicit variable IDs in a StarS `unit_definition` are
+  used. Retrieve definitions with
+  `get_units(..., unit_definition = TRUE)`. May also contain
+  `unit_codes` prepared by
   [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
   to save time.
 
@@ -61,12 +64,18 @@ they remain empty until rebuilt with `overwrite = TRUE`. The fallback
 uses the normalized IDs from
 [`get_units()`](https://iqb-research.github.io/eatPrepTBA/reference/get_units.md),
 including its alias handling. Duplicate IDs are collapsed and missing or
-blank IDs are ignored. Units without any available variable IDs
-contribute no variable-level rows.
+blank IDs are ignored. If no usable metadata IDs remain, StarS
+definitions supply explicit IDs from `interactionParameters$variableId`,
+`variableInfo`, and the selection/outcome fields of
+`closingMetaButtons`. Reference IDs and unrelated JSON fields are not
+included. Implicit player defaults are not inferred; definitions must
+explicitly name the variables needed for the design. Units without any
+available variable IDs contribute no variable-level rows.
 
-The variable list comes from unit metadata, not observed responses, so
-it can include variables that nobody answered. For StarS data, check
-that the IDs in the unit metadata match those returned by
+The variable list comes from metadata or definitions, not observed
+responses, so it can include variables that nobody answered. For StarS
+data, check that the IDs in the metadata or definitions match those
+returned by
 [`prepare_coded()`](https://iqb-research.github.io/eatPrepTBA/reference/prepare_coded.md).
 A variable-level design alone does not supply the coding metadata
 required by
