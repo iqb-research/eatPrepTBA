@@ -18,4 +18,7 @@ A tibble.
 }
 \description{
 Returns the \code{units} object with added column \code{unit_codes}. The routine can also propose variable pages if \code{\link[=get_units]{get_units()}} was called with \code{unit_definition = TRUE}. Please note that no other operation except for filtering or \code{add_metadata()} should be applied to the \code{units}.
+Empty lists and \code{NULL} entries in \code{unit_variables} are treated as absent
+variable metadata when preparing codes, including in mixed workspaces.
+The original \code{unit_variables} column is preserved.
 }
