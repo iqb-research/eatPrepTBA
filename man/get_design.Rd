@@ -14,8 +14,10 @@ get_design(workspace, units = NULL, overwrite = FALSE, mode = "run-hot-return")
 
 \item{units}{Tibble (optional). Unit data retrieved from \code{\link[=get_units]{get_units()}}. Coding
 schemes supply the variables for each unit. Units without a coding scheme
-use \code{unit_variables$variable_id} instead, for example StarS units. May also
-contain \code{unit_codes} prepared by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save time.}
+use \code{unit_variables$variable_id} instead. If these are unavailable, explicit
+variable IDs in a StarS \code{unit_definition} are used. Retrieve definitions with
+\code{get_units(..., unit_definition = TRUE)}. May also contain \code{unit_codes}
+prepared by \code{\link[=add_coding_scheme]{add_coding_scheme()}} to save time.}
 
 \item{overwrite}{Logical. Should existing \code{unit_codes} be rebuilt? Defaults
 to \code{FALSE}, which reuses codes prepared by \code{\link[=add_coding_scheme]{add_coding_scheme()}}.}
@@ -42,11 +44,16 @@ results allow the fallback only if the underlying scheme is missing or empty;
 otherwise they remain empty until rebuilt with \code{overwrite = TRUE}.
 The fallback uses the normalized IDs from \code{\link[=get_units]{get_units()}}, including its alias
 handling. Duplicate IDs are collapsed and missing or blank IDs are ignored.
+If no usable metadata IDs remain, StarS definitions supply explicit IDs from
+\code{interactionParameters$variableId}, \code{variableInfo}, and the selection/outcome
+fields of \code{closingMetaButtons}. Reference IDs and unrelated JSON fields are
+not included. Implicit player defaults are not inferred; definitions must
+explicitly name the variables needed for the design.
 Units without any available variable IDs contribute no variable-level rows.
 
-The variable list comes from unit metadata, not observed responses, so it can
+The variable list comes from metadata or definitions, not observed responses, so it can
 include variables that nobody answered. For StarS data, check that the IDs in
-the unit metadata match those returned by \code{\link[=prepare_coded]{prepare_coded()}}. A variable-level
+the metadata or definitions match those returned by \code{\link[=prepare_coded]{prepare_coded()}}. A variable-level
 design alone does not supply the coding metadata required by \code{\link[=complete_design]{complete_design()}}.
 }
 \section{Functions}{

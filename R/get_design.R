@@ -3,8 +3,10 @@
 #' @param workspace [WorkspaceTestcenter-class]. Workspace information necessary to retrieve ressources of testtakers and booklets.
 #' @param units Tibble (optional). Unit data retrieved from [get_units()]. Coding
 #' schemes supply the variables for each unit. Units without a coding scheme
-#' use `unit_variables$variable_id` instead, for example StarS units. May also
-#' contain `unit_codes` prepared by [add_coding_scheme()] to save time.
+#' use `unit_variables$variable_id` instead. If these are unavailable, explicit
+#' variable IDs in a StarS `unit_definition` are used. Retrieve definitions with
+#' `get_units(..., unit_definition = TRUE)`. May also contain `unit_codes`
+#' prepared by [add_coding_scheme()] to save time.
 #' @param overwrite Logical. Should existing `unit_codes` be rebuilt? Defaults
 #' to `FALSE`, which reuses codes prepared by [add_coding_scheme()].
 #' @param mode Character. Only testtakers with the specified modes will be filtered. Defaults to `"run-hot-return"`.
@@ -26,11 +28,16 @@
 #' otherwise they remain empty until rebuilt with `overwrite = TRUE`.
 #' The fallback uses the normalized IDs from [get_units()], including its alias
 #' handling. Duplicate IDs are collapsed and missing or blank IDs are ignored.
+#' If no usable metadata IDs remain, StarS definitions supply explicit IDs from
+#' `interactionParameters$variableId`, `variableInfo`, and the selection/outcome
+#' fields of `closingMetaButtons`. Reference IDs and unrelated JSON fields are
+#' not included. Implicit player defaults are not inferred; definitions must
+#' explicitly name the variables needed for the design.
 #' Units without any available variable IDs contribute no variable-level rows.
 #'
-#' The variable list comes from unit metadata, not observed responses, so it can
+#' The variable list comes from metadata or definitions, not observed responses, so it can
 #' include variables that nobody answered. For StarS data, check that the IDs in
-#' the unit metadata match those returned by [prepare_coded()]. A variable-level
+#' the metadata or definitions match those returned by [prepare_coded()]. A variable-level
 #' design alone does not supply the coding metadata required by [complete_design()].
 #'
 #' @return A tibble.
@@ -135,8 +142,11 @@ prepare_design_variables <- function(units, overwrite = FALSE) {
   variable_tables <- vector("list", nrow(units))
   use_variables <- variable_source == "variables"
   if (any(use_variables)) {
-    assert_cols(units, "unit_variables", "units")
-    variable_tables[use_variables] <- units$unit_variables[use_variables]
+    if ("unit_variables" %in% names(units)) {
+      variable_tables[use_variables] <- units$unit_variables[use_variables]
+    } else if (!"unit_definition" %in% names(units)) {
+      assert_cols(units, "unit_variables", "units")
+    }
   }
   use_codes <- variable_source == "codes"
   if (any(use_codes)) {
@@ -150,11 +160,16 @@ prepare_design_variables <- function(units, overwrite = FALSE) {
 
   variables <- lapply(seq_along(variable_tables), function(i) {
     table <- variable_tables[[i]]
-    if (NROW(table) == 0L) return(empty)
-
-    assert_cols(table, "variable_id", paste0("variables for unit ", units$unit_key[[i]]))
-    ids <- as.character(table$variable_id)
-    ids <- ids[!is.na(ids) & nzchar(trimws(ids))]
+    ids <- character()
+    if (NROW(table) > 0L) {
+      assert_cols(table, "variable_id", paste0("variables for unit ", units$unit_key[[i]]))
+      ids <- as.character(table$variable_id)
+      ids <- ids[!is.na(ids) & nzchar(trimws(ids))]
+    }
+    if (use_variables[[i]] && length(ids) == 0L &&
+        "unit_definition" %in% names(units)) {
+      ids <- design_variables_stars(units$unit_definition[[i]], units$unit_key[[i]])
+    }
     tibble::tibble(unit_key = rep(units$unit_key[i], length(ids)), variable_id = ids)
   })
   dplyr::distinct(dplyr::bind_rows(variables), unit_key, variable_id)
