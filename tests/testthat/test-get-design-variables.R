@@ -1,10 +1,10 @@
-local_design_testcenter <- function(unit_keys, .env = parent.frame()) {
+local_design_testcenter <- function(unit_keys, .env = parent.frame(), run_mode = "run-hot-return") {
   testthat::local_mocked_bindings(
     get_testtakers = function(workspace) {
       tibble::tibble(
         group_id = "G1", login_name = c("P1", "P2", "Preview"),
         login_code = c("C1", "C2", "Preview"),
-        login_mode = c("run-hot-return", "run-hot-return", "run-review"),
+        login_mode = c(run_mode, run_mode, "run-review"),
         booklet_id = "B1", booklet_no = 1L
       )
     },
@@ -209,4 +209,120 @@ test_that("get_design does not treat malformed coding schemes as absent", {
   local_design_testcenter("S1")
   units <- design_unit_without_scheme(scheme = "not valid JSON")
   expect_error(get_design(fake_testcenter_workspace(), units = units), "(JSON|json|parse|lexical)")
+})
+
+design_stars_definition <- function(...) {
+  definition <- list(
+    id = "stars-unit-definition", version = "0.15", interactionType = "BUTTONS",
+    interactionParameters = list(variableId = "interact"),
+    variableInfo = list(list(variableId = "interact"))
+  )
+  overrides <- list(...)
+  definition[names(overrides)] <- overrides
+  as.character(jsonlite::toJSON(definition, auto_unbox = TRUE, null = "null"))
+}
+
+design_stars_unit <- function() {
+  units <- design_unit_without_scheme()
+  units$unit_variables <- list(NULL)
+  units$unit_definition <- design_stars_definition()
+  units
+}
+
+test_that("get_design recovers StarS definition IDs with run-hot-restart", {
+  local_design_testcenter("S1", run_mode = "run-hot-restart")
+  units <- design_stars_unit()
+  basis <- get_design(fake_testcenter_workspace(), mode = "run-hot-restart")
+  design <- get_design(fake_testcenter_workspace(), units = units, mode = "run-hot-restart")
+
+  expect_equal(nrow(design), nrow(basis))
+  expect_equal(design$variable_id, rep("interact", 2L))
+  expect_equal(design$login_mode, rep("run-hot-restart", 2L))
+  expect_equal(design$unit_alias, basis$unit_alias)
+  expect_equal(nrow(get_design(fake_testcenter_workspace(), units = units)), 0L)
+
+  units$unit_variables <- NULL
+  expect_equal(get_design(fake_testcenter_workspace(), units = units,
+                         mode = "run-hot-restart")$variable_id, rep("interact", 2L))
+})
+
+test_that("StarS definitions contribute explicit declarations without unrelated references", {
+  units <- design_stars_unit()
+  units$unit_definition <- design_stars_definition(
+    variableInfo = list(list(variableId = "interact"), list(variableId = "SECOND"),
+                        list(variableId = ""), list(variableId = " \t")),
+    closingMetaButtons = list(variableIdMetaSelection = "SELECTION",
+                             variableIdMetaOutcome = "OUTCOME",
+                             variableIdReference = "REFERENCE_ONLY"),
+    audioFeedback = list(feedback = list(list(variableId = "FEEDBACK_ONLY"))),
+    unrelated = list(variableId = "UNRELATED")
+  )
+  vars <- eatPrepTBA:::prepare_design_variables(units)
+  expect_identical(vars$variable_id, c("interact", "SECOND", "SELECTION", "OUTCOME"))
+
+  units$unit_definition <- design_stars_definition(variableInfo = NULL)
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "interact")
+  units$unit_definition <- design_stars_definition(interactionParameters = NULL)
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "interact")
+})
+
+test_that("StarS definition fallback preserves metadata, schemes, and cached code precedence", {
+  units <- design_stars_unit()
+  units$unit_variables <- list(tibble::tibble(variable_id = "METADATA"))
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "METADATA")
+
+  units$unit_variables <- list(tibble::tibble(variable_id = c(NA_character_, "", "  ")))
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "interact")
+
+  units$unit_codes <- list(tibble::tibble(variable_id = "CACHED"))
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "CACHED")
+  expect_identical(eatPrepTBA:::prepare_design_variables(units, overwrite = TRUE)$variable_id,
+                   "interact")
+  units$unit_codes <- list(NULL)
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "interact")
+
+  active <- design_unit_with_scheme()
+  active$unit_definition <- design_stars_definition()
+  expect_identical(eatPrepTBA:::prepare_design_variables(active)$variable_id, c("V1", "DERIVED"))
+  active$unit_codes <- list(tibble::tibble(variable_id = character()))
+  expect_equal(nrow(eatPrepTBA:::prepare_design_variables(active)), 0L)
+
+  excluded <- design_unit_with_scheme(only_excluded = TRUE)
+  excluded$unit_definition <- design_stars_definition()
+  expect_equal(nrow(eatPrepTBA:::prepare_design_variables(excluded, overwrite = TRUE)), 0L)
+})
+
+test_that("get_design combines StarS definitions with other variable sources", {
+  local_design_testcenter(c("U1", "S1", "METADATA", "OTHER"))
+  units <- dplyr::bind_rows(design_unit_with_scheme(), design_stars_unit(),
+                            design_unit_without_scheme(key = "METADATA"))
+  design <- get_design(fake_testcenter_workspace(), units = units)
+  expect_equal(nrow(design), 10L)
+  expect_equal(design$variable_id[design$unit_key == "S1"], rep("interact", 2L))
+  expect_false("OTHER" %in% design$unit_key)
+})
+
+test_that("StarS fallback handles empty definitions and does not interpret other players", {
+  units <- design_stars_unit()
+  for (definition in list(NULL, NA_character_, "", "null", "{}", "<xml/>",
+                         '{"id":"other-player","interactionParameters":{"variableId":"NO"}}',
+                         design_stars_definition(interactionParameters = NULL, variableInfo = NULL))) {
+    units$unit_definition <- list(definition)
+    expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, character())
+  }
+})
+
+test_that("malformed StarS declarations are reported when the fallback is needed", {
+  units <- design_stars_unit()
+  units$unit_definition <- '{"id":"stars-unit-definition",'
+  expect_error(eatPrepTBA:::prepare_design_variables(units), "Invalid StarS unit definition.*S1")
+  units$unit_definition <- design_stars_definition(interactionParameters = list(variableId = 42))
+  expect_error(eatPrepTBA:::prepare_design_variables(units), "Invalid variable ID.*S1")
+  units$unit_definition <- design_stars_definition(variableInfo = list("bad entry"))
+  expect_error(eatPrepTBA:::prepare_design_variables(units), "Invalid variableInfo entry.*S1")
+  units$unit_definition <- design_stars_definition(variableInfo = "bad table")
+  expect_error(eatPrepTBA:::prepare_design_variables(units), "Invalid variable declarations.*S1")
+
+  units$unit_variables <- list(tibble::tibble(variable_id = "METADATA"))
+  expect_identical(eatPrepTBA:::prepare_design_variables(units)$variable_id, "METADATA")
 })
