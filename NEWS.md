@@ -1,3 +1,13 @@
+# eatPrepTBA 0.9.8.9049 [2026-11-06]
+
+## bug fixes
+
+* `add_coding_scheme()` handles empty lists and `NULL` entries in `unit_variables` alongside populated variable tables. This fixes the `unnest()` type conflict during `complete_design()` for mixed workspaces containing StarS units without variable metadata. Existing unit metadata and coding schemes are preserved; missing credit types or item mappings are not inferred.
+
+## tests
+
+* Added regression coverage using Studio reader output, empty variable metadata with and without coding schemes, and preservation of supplied StarS responses during design completion.
+
 # eatPrepTBA 0.9.8.9048 [2026-11-06]
 
 ## bug fixes

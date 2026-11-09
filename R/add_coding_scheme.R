@@ -6,6 +6,9 @@
 #'
 #' @description
 #' Returns the `units` object with added column `unit_codes`. The routine can also propose variable pages if [get_units()] was called with `unit_definition = TRUE`. Please note that no other operation except for filtering or `add_metadata()` should be applied to the `units`.
+#' Empty lists and `NULL` entries in `unit_variables` are treated as absent
+#' variable metadata when preparing codes, including in mixed workspaces.
+#' The original `unit_variables` column is preserved.
 #'
 #' @return A tibble.
 #' @export
@@ -198,6 +201,18 @@ add_coding_scheme <- function(units, filter_has_codes = TRUE, overwrite = FALSE)
         unit_key,
         unit_variables
       ) %>%
+      dplyr::mutate(unit_variables = purrr::map(unit_variables, function(variables) {
+        # Studio can return [] or null for units without variable metadata.
+        # Use a zero-row table so unnest can combine these with real tables;
+        # keep the join columns even when every variable table is absent.
+        if (length(variables) == 0L) {
+          return(tibble::tibble(
+            variable_ref = character(), variable_type = character(),
+            variable_format = character()
+          ))
+        }
+        variables
+      })) %>%
       tidyr::unnest(unit_variables) %>%
       dplyr::select(-dplyr::any_of("variable_id"))
 
