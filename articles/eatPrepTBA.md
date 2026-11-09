@@ -20,8 +20,8 @@ workflow](https://iqb-research.github.io/eatPrepTBA/articles/standard-workflow.m
 
 ``` r
 
-install.packages("pak") # once
-pak::pak("iqb-research/eatPrepTBA")
+install.packages("remotes") # once
+remotes::install_github("iqb-research/eatPrepTBA")
 library(eatPrepTBA)
 ```
 

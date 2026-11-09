@@ -18,8 +18,8 @@ You can install the development version of eatPrepTBA from
 
 ``` r
 
-install.packages("pak") # once
-pak::pak("iqb-research/eatPrepTBA")
+install.packages("remotes") # once
+remotes::install_github("iqb-research/eatPrepTBA")
 ```
 
 ## Getting started
