@@ -6,7 +6,10 @@ can also propose variable pages if
 was called with `unit_definition = TRUE`. Please note that no other
 operation except for filtering or
 [`add_metadata()`](https://iqb-research.github.io/eatPrepTBA/reference/add_metadata.md)
-should be applied to the `units`.
+should be applied to the `units`. Empty lists and `NULL` entries in
+`unit_variables` are treated as absent variable metadata when preparing
+codes, including in mixed workspaces. The original `unit_variables`
+column is preserved.
 
 ## Usage
 

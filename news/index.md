@@ -1,5 +1,25 @@
 # Changelog
 
+## eatPrepTBA 0.9.8.9049 \[2026-11-06\]
+
+### bug fixes
+
+- [`add_coding_scheme()`](https://iqb-research.github.io/eatPrepTBA/reference/add_coding_scheme.md)
+  handles empty lists and `NULL` entries in `unit_variables` alongside
+  populated variable tables. This fixes the
+  [`unnest()`](https://tidyr.tidyverse.org/reference/unnest.html) type
+  conflict during
+  [`complete_design()`](https://iqb-research.github.io/eatPrepTBA/reference/complete_design.md)
+  for mixed workspaces containing StarS units without variable metadata.
+  Existing unit metadata and coding schemes are preserved; missing
+  credit types or item mappings are not inferred.
+
+### tests
+
+- Added regression coverage using Studio reader output, empty variable
+  metadata with and without coding schemes, and preservation of supplied
+  StarS responses during design completion.
+
 ## eatPrepTBA 0.9.8.9048 \[2026-11-06\]
 
 ### bug fixes
