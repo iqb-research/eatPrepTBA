@@ -1,3 +1,8 @@
+# eatPrepTBA 0.9.8.9049 [2026-11-18]
+## new features 
+
+* `generate_booklet()` accepts a `widgets` selection and `journal_lines` value to add a calculator widget configuration to booklet XML. The calculator supports a configurable number of journal lines; molecule and periodic widgets are recognized but their configurations are not implemented yet.
+
 # eatPrepTBA 0.9.8.9049 [2026-11-06]
 
 ## bug fixes

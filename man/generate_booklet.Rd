@@ -14,7 +14,9 @@ generate_booklet(
   app_version = "16.0.2",
   login = NULL,
   booklet_config_version = c("18.1", "18.0", "legacy-16"),
-  custom_texts = NULL
+  custom_texts = NULL,
+  widgets = NULL,
+  journal_lines = 0L
 )
 }
 \arguments{
@@ -42,6 +44,14 @@ the raw-GitHub schema URL for \code{app_version}.}
 \item{custom_texts}{Optional named list of Testcenter custom text keys and
 replacement strings. These are emitted as booklet-level \code{CustomText} nodes
 directly after \code{Metadata}.}
+
+\item{widgets}{Optional character vector specifying the widgets to include
+in the booklet. Possible values are \code{"calculator"}, \code{"molecule"} and
+\code{"periodic"}. Implemented widgets are added to the booklet's \code{Widgets}
+configuration and referenced from its \code{Units} node.}
+
+\item{journal_lines}{Optional numeric value. Number of journal lines displayed in the
+calculator widget. Defaults to \code{0}.}
 }
 \value{
 A booklet XML.

@@ -15,6 +15,12 @@
 #' @param custom_texts Optional named list of Testcenter custom text keys and
 #'   replacement strings. These are emitted as booklet-level `CustomText` nodes
 #'   directly after `Metadata`.
+#' @param widgets Optional character vector specifying the widgets to include
+#'   in the booklet. Possible values are `"calculator"`, `"molecule"` and
+#'   `"periodic"`. Implemented widgets are added to the booklet's `Widgets`
+#'   configuration and referenced from its `Units` node.
+#' @param journal_lines Optional numeric value. Number of journal lines displayed in the
+#'   calculator widget. Defaults to `0`.
 #'
 #' @description
 #' `r lifecycle::badge("deprecated")`
@@ -30,7 +36,9 @@ generate_booklet <- function(booklet_id,
                              app_version = "16.0.2",
                              login = NULL,
                              booklet_config_version = c("18.1", "18.0", "legacy-16"),
-                             custom_texts = NULL) {
+                             custom_texts = NULL,
+                             widgets = NULL,
+                             journal_lines = 0L) {
   cli_setting()
   # input validation
   checkmate::assert_character(booklet_id)
@@ -49,6 +57,15 @@ generate_booklet <- function(booklet_id,
     booklet_configuration,
     booklet_config_version = booklet_config_version
   )
+
+  Widgets <- prepare_widgets(
+    widgets,
+    journal_lines = journal_lines
+  )
+
+  # Testcenter references the calculator as "calc" on the Units node.
+  unit_widgets <- if ("calculator" %in% widgets) "calc" else NULL
+
 
   if (!is.null(login)) {
     app_version <- login@app_version
@@ -69,7 +86,7 @@ generate_booklet <- function(booklet_id,
     cli::cli_alert_danger("Either {.arg units} or {.arg testlets} or must be specified.")
   } else {
     if (! is.null(units)) {
-      Units <- prepare_units(units)
+      Units <- prepare_units(units, widgets = unit_widgets)
     } else if (! is.null(testlets)) {
       Units <- prepare_testlets(testlets)
     }
@@ -79,6 +96,7 @@ generate_booklet <- function(booklet_id,
     Metadata = Metadata,
     CustomTexts = CustomTexts,
     BookletConfig = BookletConfig,
+    Widgets = Widgets$Widgets,
     Units = Units
   ) %>%
     purrr::discard(is.null)
@@ -128,11 +146,17 @@ prepare_restrictions <- function(code_to_enter = NULL,
   }
 }
 
-prepare_units <- function(units) {
-  units %>%
+prepare_units <- function(units, widgets = NULL) {
+  prepared_units <- units %>%
     as.list() %>%
     purrr::list_transpose(simplify = FALSE) %>%
     purrr::set_names("Unit")
+
+  if (!is.null(widgets)) {
+    return(list(prepared_units, widgets = widgets))
+  }
+
+  prepared_units
 }
 
 prepare_testlets <- function(testlets) {
