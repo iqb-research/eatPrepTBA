@@ -58,10 +58,12 @@ generate_booklet <- function(booklet_id,
     booklet_config_version = booklet_config_version
   )
 
+
   Widgets <- prepare_widgets(
     widgets,
     journal_lines = journal_lines
   )
+
 
   # Testcenter references the calculator as "calc" on the Units node.
   unit_widgets <- if ("calculator" %in% widgets) "calc" else NULL
@@ -100,9 +102,7 @@ generate_booklet <- function(booklet_id,
     Units = Units
   ) %>%
     purrr::discard(is.null)
-
-  # Get nodes together
-  list(
+  xml_doc <- list(
     Booklet = list(
       booklet_children,
       "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
@@ -110,9 +110,28 @@ generate_booklet <- function(booklet_id,
         booklet_config_version,
         app_version
       )
-    ))  %>%
+    )
+  ) %>%
     list_to_xml() %>%
     xml2::as_xml_document()
+
+  if ("calculator" %in% widgets) {
+    widget_node <- xml2::xml_find_first(
+      xml_doc,
+      ".//Widgets/Widget[@id='calc']"
+    )
+
+    xml2::xml_remove(xml2::xml_find_first(widget_node, "./text()"))
+
+    parameter_node <- xml2::xml_add_child(
+      widget_node,
+      "Parameter",
+      as.character(journal_lines)
+    )
+    xml2::xml_set_attr(parameter_node, "key", "JOURNAL_LINES")
+  }
+
+  xml_doc
 }
 
 prepare_restrictions <- function(code_to_enter = NULL,
