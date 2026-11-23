@@ -15,10 +15,8 @@
 #' @param custom_texts Optional named list of Testcenter custom text keys and
 #'   replacement strings. These are emitted as booklet-level `CustomText` nodes
 #'   directly after `Metadata`.
-#' @param widgets Optional character vector specifying the widgets to include
-#'   in the booklet. Possible values are `"calculator"`, `"molecule"` and
-#'   `"periodic"`. Implemented widgets are added to the booklet's `Widgets`
-#'   configuration and referenced from its `Units` node.
+#' @param calculator Logical. Whether to include a calculator in this booklet.
+#'   Defaults to `FALSE`.
 #' @param journal_lines Optional numeric value. Number of journal lines displayed in the
 #'   calculator widget. Defaults to `0`.
 #'
@@ -37,7 +35,7 @@ generate_booklet <- function(booklet_id,
                              login = NULL,
                              booklet_config_version = c("18.1", "18.0", "legacy-16"),
                              custom_texts = NULL,
-                             widgets = NULL,
+                             calculator = FALSE,
                              journal_lines = 0L) {
   cli_setting()
   # input validation
@@ -49,6 +47,7 @@ generate_booklet <- function(booklet_id,
   checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
   checkmate::assert_data_frame(units, null.ok = TRUE)
   checkmate::assert_data_frame(testlets, null.ok = TRUE)
+  checkmate::assert_flag(calculator)
   booklet_config_version <- match.arg(booklet_config_version)
 
   CustomTexts <- prepare_custom_texts(custom_texts)
@@ -59,14 +58,14 @@ generate_booklet <- function(booklet_id,
   )
 
 
-  Widgets <- prepare_widgets(
-    widgets,
+  Calculator <- prepare_calculator(
+    calculator,
     journal_lines = journal_lines
   )
 
 
   # Testcenter references the calculator as "calc" on the Units node.
-  unit_widgets <- if ("calculator" %in% widgets) "calc" else NULL
+  unit_calculator <- if (calculator) "calc" else NULL
 
 
   if (!is.null(login)) {
@@ -88,7 +87,7 @@ generate_booklet <- function(booklet_id,
     cli::cli_alert_danger("Either {.arg units} or {.arg testlets} or must be specified.")
   } else {
     if (! is.null(units)) {
-      Units <- prepare_units(units, widgets = unit_widgets)
+      Units <- prepare_units(units, calculator = unit_calculator)
     } else if (! is.null(testlets)) {
       Units <- prepare_testlets(testlets)
     }
@@ -98,7 +97,7 @@ generate_booklet <- function(booklet_id,
     Metadata = Metadata,
     CustomTexts = CustomTexts,
     BookletConfig = BookletConfig,
-    Widgets = Widgets$Widgets,
+    Widgets = Calculator$Widgets,
     Units = Units
   ) %>%
     purrr::discard(is.null)
@@ -115,7 +114,7 @@ generate_booklet <- function(booklet_id,
     list_to_xml() %>%
     xml2::as_xml_document()
 
-  if ("calculator" %in% widgets) {
+  if (calculator) {
     widget_node <- xml2::xml_find_first(
       xml_doc,
       ".//Widgets/Widget[@id='calc']"
@@ -165,14 +164,15 @@ prepare_restrictions <- function(code_to_enter = NULL,
   }
 }
 
-prepare_units <- function(units, widgets = NULL) {
+prepare_units <- function(units, calculator = NULL) {
   prepared_units <- units %>%
     as.list() %>%
     purrr::list_transpose(simplify = FALSE) %>%
     purrr::set_names("Unit")
 
-  if (!is.null(widgets)) {
-    return(list(prepared_units, widgets = widgets))
+  if (!is.null(calculator)) {
+    # The Testcenter XML schema names this Unit attribute "widgets".
+    return(list(prepared_units, widgets = calculator))
   }
 
   prepared_units
