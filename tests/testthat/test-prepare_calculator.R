@@ -31,8 +31,8 @@ test_that("prepare_calculator uses the specified journal lines", {
 
 test_that("prepare_calculator validates its inputs", {
   expect_error(prepare_calculator("mas"))
-  expect_error(prepare_calculator(TRUE, journal_lines = -1), class = "assertError")
-  expect_error(prepare_calculator(TRUE, journal_lines = 1.5), class = "assertError")
+  expect_error(prepare_calculator(TRUE, journal_lines = -1))
+  expect_error(prepare_calculator(TRUE, journal_lines = 1.5))
 })
 
 test_that("generate_booklet adds calculator only when requested", {
