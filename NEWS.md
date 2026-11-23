@@ -1,5 +1,5 @@
-# eatPrepTBA 0.9.8.9049 [2026-11-18]
-## new features 
+# eatPrepTBA 0.9.8.9050 [2026-11-23]
+## new features
 
 * Added calculator configuration to `generate_booklet()`. Set `calculator = TRUE` to include the calculator in a booklet and use `journal_lines` to configure the number of journal lines.
 
