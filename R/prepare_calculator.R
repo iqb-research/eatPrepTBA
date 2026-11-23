@@ -5,6 +5,7 @@
 #'   in the calculator. Defaults to `0`.
 #'
 #' @return A list containing the calculator configuration or NULL if disabled.
+#' @keywords internal
 prepare_calculator <- function(calculator = FALSE,
                                journal_lines = 0L) {
   checkmate::assert_flag(calculator)

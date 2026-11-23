@@ -18,3 +18,4 @@ A list containing the calculator configuration or NULL if disabled.
 \description{
 Prepare calculator configuration for booklet XML
 }
+\keyword{internal}

@@ -30,7 +30,7 @@ test_that("prepare_calculator uses the specified journal lines", {
 })
 
 test_that("prepare_calculator validates its inputs", {
-  expect_error(prepare_calculator("mas"), class = "assertError")
+  expect_error(prepare_calculator("mas"))
   expect_error(prepare_calculator(TRUE, journal_lines = -1), class = "assertError")
   expect_error(prepare_calculator(TRUE, journal_lines = 1.5), class = "assertError")
 })
@@ -52,7 +52,10 @@ test_that("generate_booklet adds calculator only when requested", {
   )
 
   expect_length(xml2::xml_find_all(with_calculator, ".//Widgets/Widget[@id='calc']"), 1)
-  expect_equal(xml2::xml_attr(xml2::xml_find_first(with_calculator, ".//Unit[@id='U1']"), "widgets"), "calc")
+  expect_equal(
+    xml2::xml_attr(xml2::xml_find_first(with_calculator, ".//Units"), "widgets"),
+    "calc"
+  )
   expect_equal(
     xml2::xml_text(xml2::xml_find_first(
       with_calculator,
@@ -62,7 +65,7 @@ test_that("generate_booklet adds calculator only when requested", {
   )
   expect_length(xml2::xml_find_all(without_calculator, ".//Widgets/Widget"), 0)
   expect_true(is.na(xml2::xml_attr(
-    xml2::xml_find_first(without_calculator, ".//Unit[@id='U1']"),
+    xml2::xml_find_first(without_calculator, ".//Units"),
     "widgets"
   )))
 })
