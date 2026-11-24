@@ -46,10 +46,10 @@ replacement strings. These are emitted as booklet-level \code{CustomText} nodes
 directly after \code{Metadata}.}
 
 \item{calculator}{Logical. Whether to include a calculator in this booklet.
-Defaults to \code{FALSE}.}
+Defaults to \code{FALSE}. Requires \code{booklet_config_version = "18.1"} when enabled.}
 
-\item{journal_lines}{Optional numeric value. Number of journal lines displayed in the
-calculator widget. Defaults to \code{0}.}
+\item{journal_lines}{Non-negative whole number of journal lines displayed in the
+calculator widget. Missing values are not allowed. Defaults to \code{0}.}
 }
 \value{
 A booklet XML.

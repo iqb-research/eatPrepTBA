@@ -9,8 +9,8 @@ prepare_calculator(calculator = FALSE, journal_lines = 0L)
 \arguments{
 \item{calculator}{Logical. Whether to include the calculator.}
 
-\item{journal_lines}{Optional numeric value. Number of journal lines displayed
-in the calculator. Defaults to \code{0}.}
+\item{journal_lines}{Non-negative whole number of journal lines displayed
+in the calculator. Missing values are not allowed. Defaults to \code{0}.}
 }
 \value{
 A list containing the calculator configuration or NULL if disabled.

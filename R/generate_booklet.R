@@ -16,9 +16,9 @@
 #'   replacement strings. These are emitted as booklet-level `CustomText` nodes
 #'   directly after `Metadata`.
 #' @param calculator Logical. Whether to include a calculator in this booklet.
-#'   Defaults to `FALSE`.
-#' @param journal_lines Optional numeric value. Number of journal lines displayed in the
-#'   calculator widget. Defaults to `0`.
+#'   Defaults to `FALSE`. Requires `booklet_config_version = "18.1"` when enabled.
+#' @param journal_lines Non-negative whole number of journal lines displayed in the
+#'   calculator widget. Missing values are not allowed. Defaults to `0`.
 #'
 #' @description
 #' `r lifecycle::badge("deprecated")`
@@ -50,6 +50,13 @@ generate_booklet <- function(booklet_id,
   checkmate::assert_flag(calculator)
   booklet_config_version <- match.arg(booklet_config_version)
 
+  if (calculator && booklet_config_version != "18.1") {
+    stop(
+      "calculator = TRUE requires booklet_config_version = '18.1'.",
+      call. = FALSE
+    )
+  }
+
   CustomTexts <- prepare_custom_texts(custom_texts)
 
   BookletConfig <- prepare_booklet_configuration(
@@ -62,10 +69,6 @@ generate_booklet <- function(booklet_id,
     calculator,
     journal_lines = journal_lines
   )
-
-
-  # Testcenter references the calculator as "calc" on the Units node.
-  unit_calculator <- if (calculator) "calc" else NULL
 
 
   if (!is.null(login)) {
@@ -87,10 +90,14 @@ generate_booklet <- function(booklet_id,
     cli::cli_alert_danger("Either {.arg units} or {.arg testlets} or must be specified.")
   } else {
     if (! is.null(units)) {
-      Units <- prepare_units(units, calculator = unit_calculator)
+      Units <- prepare_units(units)
     } else if (! is.null(testlets)) {
       Units <- prepare_testlets(testlets)
     }
+  }
+
+  if (calculator) {
+    Units <- list(Units, widgets = "calc")
   }
 
   booklet_children <- list(
@@ -125,7 +132,7 @@ generate_booklet <- function(booklet_id,
     parameter_node <- xml2::xml_add_child(
       widget_node,
       "Parameter",
-      as.character(journal_lines)
+      Calculator$Widgets$Widget$Parameter[[1L]]
     )
     xml2::xml_set_attr(parameter_node, "key", "JOURNAL_LINES")
   }
@@ -164,18 +171,11 @@ prepare_restrictions <- function(code_to_enter = NULL,
   }
 }
 
-prepare_units <- function(units, calculator = NULL) {
-  prepared_units <- units %>%
+prepare_units <- function(units) {
+  units %>%
     as.list() %>%
     purrr::list_transpose(simplify = FALSE) %>%
     purrr::set_names("Unit")
-
-  if (!is.null(calculator)) {
-    # The Testcenter XML schema names this Unit attribute "widgets".
-    return(list(prepared_units, widgets = calculator))
-  }
-
-  prepared_units
 }
 
 prepare_testlets <- function(testlets) {

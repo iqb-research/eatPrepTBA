@@ -33,6 +33,8 @@ test_that("prepare_calculator validates its inputs", {
   expect_error(prepare_calculator("mas"))
   expect_error(prepare_calculator(TRUE, journal_lines = -1))
   expect_error(prepare_calculator(TRUE, journal_lines = 1.5))
+  expect_error(prepare_calculator(TRUE, journal_lines = NA_real_), "journal_lines")
+  expect_error(prepare_calculator(TRUE, journal_lines = NaN), "journal_lines")
 })
 
 test_that("generate_booklet adds calculator only when requested", {
@@ -68,4 +70,84 @@ test_that("generate_booklet adds calculator only when requested", {
     xml2::xml_find_first(without_calculator, ".//Units"),
     "widgets"
   )))
+})
+
+test_that("generate_booklet applies the calculator to testlets", {
+  testlets <- tibble::tibble(
+    id = "T1",
+    label = "Testlet 1",
+    units = list(tibble::tibble(
+      id = c("U1", "U2"),
+      label = c("Unit 1", "Unit 2")
+    )),
+    restrictions = list(list(minutes = 5))
+  )
+
+  for (enabled in c(FALSE, TRUE)) {
+    xml <- generate_booklet(
+      booklet_id = "B1",
+      booklet_label = "Booklet 1",
+      testlets = testlets,
+      calculator = enabled
+    )
+
+    expect_equal(
+      xml2::xml_attr(xml2::xml_find_first(xml, "/Booklet/Units"), "widgets"),
+      if (enabled) "calc" else NA_character_
+    )
+    expect_length(
+      xml2::xml_find_all(xml, "/Booklet/Widgets/Widget[@id='calc']"),
+      as.integer(enabled)
+    )
+    expect_equal(
+      xml2::xml_attr(xml2::xml_find_all(xml, "/Booklet/Units/Testlet/Unit"), "id"),
+      c("U1", "U2")
+    )
+    expect_equal(
+      xml2::xml_attr(xml2::xml_find_first(
+        xml, "/Booklet/Units/Testlet/Restrictions/TimeMax"
+      ), "minutes"),
+      "5"
+    )
+  }
+})
+
+test_that("generate_booklet writes journal lines as decimal integers", {
+  units <- tibble::tibble(id = "U1", label = "Unit 1")
+  values <- list(0L, 3.0, 1e-9, 2.00000001, 2.99999999, 1e7, 2 + 0i)
+
+  actual <- vapply(values, function(value) {
+    xml <- generate_booklet(
+      booklet_id = "B1",
+      booklet_label = "Booklet 1",
+      units = units,
+      calculator = TRUE,
+      journal_lines = value
+    )
+    parameters <- xml2::xml_find_all(
+      xml, "/Booklet/Widgets/Widget[@id='calc']/Parameter[@key='JOURNAL_LINES']"
+    )
+    expect_length(parameters, 1)
+    xml2::xml_text(parameters)
+  }, character(1))
+
+  expect_equal(actual, c("0", "3", "0", "2", "3", "10000000", "2"))
+})
+
+test_that("generate_booklet rejects calculators for older booklet schemas", {
+  units <- tibble::tibble(id = "U1", label = "Unit 1")
+
+  for (version in c("18.0", "legacy-16")) {
+    expect_error(
+      generate_booklet(
+        booklet_id = "B1",
+        booklet_label = "Booklet 1",
+        units = units,
+        calculator = TRUE,
+        booklet_config_version = version
+      ),
+      "calculator = TRUE requires booklet_config_version = '18.1'.",
+      fixed = TRUE
+    )
+  }
 })
