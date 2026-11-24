@@ -15,6 +15,10 @@
 #' @param custom_texts Optional named list of Testcenter custom text keys and
 #'   replacement strings. These are emitted as booklet-level `CustomText` nodes
 #'   directly after `Metadata`.
+#' @param calculator Logical. Whether to include a calculator in this booklet.
+#'   Defaults to `FALSE`. Requires `booklet_config_version = "18.1"` when enabled.
+#' @param journal_lines Non-negative whole number of journal lines displayed in the
+#'   calculator widget. Missing values are not allowed. Defaults to `0`.
 #'
 #' @description
 #' `r lifecycle::badge("deprecated")`
@@ -30,7 +34,9 @@ generate_booklet <- function(booklet_id,
                              app_version = "16.0.2",
                              login = NULL,
                              booklet_config_version = c("18.1", "18.0", "legacy-16"),
-                             custom_texts = NULL) {
+                             custom_texts = NULL,
+                             calculator = FALSE,
+                             journal_lines = 0L) {
   cli_setting()
   # input validation
   checkmate::assert_character(booklet_id)
@@ -41,7 +47,15 @@ generate_booklet <- function(booklet_id,
   checkmate::assert_class(login, "LoginTestcenter", null.ok = TRUE)
   checkmate::assert_data_frame(units, null.ok = TRUE)
   checkmate::assert_data_frame(testlets, null.ok = TRUE)
+  checkmate::assert_flag(calculator)
   booklet_config_version <- match.arg(booklet_config_version)
+
+  if (calculator && booklet_config_version != "18.1") {
+    stop(
+      "calculator = TRUE requires booklet_config_version = '18.1'.",
+      call. = FALSE
+    )
+  }
 
   CustomTexts <- prepare_custom_texts(custom_texts)
 
@@ -49,6 +63,13 @@ generate_booklet <- function(booklet_id,
     booklet_configuration,
     booklet_config_version = booklet_config_version
   )
+
+
+  Calculator <- prepare_calculator(
+    calculator,
+    journal_lines = journal_lines
+  )
+
 
   if (!is.null(login)) {
     app_version <- login@app_version
@@ -75,16 +96,19 @@ generate_booklet <- function(booklet_id,
     }
   }
 
+  if (calculator) {
+    Units <- list(Units, widgets = "calc")
+  }
+
   booklet_children <- list(
     Metadata = Metadata,
     CustomTexts = CustomTexts,
     BookletConfig = BookletConfig,
+    Widgets = Calculator$Widgets,
     Units = Units
   ) %>%
     purrr::discard(is.null)
-
-  # Get nodes together
-  list(
+  xml_doc <- list(
     Booklet = list(
       booklet_children,
       "xmlns:xsi" = "http://www.w3.org/2001/XMLSchema-instance",
@@ -92,9 +116,28 @@ generate_booklet <- function(booklet_id,
         booklet_config_version,
         app_version
       )
-    ))  %>%
+    )
+  ) %>%
     list_to_xml() %>%
     xml2::as_xml_document()
+
+  if (calculator) {
+    widget_node <- xml2::xml_find_first(
+      xml_doc,
+      ".//Widgets/Widget[@id='calc']"
+    )
+
+    xml2::xml_remove(xml2::xml_find_first(widget_node, "./text()"))
+
+    parameter_node <- xml2::xml_add_child(
+      widget_node,
+      "Parameter",
+      Calculator$Widgets$Widget$Parameter[[1L]]
+    )
+    xml2::xml_set_attr(parameter_node, "key", "JOURNAL_LINES")
+  }
+
+  xml_doc
 }
 
 prepare_restrictions <- function(code_to_enter = NULL,
